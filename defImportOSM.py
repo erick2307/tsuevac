@@ -3,7 +3,7 @@
 """
 Created on Mon Dec 14 17:39:15 2020
 
-@author: luismoya
+@author: lmoyah, ercik2307
 """
 
 from osgeo import ogr
