@@ -1,3 +1,4 @@
-# tsuevac
-Tsunami Evacuation using Reinformcent Learning
-Uopdated: 2021.01.04
+# Tsunami Evacuation using Reinformcent Learning
+
+Updated: 2021.01.04
+
