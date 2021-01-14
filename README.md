@@ -1,4 +1,6 @@
 # Tsunami Evacuation using Reinformcent Learning
 
-Updated: 2021.01.04
+2021.01.04 - Repository created
+2021.01.14 - Structure and files updated
+
 
