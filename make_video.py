@@ -60,7 +60,7 @@ def createVideo(filename, foldername, timeSimulation= 30*60, meandeparture=15*60
     return
 
 def main():       
-    filename= "sim_000001526.csv" #name of state matrix to load
+    filename= "sim_000000000.csv" #name of state matrix to load
     foldername= "state" #folder where state matrices are saved
     timeSimulation= 30*60 #total time of simulation
     meandeparture = 15*60 #this is the actual evacuation behavior (not necessary the trained behavior)
