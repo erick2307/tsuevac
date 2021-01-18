@@ -17,13 +17,8 @@ import os
 import multiprocessing as mp 
 plt.ioff() 
 
-class SARSA:
-    def __init__(self, agentsProfileName="data/agentsdb.csv", 
-                 nodesdbFile= "data/nodesdb.csv", 
-                 linksdbFile= "data/linksdb.csv", 
-                 transLinkdbFile= "data/actionsdb.csv", 
-                 transNodedbFile= "data/transitionsdb.csv",
-                 meanRayleigh=7*60, discount = 0.9):
+class pedestrianMonteCarlo:
+    def __init__(self, agentsProfileName="IPF_AgentsCoordV2.csv", meanRayleigh=7*60, discount = 0.9):
         # setting the rewards for survive or dead
         self.surviveReward = 100000
         self.deadReward = -1000
@@ -36,28 +31,28 @@ class SARSA:
         # That is, a reward will be assigned every time an agent arrives a node:
         # new structure: [number, coordX, coordY, evacuationCode, rewardCode]
         # 2020Oct08: the reward node is replaced by reward every step
-        self.nodesdb = np.loadtxt(nodesdbFile, delimiter=',') 
+        self.nodesdb = np.loadtxt("nodesdb_utm_aug2020.csv", delimiter=',') 
         # 2020Oct07: An additional column must be added to store the link width
         # Thus, this is the new format: [number, node1, node2, length, width]
-        self.linksdb = np.loadtxt(linksdbFile, delimiter=',', dtype=np.int) 
+        self.linksdb = np.loadtxt("linksdb.csv", delimiter=',', dtype=np.int) 
         self.populationAtLinks = np.zeros((self.linksdb.shape[0], 2)) # number of agents at links [linkNumber, numberOfAgentsAtLink, density]
         self.populationAtLinks[:,0] = self.linksdb[:,0]
         # Parameters to construct histograms of polations at every link: (1) unit length, (2) number of units
         self.popAtLink_HistParam = np.zeros((self.linksdb.shape[0], 2))
-        self.popAtLink_HistParam[:,1] = np.ceil(self.linksdb[:,3] / 2. ) # assuming length units of about 2 meters
+        self.popAtLink_HistParam[:,1] = np.round( self.linksdb[:,3] / 2. ) # assuming length units of about 2 meters
         self.popAtLink_HistParam[:,0] = self.linksdb[:,3] / self.popAtLink_HistParam[:,1] 
+        # print(self.popAtLink_HistParam)
         # Separating memory for histogram information
         # the number of columns contains the larges number of segments of all the links
-        # 2021Jan08 an error of out of bound in axis 1 was 'solved' by adding +1 to these three arrays         
-        self.popHistPerLink = np.zeros(( self.linksdb.shape[0] , int(max(self.popAtLink_HistParam[:,1]))+1))
-        # 2020Oct07: Memory for density array at links+1
-        self.denArrPerLink= np.zeros(( self.linksdb.shape[0] , int(max(self.popAtLink_HistParam[:,1]))+1))
+        self.popHistPerLink = np.zeros(( self.linksdb.shape[0] , int(max(self.popAtLink_HistParam[:,1])) ))
+        # 2020Oct07: Memory for density array at links
+        self.denArrPerLink= np.zeros(( self.linksdb.shape[0] , int(max(self.popAtLink_HistParam[:,1])) ))
         # 2020Oct07: Memory for velocity array at links
-        self.speArrPerLink= np.zeros(( self.linksdb.shape[0] , int(max(self.popAtLink_HistParam[:,1]))+1))
-        #print(self.speArrPerLink.shape)
+        self.speArrPerLink= np.zeros(( self.linksdb.shape[0] , int(max(self.popAtLink_HistParam[:,1])) ))
+        
         # for p in self.popHistPerLink: print(p)
-        self.transLinkdb = np.loadtxt(transLinkdbFile, delimiter=',', dtype=np.int) # database of actions [currentNode, numberOfNodesTarget, linkConnectingNode1, linkConnectingNode2,...]
-        self.transNodedb = np.loadtxt(transNodedbFile, delimiter=',', dtype=np.int) # database with possible transitions between nodes [currentNode, numberOfNodesTarget, nodeTarget1, nodeTarget2,...]
+        self.transLinkdb = np.loadtxt("actionsdb.csv", delimiter=',', dtype=np.int) # database of actions [currentNode, numberOfNodesTarget, linkConnectingNode1, linkConnectingNode2,...]
+        self.transNodedb = np.loadtxt("transitionsdb.csv", delimiter=',', dtype=np.int) # database with possible transitions between nodes [currentNode, numberOfNodesTarget, nodeTarget1, nodeTarget2,...]
         # identifying evacuation nodes
         self.evacuationNodes = self.nodesdb[self.nodesdb[:,3] == 1,0].astype(np.int)
         self.pedProfiles = np.loadtxt(agentsProfileName, delimiter=',', dtype=np.int) # agents profile [age, gender, householdType, householdId, closestNodeNumber]
@@ -163,19 +158,30 @@ class SARSA:
             dist = np.clip(dist, 0, lengthL)
             
             hist, bin_edges= np.histogram(dist, bins= numComp, range= (0, lengthL) )
-
+            # if ind == 49:
+            #     print("\n\nHere checking")
+            #     print("link indx")
+            #     print(ind)
+            #     print("lengthL")
+            #     print(lengthL)
+            #     print("bins")
+            #     print(bins)
+            #     print("dist")
+            #     print(dist)
+            #     print("hist")
+            #     print(hist)
+            #     print("bin_edges")
+            #     print(bin_edges)
+            #     print("self.populationAtLinks[ind,1]")
+            #     print(self.populationAtLinks[ind,1])
+            #     print("pedDB")
+            #     print(dbPed_tmp.shape)
             self.popHistPerLink[ind, :numComp ] = hist 
             self.denArrPerLink[ind, :numComp] = hist / (unitL * width)
             self.speArrPerLink[ind, :numComp] = 1.388 - 0.396 * self.denArrPerLink[ind, :numComp]
             self.speArrPerLink[ind, :numComp] = np.clip( self.speArrPerLink[ind, :numComp] , 0.2 , 1.19 )
         return
     
-    def computeWeightsAtLinks(self):
-        filename="w_%09d.csv" % self.time
-        fout=os.path.join("weights",filename)
-        np.savetxt(fout,self.populationAtLinks,delimiter=",",fmt="%d")
-        return
-        
     def getPedHistAtLink(self, codeLink):
         numComp= int( self.popAtLink_HistParam[codeLink,1] )
         return self.popHistPerLink[codeLink, :numComp] 
@@ -258,12 +264,7 @@ class SARSA:
         return the matrix "populationAtLinks", the number of pedestrian at links.
         """
         return self.populationAtLinks
-    
-    def resizePedestrianDB(self, size):
-        indx= np.random.choice( self.pedDB.shape[0] , size= size )
-        self.pedDB = self.pedDB[indx, :]
-        return
-    
+        
     ######### Move a unit step in the simulation #########
     def stepForward(self, dt=1):
         """
@@ -292,31 +293,9 @@ class SARSA:
             self.updateTarget(i, ifOptChoice = ifOptChoice)
         return
     
-    #def updateSpeed(self, codeLink, linkWidth = 2.):
-        #"""
-        #Computes the speed at link "codeLink" considering its actual pedestrian-density.
-        #2021Jan06(E) we need to consider vehicles instead of pedestrians.
-        #A new function was copied with different speeds.
-        #"""
-        ## Computes the density at link
-        #density = self.populationAtLinks[codeLink,1] /(linkWidth * self.linksdb[codeLink,3])
-        ## Assign a speed according the the density
-        ## Check paper reference, where these values come from
-        #if density <= 0.5:
-            #return 12.5 + np.random.randn()*0.1
-        #elif density <= 3.0:
-##            print("moderate density of %.4f at %d" % (density,codeLink))
-            #return 5.56 + np.random.randn()*0.1
-        #else:
-##            print("high density of %.4f at %d" % (density,codeLink))
-            #return 1.39 + np.random.randn()*0.01 
-        
-    #### COMMENTED ON 20201 JAN 06 ######    
     def updateSpeed(self, codeLink, linkWidth = 2.):
         """
         Computes the speed at link "codeLink" considering its actual pedestrian-density.
-        2021Jan06(E) we need to consider vehicles instead of pedestrians.
-        A new function was copied with different speeds.
         """
         # Computes the density at link
         density = self.populationAtLinks[codeLink,1] /(linkWidth * self.linksdb[codeLink,3])
@@ -329,8 +308,7 @@ class SARSA:
             return 0.695 + np.random.randn()*0.1
         else:
 #            print("high density of %.4f at %d" % (density,codeLink))
-            return 0.20 + np.random.randn()*0.01     
-    ######################################
+            return 0.20 + np.random.randn()*0.01 
     
     def updateVelocity(self, pedIndx, codeLink, linkWidth = 2.):
         """
@@ -355,24 +333,12 @@ class SARSA:
             x0L, y0L= self.nodesdb[n0L,1] , self.nodesdb[n0L,2]
             dist= ( (self.pedDB[pedIndx,0] - x0L)**2 + (self.pedDB[pedIndx,1] - y0L)**2 )**0.5
             unitL= self.popAtLink_HistParam[codeLink,0]
-            # print("\n*****")
-            # print(pedIndx)
-            # print(dist, unitL, x0L, y0L)
-            # print(self.pedDB[pedIndx,0], self.pedDB[pedIndx,1])
-            # print(self.pedDB[pedIndx,:])
-            # print(dist, unitL)
-            # print("x0, y0")
-            # print(x0L, y0L)
-            # print("ped coordi")
-            # print( self.pedDB[pedIndx,0] , self.pedDB[pedIndx,1] )
-            # print("codelink: ", codeLink)
-            xAtLink= int( np.floor( dist / unitL) ) 
-            #print("dist:" + str(dist))
-            #print("unitL:" + str(unitL))
-            #print("codeLink:" + str(codeLink))
+            xAtLink= int( np.floor( dist / unitL) )
             speed= self.speArrPerLink[codeLink, xAtLink] + np.random.rand()*0.02 - 0.01  
             unitDir = (self.pedDB[pedIndx,2:4] - self.pedDB[pedIndx,:2]) / np.linalg.norm(self.pedDB[pedIndx,2:4] - self.pedDB[pedIndx,:2])
             vel_arr = speed * unitDir
+            # print("\n******here")
+            # print(speed)
             self.pedDB[pedIndx, 4:6] = vel_arr
         return
     
@@ -391,29 +357,32 @@ class SARSA:
         """
         this function updates the velocity of the agents according to their initial evacuation time.
         That is, the function will identify the agents whose initial evacuation time equals the current parameter "self.time".
-        Then, the velocity of these agents are updated (because they have velocity zero at first).
+        Then, the velocity of these agents are updates (because they have velocity zero at first).
         furthermore, here the first experienced state is recorded.
         """
         # Find pedestrian initiating evacuation
         indxPed = np.where(self.pedDB[:,9] == self.time)[0]
-        # Check if there are pedestrians starting evacuation
+        # Check if there are pdestrians starting evacuation
         if len(indxPed) != 0:
             for i in indxPed:
+                # 2020Oct06: I moved the initial random target here.
+                #Previously this section was in __init__ function
+                #-----init-----
                 node0 = int(self.pedDB[i,8]) # current node
-                indxTgt = np.random.choice( int(self.transNodedb[node0,1]) ) # random choice for the next node
+                indxTgt = np.random.choice( int(self.transNodedb[node0,1]) ) # random choise for the next node
                 nodeTgt = self.transNodedb[node0, 2+indxTgt] # next number node
                 link = self.transLinkdb[node0, 2+indxTgt] # next link code
                 self.pedDB[i,7] = nodeTgt
                 self.pedDB[i,6] = link
                 self.pedDB[i, 2:4] = self.nodesdb[nodeTgt, 1:3] # coordinates of the next target (next node)
-                # 2020Aug28: [1 slot for the state code, 1 slot for the agent choice, 1 slot for the arrival time]
+                # 2020Aug28: [1 slot for the state code, 1 slot for the agent choice, 1 slot para el tiempo de arrivo]
                 # 2020Aug28: We reserve three slots now
                 firstState = np.zeros(3, dtype = np.int)
                 firstState[1] = int(indxTgt)
                 #-----end-----
                 # Update velocity
-                self.updateVelocityV2(i)  
-                #previous: self.updateVelocity(i, int(self.pedDB[i,6]))
+                # 2020Oct07: we updated function to compute velocity
+                self.updateVelocityV2(i)  #previous: self.updateVelocity(i, int(self.pedDB[i,6]))
                 
                 # Get state code at starting node
                 indxStat = self.getStateIndexAtNode(int(self.pedDB[i,8]))
@@ -423,13 +392,23 @@ class SARSA:
                 self.expeStat[i] = [firstState] 
                 # Save the first state code experienced by the pedestrian "i" at the list "expeStat".
                 # Note we only save the state code, the action (target node) chosen was assigned in the initiation:
+                    
                 # self.expeStat[i][0][0] = int(indxStat)
+                
+                
+                
                 # Save also the starting time
+                
                 # self.expeStat[i][0][2] = int(self.time)
+                
+                
                 # Report a new pedestrian enter link
                 # But first we check if the pedestrian arrived an evacuation-node
                 if int(self.pedDB[i,6]) >= 0:
                     self.populationAtLinks[int(self.pedDB[i,6]), 1] += 1
+                
+                # delete this too
+                if i == 1126: print(self.expeStat[i])
         return
     
     def updateTarget(self, pedIndx, ifOptChoice = False):
@@ -438,7 +417,10 @@ class SARSA:
         It considers whether the pedestrian uses optimal (exploting) 
         or random (exploring) approach. 
         """
-        # 2020Aug28: using new column of pedDBid ped is in evacuation node:
+        # If pedestrian is already in evacuation node, nothing is done:
+        # if self.pedDB[pedIndx, 6] == -1:
+        #     return
+        # 2020Aug28: using new column of pedDB:
         if self.pedDB[pedIndx,10]:
             return
         # Otherwise, we assign new target node:
@@ -459,7 +441,13 @@ class SARSA:
             # If not optimal choice, then we select randomly, 
             # but using a distribution based on the current action-values
             else:
+                # print("state index:", stateIndx)
+                # print("Qval_arr")
+                # print(Qval_arr)
+                # prob_arr = np.e**Qval_arr / np.sum(np.e**Qval_arr)
+                # indxTgt = np.random.choice(int(self.transNodedb[node0,1]), p=prob_arr)
                 indxTgt = np.random.choice(int(self.transNodedb[node0,1]))
+                # print("here random: ", indxTgt, self.transNodedb[node0,:])
             # Get chosen link and new target node:
             link = self.transLinkdb[node0, 2+indxTgt]
             nodeTgt = self.transNodedb[node0, 2+indxTgt]
@@ -492,36 +480,9 @@ class SARSA:
             # Record state and action experienced by the pedestrian:
             self.expeStat[pedIndx].append(expeStatAndVal) 
             # delete this
-            
-            # 2020Oct08: Apply here TDControl
-            self.tdControl(pedIndx)
-        return
-    
-    def tdControl(self, pedIndx, alpha= 0.05):
-        """
-        This funciton represents the main change between SARSA and MonteCarlo.
-        Here we update the variable "stateMat" during the episode, rather than at the end.
-
-        """
-        trackPed = np.array(self.expeStat[pedIndx])
-        # current and previous states
-        current_S= trackPed[-1,0]
-        pre_S= trackPed[-2,0]
-        # current and previous actions
-        current_A= trackPed[-1,1]
-        pre_A= trackPed[-2,1]
-        # current and pre time
-        current_t = trackPed[-1,2]
-        pre_t = trackPed[-2,2]
-        
-        if self.pedDB[pedIndx,10]:
-            currentReward= self.surviveReward
-            self.stateMat[current_S, 11 + current_A] += alpha * (currentReward - self.stateMat[current_S, 11 + current_A])
-            self.stateMat[current_S, 21 + current_A] += 1
-        
-        preReward= self.stepReward * (current_t - pre_t)
-        self.stateMat[pre_S, 11 + pre_A] += alpha * (preReward + self.discount * self.stateMat[current_S, 11 + current_A] - self.stateMat[pre_S, 11 + pre_A])
-        self.stateMat[pre_S, 21 + pre_A] += 1
+            if pedIndx == 1126:
+                print("pedestrian 1126 (updateTarget, 2nd)")
+                print(self.expeStat[pedIndx]) 
         return
     
     ########## functions to use shortest path
@@ -711,13 +672,13 @@ class SARSA:
  
     ########## Visualization functions ##########
     def setFigureCanvas(self):
-        self.fig, self.ax = plt.subplots(figsize=(12,5))
+        self.fig, self.ax = plt.subplots(figsize=(4,3))
         for i in range(self.linksdb.shape[0]):
             self.ax.plot([self.nodesdb[int(self.linksdb[i,1]),1], self.nodesdb[int(self.linksdb[i,2]),1]],[self.nodesdb[int(self.linksdb[i,1]),2], self.nodesdb[int(self.linksdb[i,2]),2]], c='k', lw=1)
         #indxZeroActions = np.where(self.transLinkdb[:,1] != 0)[0]
-        indxEv = self.nodesdb[:,3] == 1.0
+        indxEv = self.nodesdb[:,3] == 1
         #self.p1, = self.ax.plot(self.nodesdb[indxZeroActions][:,1], self.nodesdb[indxZeroActions][:,2], 'bo', ms=0.5)
-        self.p1, = self.ax.plot(self.nodesdb[indxEv,1], self.nodesdb[indxEv,2], 'rD', ms=4, mfc= "none", mec= "r")
+        self.p1, = self.ax.plot(self.nodesdb[indxEv,1], self.nodesdb[indxEv,2], 'bo', ms=0.5)
         indx = np.where(self.pedDB[:,9] <= self.time)[0]
         # 2020Oct07: trying to place color velocity
         # self.p2, = self.ax.plot(self.pedDB[indx,0], self.pedDB[indx,1], 'ro', ms=1)
@@ -725,8 +686,6 @@ class SARSA:
         self.p2 = self.ax.scatter(self.pedDB[indx,0], self.pedDB[indx,1], 
                                   c= speed, s=10, vmin=0.1, vmax=1.3, 
                                   cmap="jet_r", edgecolors='none')
-        # indxN= self.nodesdb[:,3] == 1
-        
         self.fig.colorbar(self.p2)
         self.ax.axis("equal")
         self.ax.set_axis_off()
@@ -745,15 +704,16 @@ class SARSA:
                                   cmap="jet_r", edgecolors='none') 
         # self.fig.colorbar(self.p2)
         self.labelTime.remove()
+        # self.labelTime = self.fig.text( 0, 0, "t = %.2f" % self.time)
         self.labelTime = self.fig.text( 0, 0, "t = %.2f min; evacuated: %d of %d" % (self.time/60., np.sum(self.pedDB[:,10] == 1), self.pedDB.shape[0]))
-        self.fig.savefig(os.path.join("figures", "Figure_%04d.png" % self.snapshotNumber), 
+        self.fig.savefig(os.path.join("Figures", "Figure_%04d.png" % self.snapshotNumber), 
                          bbox_inches="tight", dpi=150)
         
         self.snapshotNumber += 1
         return
     
     def makeVideo(self, nameVideo = "Simul.avi"):
-        listImagesUS = glob.glob( os.path.join("figures", "*png"))
+        listImagesUS = glob.glob( os.path.join("Figures", "*png"))
         numSS_ar= np.zeros( len(listImagesUS) , dtype= np.int)
         for i, li in enumerate(listImagesUS):
             numSS_ar[i]= int( li[-8:-4] ) 
@@ -782,7 +742,7 @@ class SARSA:
         return
     
     def deleteFigures(self):
-        figures = glob.glob( os.path.join("figures","*") ) 
+        figures = glob.glob( os.path.join("Figures","*") ) 
         
         for f in figures:
             os.remove(f)
@@ -972,7 +932,7 @@ def ArahamaMTRL_20191220_Video():
     arahama.makeVideo(nameVideo = videoNamefile)
     arahama.destroyCanvas()
     arahama.deleteFigures()
-    arahama = None 
+    arahama = None  
     np.savetxt(fileNameAgentsAtEvacNodevsTime, survivedAgents, delimiter=",")
     return 
     

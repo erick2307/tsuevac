@@ -1,0 +1,8 @@
+#!wing
+#!version=7.0
+##################################################################
+# Wing project file                                              #
+##################################################################
+[project attributes]
+proj.file-list = [loc('../../../../Desktop/SARSA_Kochi_OSM/prepare/SetPopDB.py')]
+proj.file-type = 'shared'
