@@ -36,6 +36,10 @@ def createVideo(filename, foldername, timeSimulation= 30*60, meandeparture=15*60
     #input policy
     case.loadStateMatrixFromFile(namefile = fn)
     
+    #output population initial condition
+    outnamefile = os.path.join("results","agents_startcondition.csv")
+    case.exportAgentDBatTimet(outnamefile)
+    
     #setup canvas
     case.setFigureCanvas()
     
@@ -50,7 +54,14 @@ def createVideo(filename, foldername, timeSimulation= 30*60, meandeparture=15*60
             case.getSnapshotV2()
             case.computePedHistDenVelAtLinks()
             case.updateVelocityAllPedestrians()
-            case.computeWeightsAtLinks()
+
+    #output population condition
+    outnamefile = os.path.join("results","agents_finalcondition.csv")
+    case.exportAgentDBatTimet(outnamefile)   
+    
+    #output population path and time
+    fname = os.path.join("results","agents_experience.csv")
+    np.savetxt(fname,case.expeStat,delimiter=',')
     
     case.makeVideo(nameVideo = videoNamefile)
     case.destroyCanvas()
@@ -60,7 +71,7 @@ def createVideo(filename, foldername, timeSimulation= 30*60, meandeparture=15*60
     return
 
 def main():       
-    filename= "sim_000000000.csv" #name of state matrix to load
+    filename= "sim_000001526.csv" #name of state matrix to load
     foldername= "state" #folder where state matrices are saved
     timeSimulation= 30*60 #total time of simulation
     meandeparture = 15*60 #this is the actual evacuation behavior (not necessary the trained behavior)
