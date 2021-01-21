@@ -3600,3 +3600,5 @@ figures/Figure_0000.png
 figures/Figure_1797.png
 sarsa_kochi_sim_000000000.avi
 weights/weights_0000_2.csv
+other/.ipynb_checkpoints/CalculateWeights-checkpoint.ipynb
+state/.DS_Store
