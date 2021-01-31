@@ -23,7 +23,8 @@ class SARSA:
                  linksdbFile= "data/linksdb.csv", 
                  transLinkdbFile= "data/actionsdb.csv", 
                  transNodedbFile= "data/transitionsdb.csv",
-                 meanRayleigh=7*60, discount = 0.9):
+                 meanRayleigh=7*60, discount = 0.9,
+                 folderStateNames  = "state"):
         # setting the rewards for survive or dead
         self.surviveReward = 100000
         self.deadReward = -1000
@@ -263,6 +264,24 @@ class SARSA:
         indx= np.random.choice( self.pedDB.shape[0] , size= size )
         self.pedDB = self.pedDB[indx, :]
         return
+    
+    #new function to create diff size of population
+    def resizePedDB(self, size):
+        cs = self.pedDB.shape[0]
+        print(cs)
+        if cs < size:
+            fillnum = size - cs
+            newindx = np.linspace(0,size-1,size)
+            indx = np.random.choice(self.pedDB.shape[0],size=fillnum)
+            self.pedDB = np.concatenate((self.pedDB,self.pedDB[indx,:]), axis=0)
+            self.pedDB[:,0]=newindx
+        else:
+            fillnum = cs - size + 1
+            newindx = np.linspace(0,size-1,size)
+            indx= np.random.choice(self.pedDB.shape[0],size=fillnum)
+            self.pedDB = self.pedDB[indx, :]
+            self.pedDB[:,0]=newindx
+        return   
     
     ######### Move a unit step in the simulation #########
     def stepForward(self, dt=1):

@@ -49,7 +49,7 @@ def createVideo(filename, foldername, timeSimulation= 30*60, meandeparture=15*60
         case.stepForward()
         optimalChoice = bool(np.random.choice(2, p=[randomChoiceRate , optimalChoiceRate]))
         case.checkTarget(ifOptChoice = optimalChoice)
-        if not t % 1: 
+        if not t % 10: 
             print(t) 
             case.getSnapshotV2()
             case.computePedHistDenVelAtLinks()
