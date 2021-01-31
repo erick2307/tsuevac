@@ -101,7 +101,7 @@ def plotNetwork():
 def main():
     # plotNetwork()
     
-    iShpPath= "/Users/luismoya/ReGID Dropbox/Share Folder/20201031_Kochi/OSM_network/edges.shp"
+    iShpPath= "./edges.shp"
     noDB, edDB= readEdges(iShpPath)
     np.savetxt("KochiNodesDB.csv", noDB, fmt="%.2f", delimiter=",")
     np.savetxt("KochiLinksDB.csv", edDB, fmt="%d", delimiter=",")
