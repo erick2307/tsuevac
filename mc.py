@@ -17,8 +17,15 @@ import os
 import multiprocessing as mp 
 plt.ioff() 
 
-class pedestrianMonteCarlo:
-    def __init__(self, agentsProfileName="IPF_AgentsCoordV2.csv", meanRayleigh=7*60, discount = 0.9):
+class MonteCarlo:
+    def __init__(self, agentsProfileName="data/agentsdb.csv", 
+                 nodesdbFile= "data/nodesdb.csv", 
+                 linksdbFile= "data/linksdb.csv", 
+                 transLinkdbFile= "data/actionsdb.csv", 
+                 transNodedbFile= "data/transitionsdb.csv",
+                 meanRayleigh=7*60, 
+                 discount = 0.9,
+                 folderStateNames  = "state"):
         # setting the rewards for survive or dead
         self.surviveReward = 100000
         self.deadReward = -1000
@@ -31,28 +38,27 @@ class pedestrianMonteCarlo:
         # That is, a reward will be assigned every time an agent arrives a node:
         # new structure: [number, coordX, coordY, evacuationCode, rewardCode]
         # 2020Oct08: the reward node is replaced by reward every step
-        self.nodesdb = np.loadtxt("nodesdb_utm_aug2020.csv", delimiter=',') 
+        self.nodesdb = np.loadtxt(nodesdbFile, delimiter=',') 
         # 2020Oct07: An additional column must be added to store the link width
         # Thus, this is the new format: [number, node1, node2, length, width]
-        self.linksdb = np.loadtxt("linksdb.csv", delimiter=',', dtype=np.int) 
+        self.linksdb = np.loadtxt(linksdbFile, delimiter=',', dtype=np.int) 
         self.populationAtLinks = np.zeros((self.linksdb.shape[0], 2)) # number of agents at links [linkNumber, numberOfAgentsAtLink, density]
         self.populationAtLinks[:,0] = self.linksdb[:,0]
         # Parameters to construct histograms of polations at every link: (1) unit length, (2) number of units
         self.popAtLink_HistParam = np.zeros((self.linksdb.shape[0], 2))
         self.popAtLink_HistParam[:,1] = np.round( self.linksdb[:,3] / 2. ) # assuming length units of about 2 meters
         self.popAtLink_HistParam[:,0] = self.linksdb[:,3] / self.popAtLink_HistParam[:,1] 
-        # print(self.popAtLink_HistParam)
         # Separating memory for histogram information
         # the number of columns contains the larges number of segments of all the links
-        self.popHistPerLink = np.zeros(( self.linksdb.shape[0] , int(max(self.popAtLink_HistParam[:,1])) ))
+        self.popHistPerLink = np.zeros(( self.linksdb.shape[0] , int(max(self.popAtLink_HistParam[:,1]))+1))
         # 2020Oct07: Memory for density array at links
-        self.denArrPerLink= np.zeros(( self.linksdb.shape[0] , int(max(self.popAtLink_HistParam[:,1])) ))
+        self.denArrPerLink= np.zeros(( self.linksdb.shape[0] , int(max(self.popAtLink_HistParam[:,1]))+1))
         # 2020Oct07: Memory for velocity array at links
-        self.speArrPerLink= np.zeros(( self.linksdb.shape[0] , int(max(self.popAtLink_HistParam[:,1])) ))
+        self.speArrPerLink= np.zeros(( self.linksdb.shape[0] , int(max(self.popAtLink_HistParam[:,1]))+1))
         
         # for p in self.popHistPerLink: print(p)
-        self.transLinkdb = np.loadtxt("actionsdb.csv", delimiter=',', dtype=np.int) # database of actions [currentNode, numberOfNodesTarget, linkConnectingNode1, linkConnectingNode2,...]
-        self.transNodedb = np.loadtxt("transitionsdb.csv", delimiter=',', dtype=np.int) # database with possible transitions between nodes [currentNode, numberOfNodesTarget, nodeTarget1, nodeTarget2,...]
+        self.transLinkdb = np.loadtxt(transLinkdbFile, delimiter=',', dtype=np.int) # database of actions [currentNode, numberOfNodesTarget, linkConnectingNode1, linkConnectingNode2,...]
+        self.transNodedb = np.loadtxt(transNodedbFile, delimiter=',', dtype=np.int) # database with possible transitions between nodes [currentNode, numberOfNodesTarget, nodeTarget1, nodeTarget2,...]
         # identifying evacuation nodes
         self.evacuationNodes = self.nodesdb[self.nodesdb[:,3] == 1,0].astype(np.int)
         self.pedProfiles = np.loadtxt(agentsProfileName, delimiter=',', dtype=np.int) # agents profile [age, gender, householdType, householdId, closestNodeNumber]
@@ -158,30 +164,19 @@ class pedestrianMonteCarlo:
             dist = np.clip(dist, 0, lengthL)
             
             hist, bin_edges= np.histogram(dist, bins= numComp, range= (0, lengthL) )
-            # if ind == 49:
-            #     print("\n\nHere checking")
-            #     print("link indx")
-            #     print(ind)
-            #     print("lengthL")
-            #     print(lengthL)
-            #     print("bins")
-            #     print(bins)
-            #     print("dist")
-            #     print(dist)
-            #     print("hist")
-            #     print(hist)
-            #     print("bin_edges")
-            #     print(bin_edges)
-            #     print("self.populationAtLinks[ind,1]")
-            #     print(self.populationAtLinks[ind,1])
-            #     print("pedDB")
-            #     print(dbPed_tmp.shape)
+
             self.popHistPerLink[ind, :numComp ] = hist 
             self.denArrPerLink[ind, :numComp] = hist / (unitL * width)
             self.speArrPerLink[ind, :numComp] = 1.388 - 0.396 * self.denArrPerLink[ind, :numComp]
             self.speArrPerLink[ind, :numComp] = np.clip( self.speArrPerLink[ind, :numComp] , 0.2 , 1.19 )
         return
     
+    def computeWeightsAtLinks(self):
+        filename="w_%09d.csv" % self.time
+        fout=os.path.join("weights",filename)
+        np.savetxt(fout,self.populationAtLinks,delimiter=",",fmt="%d")
+        return
+
     def getPedHistAtLink(self, codeLink):
         numComp= int( self.popAtLink_HistParam[codeLink,1] )
         return self.popHistPerLink[codeLink, :numComp] 
@@ -264,7 +259,12 @@ class pedestrianMonteCarlo:
         return the matrix "populationAtLinks", the number of pedestrian at links.
         """
         return self.populationAtLinks
-        
+    
+    def resizePedestrianDB(self, size):
+        indx= np.random.choice( self.pedDB.shape[0] , size= size )
+        self.pedDB = self.pedDB[indx, :]
+        return
+
     ######### Move a unit step in the simulation #########
     def stepForward(self, dt=1):
         """
@@ -523,15 +523,15 @@ class pedestrianMonteCarlo:
             self.updateTargetShortestPath(i)
         return
     
-    ########## Update state matrix (stateMat) ##########
+    ########## Update state matrix (stateMat) on a MC fashion ##########
     def updateValuefunctionByAgent(self, pedIndx):
         """
         The matrix "stateMat" is updated for each pedestrian
         """
         if self.pedDB[pedIndx,8] in self.evacuationNodes:
-            reward = 1.
+            reward = self.surviveReward #1.
         else:
-            reward = 0.
+            reward = self.deadReward  #0.
         expSta = np.array(self.expeStat[pedIndx])
         #updating first experience
         self.stateMat[int(expSta[0,0]), int(11 + expSta[0,1])] += (reward - self.stateMat[int(expSta[0,0]), int(11 + expSta[0,1])])/(self.stateMat[int(expSta[0,0]), 21 + int(expSta[0,1])] + 1)
@@ -672,13 +672,13 @@ class pedestrianMonteCarlo:
  
     ########## Visualization functions ##########
     def setFigureCanvas(self):
-        self.fig, self.ax = plt.subplots(figsize=(4,3))
+        self.fig, self.ax = plt.subplots(figsize=(12,5))
         for i in range(self.linksdb.shape[0]):
             self.ax.plot([self.nodesdb[int(self.linksdb[i,1]),1], self.nodesdb[int(self.linksdb[i,2]),1]],[self.nodesdb[int(self.linksdb[i,1]),2], self.nodesdb[int(self.linksdb[i,2]),2]], c='k', lw=1)
         #indxZeroActions = np.where(self.transLinkdb[:,1] != 0)[0]
-        indxEv = self.nodesdb[:,3] == 1
+        indxEv = self.nodesdb[:,3] == 1.0
         #self.p1, = self.ax.plot(self.nodesdb[indxZeroActions][:,1], self.nodesdb[indxZeroActions][:,2], 'bo', ms=0.5)
-        self.p1, = self.ax.plot(self.nodesdb[indxEv,1], self.nodesdb[indxEv,2], 'bo', ms=0.5)
+        self.p1, = self.ax.plot(self.nodesdb[indxEv,1], self.nodesdb[indxEv,2], 'rD', ms=4, mfc="none", mec="r")
         indx = np.where(self.pedDB[:,9] <= self.time)[0]
         # 2020Oct07: trying to place color velocity
         # self.p2, = self.ax.plot(self.pedDB[indx,0], self.pedDB[indx,1], 'ro', ms=1)
@@ -770,7 +770,7 @@ def simulationShortestPath():
     simulTime = 67*60
 #    sendai = pedestrianMonteCarlo(agentsProfileName = "IPF_AgentsCoordV2_ThreeTimes.csv")
 #    sendai = pedestrianMonteCarlo(agentsProfileName = "IPF_AgentsCoordV2_SixTimes.csv")
-    sendai = pedestrianMonteCarlo(agentsProfileName = "IPF_AgentsCoordV2.csv")
+    sendai = MonteCarlo(agentsProfileName = "IPF_AgentsCoordV2.csv")
     sendai.loadShortestPathDB(namefile= "nextnode.csv")
     sendai.setFigureCanvas()
     survivedAgents = np.zeros((simulTime,3))
@@ -803,7 +803,7 @@ def ArahamaMTRL_20191220_SeqSim():
     meanRayleighTest = 20*60
     
     survivedAgents = np.zeros(numMaxSim)
-    arahama = pedestrianMonteCarlo(agentsProfileName = agentsProfileName, meanRayleigh = meanRayleighTest)
+    arahama = MonteCarlo(agentsProfileName = agentsProfileName, meanRayleigh = meanRayleighTest)
     
     numSim= 0
     for t in range( int(min(arahama.pedDB[:,9])) , int(min(max(arahama.pedDB[:,9]) , simulTime))  ):
@@ -822,7 +822,7 @@ def ArahamaMTRL_20191220_SeqSim():
     
     for s in range(1,numMaxSim):
         print("simulation number %d , t = %.1f" % ( s , time.time()-t0 )) 
-        arahama = pedestrianMonteCarlo(agentsProfileName = agentsProfileName, meanRayleigh = meanRayleighTest)
+        arahama = MonteCarlo(agentsProfileName = agentsProfileName, meanRayleigh = meanRayleighTest)
         # namefile = "%s\sim_%04d.csv" % (folderStateNames , s-1)
         namefile = os.path.join(folderStateNames , "sim_%04d.csv" % (s-1) )
         arahama.loadStateMatrixFromFile(namefile = namefile)
@@ -865,7 +865,7 @@ def testAramaha2020August28():
     meanRayleighTest = 20*60
     
     survivedAgents = np.zeros(numMaxSim)
-    arahama = pedestrianMonteCarlo(agentsProfileName = agentsProfileName, meanRayleigh = meanRayleighTest)
+    arahama = MonteCarlo(agentsProfileName = agentsProfileName, meanRayleigh = meanRayleighTest)
     
     print(arahama.evacuationNodes)
     
@@ -911,7 +911,7 @@ def ArahamaMTRL_20191220_Video():
     
     survivedAgents = np.zeros((simulTime,3))
     
-    arahama = pedestrianMonteCarlo(agentsProfileName = agentsProfileName , meanRayleigh = meanRayleighTest)
+    arahama = MonteCarlo(agentsProfileName = agentsProfileName , meanRayleigh = meanRayleighTest)
     arahama.loadStateMatrixFromFile(namefile = namefile)
     arahama.setFigureCanvas()
     

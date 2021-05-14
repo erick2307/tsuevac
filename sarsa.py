@@ -18,12 +18,14 @@ import multiprocessing as mp
 plt.ioff() 
 
 class SARSA:
-    def __init__(self, agentsProfileName="data/agentsdb.csv", 
-                 nodesdbFile= "data/nodesdb.csv", 
-                 linksdbFile= "data/linksdb.csv", 
-                 transLinkdbFile= "data/actionsdb.csv", 
-                 transNodedbFile= "data/transitionsdb.csv",
-                 meanRayleigh=7*60, discount = 0.9):
+    def __init__(self, agentsProfileName="kochi/data/agentsdb.csv", 
+                 nodesdbFile= "kochi/data/nodesdb.csv", 
+                 linksdbFile= "kochi/data/linksdb.csv", 
+                 transLinkdbFile= "kochi/data/actionsdb.csv", 
+                 transNodedbFile= "kochi/data/transitionsdb.csv",
+                 meanRayleigh=7*60, 
+                 discount = 0.9,
+                 folderStateNames  = "state"):
         # setting the rewards for survive or dead
         self.surviveReward = 100000
         self.deadReward = -1000
@@ -54,7 +56,7 @@ class SARSA:
         self.denArrPerLink= np.zeros(( self.linksdb.shape[0] , int(max(self.popAtLink_HistParam[:,1]))+1))
         # 2020Oct07: Memory for velocity array at links
         self.speArrPerLink= np.zeros(( self.linksdb.shape[0] , int(max(self.popAtLink_HistParam[:,1]))+1))
-        #print(self.speArrPerLink.shape)
+    
         # for p in self.popHistPerLink: print(p)
         self.transLinkdb = np.loadtxt(transLinkdbFile, delimiter=',', dtype=np.int) # database of actions [currentNode, numberOfNodesTarget, linkConnectingNode1, linkConnectingNode2,...]
         self.transNodedb = np.loadtxt(transNodedbFile, delimiter=',', dtype=np.int) # database with possible transitions between nodes [currentNode, numberOfNodesTarget, nodeTarget1, nodeTarget2,...]
@@ -562,15 +564,15 @@ class SARSA:
             self.updateTargetShortestPath(i)
         return
     
-    ########## Update state matrix (stateMat) ##########
+    ########## Update state matrix (stateMat) on a MC fashion ##########
     def updateValuefunctionByAgent(self, pedIndx):
         """
         The matrix "stateMat" is updated for each pedestrian
         """
         if self.pedDB[pedIndx,8] in self.evacuationNodes:
-            reward = 1.
+            reward = self.surviveReward #1.
         else:
-            reward = 0.
+            reward = self.deadReward #0.
         expSta = np.array(self.expeStat[pedIndx])
         #updating first experience
         self.stateMat[int(expSta[0,0]), int(11 + expSta[0,1])] += (reward - self.stateMat[int(expSta[0,0]), int(11 + expSta[0,1])])/(self.stateMat[int(expSta[0,0]), 21 + int(expSta[0,1])] + 1)
