@@ -14,7 +14,7 @@ import cv2
 import glob
 import time
 import os
-import multiprocessing as mp 
+from mc import MonteCarlo
 plt.ioff() 
 
 class SARSA:
@@ -265,6 +265,24 @@ class SARSA:
         indx= np.random.choice( self.pedDB.shape[0] , size= size )
         self.pedDB = self.pedDB[indx, :]
         return
+    
+    #new function to create diff size of population
+    def resizePedDB(self, size):
+        cs = self.pedDB.shape[0]
+        print(cs)
+        if cs < size:
+            fillnum = size - cs
+            newindx = np.linspace(0,size-1,size)
+            indx = np.random.choice(self.pedDB.shape[0],size=fillnum)
+            self.pedDB = np.concatenate((self.pedDB,self.pedDB[indx,:]), axis=0)
+            self.pedDB[:,0]=newindx
+        else:
+            fillnum = cs - size + 1
+            newindx = np.linspace(0,size-1,size)
+            indx= np.random.choice(self.pedDB.shape[0],size=fillnum)
+            self.pedDB = self.pedDB[indx, :]
+            self.pedDB[:,0]=newindx
+        return   
     
     ######### Move a unit step in the simulation #########
     def stepForward(self, dt=1):
@@ -812,7 +830,7 @@ def simulationShortestPath():
     simulTime = 67*60
 #    sendai = pedestrianMonteCarlo(agentsProfileName = "IPF_AgentsCoordV2_ThreeTimes.csv")
 #    sendai = pedestrianMonteCarlo(agentsProfileName = "IPF_AgentsCoordV2_SixTimes.csv")
-    sendai = pedestrianMonteCarlo(agentsProfileName = "IPF_AgentsCoordV2.csv")
+    sendai = MonteCarlo(agentsProfileName = "IPF_AgentsCoordV2.csv")
     sendai.loadShortestPathDB(namefile= "nextnode.csv")
     sendai.setFigureCanvas()
     survivedAgents = np.zeros((simulTime,3))
@@ -845,7 +863,7 @@ def ArahamaMTRL_20191220_SeqSim():
     meanRayleighTest = 20*60
     
     survivedAgents = np.zeros(numMaxSim)
-    arahama = pedestrianMonteCarlo(agentsProfileName = agentsProfileName, meanRayleigh = meanRayleighTest)
+    arahama = MonteCarlo(agentsProfileName = agentsProfileName, meanRayleigh = meanRayleighTest)
     
     numSim= 0
     for t in range( int(min(arahama.pedDB[:,9])) , int(min(max(arahama.pedDB[:,9]) , simulTime))  ):
@@ -864,7 +882,7 @@ def ArahamaMTRL_20191220_SeqSim():
     
     for s in range(1,numMaxSim):
         print("simulation number %d , t = %.1f" % ( s , time.time()-t0 )) 
-        arahama = pedestrianMonteCarlo(agentsProfileName = agentsProfileName, meanRayleigh = meanRayleighTest)
+        arahama = MonteCarlo(agentsProfileName = agentsProfileName, meanRayleigh = meanRayleighTest)
         # namefile = "%s\sim_%04d.csv" % (folderStateNames , s-1)
         namefile = os.path.join(folderStateNames , "sim_%04d.csv" % (s-1) )
         arahama.loadStateMatrixFromFile(namefile = namefile)
@@ -907,7 +925,7 @@ def testAramaha2020August28():
     meanRayleighTest = 20*60
     
     survivedAgents = np.zeros(numMaxSim)
-    arahama = pedestrianMonteCarlo(agentsProfileName = agentsProfileName, meanRayleigh = meanRayleighTest)
+    arahama = MonteCarlo(agentsProfileName = agentsProfileName, meanRayleigh = meanRayleighTest)
     
     print(arahama.evacuationNodes)
     
@@ -953,7 +971,7 @@ def ArahamaMTRL_20191220_Video():
     
     survivedAgents = np.zeros((simulTime,3))
     
-    arahama = pedestrianMonteCarlo(agentsProfileName = agentsProfileName , meanRayleigh = meanRayleighTest)
+    arahama = MonteCarlo(agentsProfileName = agentsProfileName , meanRayleigh = meanRayleighTest)
     arahama.loadStateMatrixFromFile(namefile = namefile)
     arahama.setFigureCanvas()
     
