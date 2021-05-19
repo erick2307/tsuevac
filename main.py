@@ -55,7 +55,12 @@ def run_sarsa(area="kochi",simtime=30, meandeparture=15, numSim0=0, numBlocks= 5
     numSim= numSim0 +1
     for b in range(numBlocks):
         for s in range(simPerBlock):
-            randomChoiceRate = (simPerBlock - s - 1.0)/(simPerBlock - s + 1.0) #1.0/(0.015*s + 1.0)
+            eoe = int(0.8*simPerBlock) #end of exploration
+            if s < eoe:
+                randomChoiceRate = -1/(eoe)**2*s**2+1
+            else:
+                randomChoiceRate = 0.
+            # randomChoiceRate = (simPerBlock - s - 1.0)/(simPerBlock - s + 1.0) #1.0/(0.015*s + 1.0)
             optimalChoiceRate = 1.0 - randomChoiceRate
             case = SARSA(agentsProfileName = agentsProfileName , 
                           nodesdbFile= nodesdbFile,
@@ -86,10 +91,13 @@ def run_sarsa(area="kochi",simtime=30, meandeparture=15, numSim0=0, numBlocks= 5
 
             #evaluate survivors in simulation
             survivorsPerSim.append([numSim, np.sum(case.pedDB[:,10] == 1)])
-            fname = f"survivorsPerSim_{numBlocks}x{simPerBlock}csv"
+            fname = f"survivorsPerSim_{numBlocks}x{simPerBlock}.csv"
             outSurvivors= os.path.join(folderStateNames, fname)
             np.savetxt(outSurvivors, np.array(survivorsPerSim), delimiter= ",", fmt= "%d" )            
             
+            if survivorsPerSim[-1] == case.pedDB.shape[0]:
+                return
+
             case= None
             numSim += 1
 
@@ -137,7 +145,7 @@ def run_mc(area="kochi",simtime=30, meandeparture=15, numSim0=0, numBlocks= 5, s
         print("epsilon greedy - exploration: %f" % randomChoiceRate)
         print("survived pedestrians: %d" % np.sum(case.pedDB[:,10] == 1) )
         survivorsPerSim.append([numSim0, np.sum(case.pedDB[:,10] == 1)])
-        fname = f"survivorsPerSim_{numBlocks}x{simPerBlock}csv"
+        fname = f"survivorsPerSim_{numBlocks}x{simPerBlock}.csv"
         outSurvivors= os.path.join(folderStateNames, fname)
         np.savetxt(outSurvivors, np.array(survivorsPerSim), delimiter= ",", fmt= "%d" )  
 
@@ -146,7 +154,12 @@ def run_mc(area="kochi",simtime=30, meandeparture=15, numSim0=0, numBlocks= 5, s
     numSim= numSim0 +1
     for b in range(numBlocks):
         for s in range(simPerBlock):
-            randomChoiceRate = (simPerBlock - s - 1.0)/(simPerBlock - s + 1.0) #1.0/(0.015*s + 1.0)
+            eoe = int(0.8*simPerBlock) #end of exploration
+            if s < eoe:
+                randomChoiceRate = -1/(eoe)**2*s**2+1
+            else:
+                randomChoiceRate = 0.
+            # randomChoiceRate = (simPerBlock - s - 1.0)/(simPerBlock - s + 1.0) #1.0/(0.015*s + 1.0)
             optimalChoiceRate = 1.0 - randomChoiceRate
             case = MonteCarlo(agentsProfileName = agentsProfileName , 
                           nodesdbFile= nodesdbFile,
@@ -183,6 +196,10 @@ def run_mc(area="kochi",simtime=30, meandeparture=15, numSim0=0, numBlocks= 5, s
             fname = f"survivorsPerSim_{numBlocks}x{simPerBlock}csv"
             outSurvivors= os.path.join(folderStateNames, fname)
             np.savetxt(outSurvivors, np.array(survivorsPerSim), delimiter= ",", fmt= "%d" )            
+            
+            if survivorsPerSim[-1] == case.pedDB.shape[0]:
+                return
+            
             case= None
             numSim += 1
 
@@ -198,7 +215,7 @@ def main():
     numBlocks= 1
     simPerBlock= 100
 
-    name="case_mc_arahama_67_7"
+    name="case_mc_arahama_67_7_new"
     area="arahama"
     
     run_mc(area=area,simtime=simtime, meandeparture=meandeparture, 
@@ -211,7 +228,7 @@ def main():
     numBlocks= 1
     simPerBlock= 100 
 
-    name="case_sarsa_arahama_67_7"
+    name="case_sarsa_arahama_67_7_new"
 
     run_sarsa(area=area,simtime=simtime, meandeparture=meandeparture, 
         numSim0=numSim0, numBlocks=numBlocks, simPerBlock=simPerBlock, name=name) 

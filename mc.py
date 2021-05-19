@@ -408,7 +408,7 @@ class MonteCarlo:
                     self.populationAtLinks[int(self.pedDB[i,6]), 1] += 1
                 
                 # delete this too
-                if i == 1126: print(self.expeStat[i])
+                #if i == 1126: print(self.expeStat[i])
         return
     
     def updateTarget(self, pedIndx, ifOptChoice = False):
