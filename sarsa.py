@@ -331,7 +331,7 @@ class SARSA:
 ##            print("high density of %.4f at %d" % (density,codeLink))
             #return 1.39 + np.random.randn()*0.01 
         
-    #### COMMENTED ON 20201 JAN 06 ######    
+    #### COMMENTED ON 2021 JAN 06 ######    
     def updateSpeed(self, codeLink, linkWidth = 2.):
         """
         Computes the speed at link "codeLink" considering its actual pedestrian-density.
@@ -737,7 +737,7 @@ class SARSA:
         #indxZeroActions = np.where(self.transLinkdb[:,1] != 0)[0]
         indxEv = self.nodesdb[:,3] == 1.0
         #self.p1, = self.ax.plot(self.nodesdb[indxZeroActions][:,1], self.nodesdb[indxZeroActions][:,2], 'bo', ms=0.5)
-        self.p1, = self.ax.plot(self.nodesdb[indxEv,1], self.nodesdb[indxEv,2], 'rD', ms=4, mfc= "none", mec= "r")
+        self.p1, = self.ax.plot(self.nodesdb[indxEv,1], self.nodesdb[indxEv,2], 'rD', ms=4, mfc="none", mec="r")
         indx = np.where(self.pedDB[:,9] <= self.time)[0]
         # 2020Oct07: trying to place color velocity
         # self.p2, = self.ax.plot(self.pedDB[indx,0], self.pedDB[indx,1], 'ro', ms=1)

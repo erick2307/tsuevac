@@ -14,15 +14,14 @@ import cv2
 import glob
 import time
 import os
-import multiprocessing as mp 
 plt.ioff() 
 
 class MonteCarlo:
-    def __init__(self, agentsProfileName="data/agentsdb.csv", 
-                 nodesdbFile= "data/nodesdb.csv", 
-                 linksdbFile= "data/linksdb.csv", 
-                 transLinkdbFile= "data/actionsdb.csv", 
-                 transNodedbFile= "data/transitionsdb.csv",
+    def __init__(self, agentsProfileName="kochi/data/agentsdb.csv", 
+                 nodesdbFile= "kochi/data/nodesdb.csv", 
+                 linksdbFile= "kochi/data/linksdb.csv", 
+                 transLinkdbFile= "kochi/data/actionsdb.csv", 
+                 transNodedbFile= "kochi/data/transitionsdb.csv",
                  meanRayleigh=7*60, 
                  discount = 0.9,
                  folderStateNames  = "state"):
@@ -46,7 +45,7 @@ class MonteCarlo:
         self.populationAtLinks[:,0] = self.linksdb[:,0]
         # Parameters to construct histograms of polations at every link: (1) unit length, (2) number of units
         self.popAtLink_HistParam = np.zeros((self.linksdb.shape[0], 2))
-        self.popAtLink_HistParam[:,1] = np.round( self.linksdb[:,3] / 2. ) # assuming length units of about 2 meters
+        self.popAtLink_HistParam[:,1] = np.ceil(self.linksdb[:,3] / 2. ) # assuming length units of about 2 meters
         self.popAtLink_HistParam[:,0] = self.linksdb[:,3] / self.popAtLink_HistParam[:,1] 
         # Separating memory for histogram information
         # the number of columns contains the larges number of segments of all the links
@@ -265,6 +264,23 @@ class MonteCarlo:
         self.pedDB = self.pedDB[indx, :]
         return
 
+    #new function to create diff size of population
+    def resizePedDB(self, size):
+        cs = self.pedDB.shape[0]
+        print(cs)
+        if cs < size:
+            fillnum = size - cs
+            newindx = np.linspace(0,size-1,size)
+            indx = np.random.choice(self.pedDB.shape[0],size=fillnum)
+            self.pedDB = np.concatenate((self.pedDB,self.pedDB[indx,:]), axis=0)
+            self.pedDB[:,0]=newindx
+        else:
+            fillnum = cs - size + 1
+            newindx = np.linspace(0,size-1,size)
+            indx= np.random.choice(self.pedDB.shape[0],size=fillnum)
+            self.pedDB = self.pedDB[indx, :]
+            self.pedDB[:,0]=newindx
+        return
     ######### Move a unit step in the simulation #########
     def stepForward(self, dt=1):
         """
@@ -292,6 +308,27 @@ class MonteCarlo:
                 continue
             self.updateTarget(i, ifOptChoice = ifOptChoice)
         return
+    
+    #def updateSpeed(self, codeLink, linkWidth = 2.):
+        #"""
+        #Computes the speed at link "codeLink" considering its actual pedestrian-density.
+        #2021Jan06(E) we need to consider vehicles instead of pedestrians.
+        #A new function was copied with different speeds.
+        #"""
+        ## Computes the density at link
+        #density = self.populationAtLinks[codeLink,1] /(linkWidth * self.linksdb[codeLink,3])
+        ## Assign a speed according the the density
+        ## Check paper reference, where these values come from
+        #if density <= 0.5:
+            #return 12.5 + np.random.randn()*0.1
+        #elif density <= 3.0:
+##            print("moderate density of %.4f at %d" % (density,codeLink))
+            #return 5.56 + np.random.randn()*0.1
+        #else:
+##            print("high density of %.4f at %d" % (density,codeLink))
+            #return 1.39 + np.random.randn()*0.01 
+        
+    #### COMMENTED ON 2021 JAN 06 ######
     
     def updateSpeed(self, codeLink, linkWidth = 2.):
         """
@@ -369,20 +406,21 @@ class MonteCarlo:
                 #Previously this section was in __init__ function
                 #-----init-----
                 node0 = int(self.pedDB[i,8]) # current node
-                indxTgt = np.random.choice( int(self.transNodedb[node0,1]) ) # random choise for the next node
+                indxTgt = np.random.choice( int(self.transNodedb[node0,1]) ) # random choice for the next node
                 nodeTgt = self.transNodedb[node0, 2+indxTgt] # next number node
                 link = self.transLinkdb[node0, 2+indxTgt] # next link code
                 self.pedDB[i,7] = nodeTgt
                 self.pedDB[i,6] = link
                 self.pedDB[i, 2:4] = self.nodesdb[nodeTgt, 1:3] # coordinates of the next target (next node)
-                # 2020Aug28: [1 slot for the state code, 1 slot for the agent choice, 1 slot para el tiempo de arrivo]
+                # 2020Aug28: [1 slot for the state code, 1 slot for the agent choice, 1 slot for the arrival time]
                 # 2020Aug28: We reserve three slots now
                 firstState = np.zeros(3, dtype = np.int)
                 firstState[1] = int(indxTgt)
                 #-----end-----
                 # Update velocity
                 # 2020Oct07: we updated function to compute velocity
-                self.updateVelocityV2(i)  #previous: self.updateVelocity(i, int(self.pedDB[i,6]))
+                self.updateVelocityV2(i)  
+                #previous: self.updateVelocity(i, int(self.pedDB[i,6]))
                 
                 # Get state code at starting node
                 indxStat = self.getStateIndexAtNode(int(self.pedDB[i,8]))
@@ -480,9 +518,9 @@ class MonteCarlo:
             # Record state and action experienced by the pedestrian:
             self.expeStat[pedIndx].append(expeStatAndVal) 
             # delete this
-            if pedIndx == 1126:
-                print("pedestrian 1126 (updateTarget, 2nd)")
-                print(self.expeStat[pedIndx]) 
+            # if pedIndx == 1126:
+            #     print("pedestrian 1126 (updateTarget, 2nd)")
+            #     print(self.expeStat[pedIndx]) 
         return
     
     ########## functions to use shortest path
@@ -531,7 +569,7 @@ class MonteCarlo:
         if self.pedDB[pedIndx,8] in self.evacuationNodes:
             reward = self.surviveReward #1.
         else:
-            reward = self.deadReward  #0.
+            reward = self.deadReward #0.
         expSta = np.array(self.expeStat[pedIndx])
         #updating first experience
         self.stateMat[int(expSta[0,0]), int(11 + expSta[0,1])] += (reward - self.stateMat[int(expSta[0,0]), int(11 + expSta[0,1])])/(self.stateMat[int(expSta[0,0]), 21 + int(expSta[0,1])] + 1)
@@ -706,14 +744,14 @@ class MonteCarlo:
         self.labelTime.remove()
         # self.labelTime = self.fig.text( 0, 0, "t = %.2f" % self.time)
         self.labelTime = self.fig.text( 0, 0, "t = %.2f min; evacuated: %d of %d" % (self.time/60., np.sum(self.pedDB[:,10] == 1), self.pedDB.shape[0]))
-        self.fig.savefig(os.path.join("Figures", "Figure_%04d.png" % self.snapshotNumber), 
+        self.fig.savefig(os.path.join("figures", "Figure_%04d.png" % self.snapshotNumber), 
                          bbox_inches="tight", dpi=150)
         
         self.snapshotNumber += 1
         return
     
     def makeVideo(self, nameVideo = "Simul.avi"):
-        listImagesUS = glob.glob( os.path.join("Figures", "*png"))
+        listImagesUS = glob.glob( os.path.join("figures", "*png"))
         numSS_ar= np.zeros( len(listImagesUS) , dtype= np.int)
         for i, li in enumerate(listImagesUS):
             numSS_ar[i]= int( li[-8:-4] ) 
@@ -742,7 +780,7 @@ class MonteCarlo:
         return
     
     def deleteFigures(self):
-        figures = glob.glob( os.path.join("Figures","*") ) 
+        figures = glob.glob( os.path.join("figures","*") ) 
         
         for f in figures:
             os.remove(f)

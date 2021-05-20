@@ -33,7 +33,9 @@ def run_sarsa(area="kochi",simtime=30, meandeparture=15, numSim0=0, numBlocks= 5
                       meanRayleigh = meanRayleighTest,
                       discount=0.9,
                       folderStateNames= folderStateNames)
-        
+
+        totalagents = np.sum(case.pedDB.shape[0])
+
         #for t in range( int(min(case.pedDB[:,9])) , int(min(max(case.pedDB[:,9]) , simulTime)) ):
         for t in range( int(min(case.pedDB[:,9])) , simulTime ):
             case.initEvacuationAtTime()
@@ -48,7 +50,8 @@ def run_sarsa(area="kochi",simtime=30, meandeparture=15, numSim0=0, numBlocks= 5
         case.exportStateMatrix(outnamefile = outfile)
         print("\n\n ***** Simu %d (t= %.2f)*****" % ( numSim0, (time.time()-t0)/60. ))
         print("epsilon greedy - exploration: %f" % randomChoiceRate)
-        print("survived pedestrians: %d" % np.sum(case.pedDB[:,10] == 1) )
+#        print("survived pedestrians: %d" % np.sum(case.pedDB[:,10] == 1) )
+        print(f"survived: {np.sum(case.pedDB[:,10] == 1)} / total: {totalagents}")
 
         survivorsPerSim.append([numSim0, np.sum(case.pedDB[:,10] == 1)])
         fname = f"survivorsPerSim_{numBlocks}x{simPerBlock}.csv"
@@ -95,7 +98,8 @@ def run_sarsa(area="kochi",simtime=30, meandeparture=15, numSim0=0, numBlocks= 5
             case.exportStateMatrix(outnamefile = outfile)
             print("\n\n ***** Simu %d (t= %.2f)*****" % ( numSim , (time.time()-t0)/60. ))
             print("epsilon greedy - exploration: %f" % randomChoiceRate)
-            print("survived pedestrians: %d" % np.sum(case.pedDB[:,10] == 1) )
+#            print("survived pedestrians: %d" % np.sum(case.pedDB[:,10] == 1) )
+            print(f"survived: {np.sum(case.pedDB[:,10] == 1)} / total: {totalagents}")
 
             #evaluate survivors in simulation
             survivorsPerSim.append([numSim, np.sum(case.pedDB[:,10] == 1)])
@@ -153,7 +157,8 @@ def run_mc(area="kochi",simtime=30, meandeparture=15, numSim0=0, numBlocks= 5, s
         case.exportAgentDBatTimet(outnamefile = outfilepedDB)
         print("\n\n ***** Simu %d (t= %.2f)*****" % ( numSim0, (time.time()-t0)/60. ))
         print("epsilon greedy - exploration: %f" % randomChoiceRate)
-        print("survived pedestrians: %d" % np.sum(case.pedDB[:,10] == 1) )
+        #print("survived pedestrians: %d" % np.sum(case.pedDB[:,10] == 1) )
+        print(f"survived: {np.sum(case.pedDB[:,10] == 1)} / total: {totalagents}")
 
         survivorsPerSim.append([numSim0, np.sum(case.pedDB[:,10] == 1)])
         fname = f"survivorsPerSim_{numBlocks}x{simPerBlock}.csv"
@@ -203,7 +208,7 @@ def run_mc(area="kochi",simtime=30, meandeparture=15, numSim0=0, numBlocks= 5, s
             case.exportAgentDBatTimet(outnamefile = outfilepedDB)
             print("\n\n ***** Simu %d (t= %.2f)*****" % ( numSim , (time.time()-t0)/60. ))
             print("epsilon greedy - exploration: %f" % randomChoiceRate)
-            print(f"survived: {np.sum(case.pedDB[:,10] == 1):.d} / total: {totalagents:.d}" %  )
+            print(f"survived: {np.sum(case.pedDB[:,10] == 1)} / total: {totalagents}")
             
             #evaluate survivors in simulation
             survivorsPerSim.append([numSim, np.sum(case.pedDB[:,10] == 1)])
@@ -229,23 +234,23 @@ def main():
     numBlocks= 1
     simPerBlock= 10
 
-    name="eraseme"
+    name="eraseme_mc"
     area="kochi"
     
-    # run_mc(area=area,simtime=simtime, meandeparture=meandeparture, 
-        # numSim0=numSim0, numBlocks=numBlocks, simPerBlock=simPerBlock, name=name) 
-
-    simtime=30 #min
-    meandeparture=15 #min
-    
-    numSim0= 0
-    numBlocks= 1
-    simPerBlock= 10
-
-    name="eraseme"
-
-    run_sarsa(area=area,simtime=simtime, meandeparture=meandeparture, 
+    run_mc(area=area,simtime=simtime, meandeparture=meandeparture, 
         numSim0=numSim0, numBlocks=numBlocks, simPerBlock=simPerBlock, name=name) 
+
+    # simtime=30 #min
+    # meandeparture=15 #min
+    
+    # numSim0= 0
+    # numBlocks= 1
+    # simPerBlock= 10
+
+    # name="eraseme"
+
+    # run_sarsa(area=area,simtime=simtime, meandeparture=meandeparture, 
+    #     numSim0=numSim0, numBlocks=numBlocks, simPerBlock=simPerBlock, name=name) 
 
     # os.system("osascript -e 'Tell application \"System Events\" to display dialog \"Python run  finished!\"'")
     return 
