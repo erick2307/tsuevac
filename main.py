@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-Created on Sun Nov  1 21:52:07 2020
-"""
+
 from mc import MonteCarlo
 import numpy as np
 import os
 from sarsa import *
+import time
 
 def run_sarsa(area="kochi",simtime=30, meandeparture=15, numSim0=0, numBlocks= 5, simPerBlock= 1000,name='r'):
     t0 = time.time()
@@ -36,7 +35,6 @@ def run_sarsa(area="kochi",simtime=30, meandeparture=15, numSim0=0, numBlocks= 5
 
         totalagents = np.sum(case.pedDB.shape[0])
 
-        #for t in range( int(min(case.pedDB[:,9])) , int(min(max(case.pedDB[:,9]) , simulTime)) ):
         for t in range( int(min(case.pedDB[:,9])) , simulTime ):
             case.initEvacuationAtTime()
             case.stepForward()
@@ -50,7 +48,6 @@ def run_sarsa(area="kochi",simtime=30, meandeparture=15, numSim0=0, numBlocks= 5
         case.exportStateMatrix(outnamefile = outfile)
         print("\n\n ***** Simu %d (t= %.2f)*****" % ( numSim0, (time.time()-t0)/60. ))
         print("epsilon greedy - exploration: %f" % randomChoiceRate)
-#        print("survived pedestrians: %d" % np.sum(case.pedDB[:,10] == 1) )
         print(f"survived: {np.sum(case.pedDB[:,10] == 1)} / total: {totalagents}")
 
         survivorsPerSim.append([numSim0, np.sum(case.pedDB[:,10] == 1)])
@@ -84,7 +81,6 @@ def run_sarsa(area="kochi",simtime=30, meandeparture=15, numSim0=0, numBlocks= 5
             namefile = os.path.join(folderStateNames , "sim_%09d.csv" % (numSim-1) )
             case.loadStateMatrixFromFile(namefile = namefile)
             
-            #for t in range( int(min(case.pedDB[:,9])) , int(min(max(case.pedDB[:,9]) , simulTime)) ):
             for t in range( int(min(case.pedDB[:,9])) , simulTime ):
                 case.initEvacuationAtTime()
                 case.stepForward()
@@ -98,7 +94,6 @@ def run_sarsa(area="kochi",simtime=30, meandeparture=15, numSim0=0, numBlocks= 5
             case.exportStateMatrix(outnamefile = outfile)
             print("\n\n ***** Simu %d (t= %.2f)*****" % ( numSim , (time.time()-t0)/60. ))
             print("epsilon greedy - exploration: %f" % randomChoiceRate)
-#            print("survived pedestrians: %d" % np.sum(case.pedDB[:,10] == 1) )
             print(f"survived: {np.sum(case.pedDB[:,10] == 1)} / total: {totalagents}")
 
             #evaluate survivors in simulation
@@ -157,7 +152,6 @@ def run_mc(area="kochi",simtime=30, meandeparture=15, numSim0=0, numBlocks= 5, s
         case.exportAgentDBatTimet(outnamefile = outfilepedDB)
         print("\n\n ***** Simu %d (t= %.2f)*****" % ( numSim0, (time.time()-t0)/60. ))
         print("epsilon greedy - exploration: %f" % randomChoiceRate)
-        #print("survived pedestrians: %d" % np.sum(case.pedDB[:,10] == 1) )
         print(f"survived: {np.sum(case.pedDB[:,10] == 1)} / total: {totalagents}")
 
         survivorsPerSim.append([numSim0, np.sum(case.pedDB[:,10] == 1)])
@@ -191,7 +185,6 @@ def run_mc(area="kochi",simtime=30, meandeparture=15, numSim0=0, numBlocks= 5, s
             namefile = os.path.join(folderStateNames , "sim_%09d.csv" % (numSim-1) )
             case.loadStateMatrixFromFile(namefile = namefile)
             
-            #for t in range( int(min(case.pedDB[:,9])) , int(min(max(case.pedDB[:,9]) , simulTime)) ):
             for t in range( int(min(case.pedDB[:,9])) , simulTime ):
                 case.initEvacuationAtTime()
                 case.stepForward()
@@ -226,7 +219,7 @@ def run_mc(area="kochi",simtime=30, meandeparture=15, numSim0=0, numBlocks= 5, s
 
     return 
 
-def main():  
+def kochi_mc():  
     simtime=30 #min
     meandeparture=15 #min
     
@@ -234,26 +227,27 @@ def main():
     numBlocks= 1
     simPerBlock= 10
 
-    name="eraseme_mc"
+    name=f"mc_{simtime}_{meandeparture}"
     area="kochi"
     
     run_mc(area=area,simtime=simtime, meandeparture=meandeparture, 
         numSim0=numSim0, numBlocks=numBlocks, simPerBlock=simPerBlock, name=name) 
 
-    # simtime=30 #min
-    # meandeparture=15 #min
+def kochi_sarsa():
+    simtime=30 #min
+    meandeparture=15 #min
     
-    # numSim0= 0
-    # numBlocks= 1
-    # simPerBlock= 10
+    numSim0= 0
+    numBlocks= 1
+    simPerBlock= 10
 
-    # name="eraseme"
+    name=f"sarsa_{simtime}_{meandeparture}"
+    area="kochi"
 
-    # run_sarsa(area=area,simtime=simtime, meandeparture=meandeparture, 
-    #     numSim0=numSim0, numBlocks=numBlocks, simPerBlock=simPerBlock, name=name) 
-
-    # os.system("osascript -e 'Tell application \"System Events\" to display dialog \"Python run  finished!\"'")
+    run_sarsa(area=area,simtime=simtime, meandeparture=meandeparture, 
+        numSim0=numSim0, numBlocks=numBlocks, simPerBlock=simPerBlock, name=name) 
     return 
 
 if __name__ == "__main__":
-    main()
+    # kochi_mc()
+    kochi_sarsa()

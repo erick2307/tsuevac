@@ -1,20 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-Created on Fri Jan 11 16:31:19 2019
-
-@author: root
-"""
 
 import numpy as np
 import matplotlib.pyplot as plt
-#from osgeo import osr
-#from osgeo import ogr
 import cv2
 import glob
-import time
 import os
-from mc import MonteCarlo
 plt.ioff() 
 
 class SARSA:
@@ -352,10 +343,12 @@ class SARSA:
             return 0.20 + np.random.randn()*0.01     
     ######################################
     
-    def updateVelocity(self, pedIndx, codeLink, linkWidth = 2.):
+    def updateVelocityV1(self, pedIndx, linkWidth = 2.):
         """
         Updates the velocity of a pedestrian "pedIndx" according to the link the pedestrian is located.
         """
+        codeLink= int( self.pedDB[pedIndx, 6] )
+
         # Compute speed:
         speed = self.updateSpeed(codeLink = codeLink, linkWidth = linkWidth)
         # Unit vector pointing to the node target
@@ -366,6 +359,9 @@ class SARSA:
         return
     
     def updateVelocityV2(self, pedIndx):
+        """
+        Update the velocity of a pedestrian "pedIndx" according to a histogram of density in the link.
+        """
         codeLink= int( self.pedDB[pedIndx, 6] )
         
         if codeLink == -1:
@@ -375,21 +371,7 @@ class SARSA:
             x0L, y0L= self.nodesdb[n0L,1] , self.nodesdb[n0L,2]
             dist= ( (self.pedDB[pedIndx,0] - x0L)**2 + (self.pedDB[pedIndx,1] - y0L)**2 )**0.5
             unitL= self.popAtLink_HistParam[codeLink,0]
-            # print("\n*****")
-            # print(pedIndx)
-            # print(dist, unitL, x0L, y0L)
-            # print(self.pedDB[pedIndx,0], self.pedDB[pedIndx,1])
-            # print(self.pedDB[pedIndx,:])
-            # print(dist, unitL)
-            # print("x0, y0")
-            # print(x0L, y0L)
-            # print("ped coordi")
-            # print( self.pedDB[pedIndx,0] , self.pedDB[pedIndx,1] )
-            # print("codelink: ", codeLink)
             xAtLink= int( np.floor( dist / unitL) ) 
-            #print("dist:" + str(dist))
-            #print("unitL:" + str(unitL))
-            #print("codeLink:" + str(codeLink))
             speed= self.speArrPerLink[codeLink, xAtLink] + np.random.rand()*0.02 - 0.01  
             unitDir = (self.pedDB[pedIndx,2:4] - self.pedDB[pedIndx,:2]) / np.linalg.norm(self.pedDB[pedIndx,2:4] - self.pedDB[pedIndx,:2])
             vel_arr = speed * unitDir
@@ -823,229 +805,3 @@ class SARSA:
         plt.xticks([])
         plt.yticks([])
         plt.show()
-
-###############################################################################
-
-def simulationShortestPath():
-    simulTime = 67*60
-#    sendai = pedestrianMonteCarlo(agentsProfileName = "IPF_AgentsCoordV2_ThreeTimes.csv")
-#    sendai = pedestrianMonteCarlo(agentsProfileName = "IPF_AgentsCoordV2_SixTimes.csv")
-    sendai = MonteCarlo(agentsProfileName = "IPF_AgentsCoordV2.csv")
-    sendai.loadShortestPathDB(namefile= "nextnode.csv")
-    sendai.setFigureCanvas()
-    survivedAgents = np.zeros((simulTime,3))
-    for t in range( int(min(sendai.pedDB[:,9])) , max( min( int(max(sendai.pedDB[:,9])), simulTime), simulTime) ):
-        sendai.initEvacuationAtTime()
-        sendai.stepForward()
-        if not t % 60:
-            print(t)
-            sendai.getSnapshotV2()
-        sendai.checkTargetShortestPath()
-        survivedAgents[t,0] = np.sum( np.isin(sendai.pedDB[:,8], sendai.evacuationNodes[0]) )
-        survivedAgents[t,1] = np.sum( np.isin(sendai.pedDB[:,8], sendai.evacuationNodes[1]) )
-        survivedAgents[t,2] = np.sum( np.isin(sendai.pedDB[:,8], sendai.evacuationNodes[2]) )
-    sendai.makeVideo(nameVideo="Simulation20191211_shortestPath_OriginalCensus.avi") 
-    sendai.destroyCanvas()  
-    sendai.deleteFigures()
-    sendai = None
-    np.savetxt("agentsAtEvacuationNodesVsTime_shortesPath_OriginalCensus.csv", survivedAgents, delimiter=",")
-    return
-
-def ArahamaMTRL_20191220_SeqSim():
-    t0 = time.time()
-    simulTime = 67*60   #T*60 sec of tsunami arrival time
-    agentsProfileName = "IPF_AgentsCoordV2.csv"
-    folderStateNames = "Arahama_20191220"
-    numMaxSim = 5 #20
-    optimalChoiceRate = 0.9
-    randomChoiceRate = 1.0 - optimalChoiceRate
-    survivedAgentsPerSimName = "survivedAgents_Arahama20191220.csv"
-    meanRayleighTest = 20*60
-    
-    survivedAgents = np.zeros(numMaxSim)
-    arahama = MonteCarlo(agentsProfileName = agentsProfileName, meanRayleigh = meanRayleighTest)
-    
-    numSim= 0
-    for t in range( int(min(arahama.pedDB[:,9])) , int(min(max(arahama.pedDB[:,9]) , simulTime))  ):
-        arahama.initEvacuationAtTime()
-        arahama.stepForward()
-        arahama.checkTarget()
-    arahama.updateValueFunctionDB()
-    survivedAgents[0] = np.sum( np.isin(arahama.pedDB[:,8], arahama.evacuationNodes) )
-    # outfile = "%s\sim_%04d.csv" % (folderStateNames, numSim )
-    # outfilepedDB = "%s\%04d.csv" % (folderStateNames, numSim )
-    outfile = os.path.join(folderStateNames,"sim_%04d.csv" % numSim)
-    outfilepedDB = os.path.join(folderStateNames, "ped_%04d.csv" % numSim)
-    arahama.exportStateMatrix(outnamefile = outfile)
-    arahama.exportAgentDBatTimet(outnamefile = outfilepedDB)
-    arahama = None 
-    
-    for s in range(1,numMaxSim):
-        print("simulation number %d , t = %.1f" % ( s , time.time()-t0 )) 
-        arahama = MonteCarlo(agentsProfileName = agentsProfileName, meanRayleigh = meanRayleighTest)
-        # namefile = "%s\sim_%04d.csv" % (folderStateNames , s-1)
-        namefile = os.path.join(folderStateNames , "sim_%04d.csv" % (s-1) )
-        arahama.loadStateMatrixFromFile(namefile = namefile)
-        
-        for t in range( int(min(arahama.pedDB[:,9])) , simulTime  ):
-            arahama.initEvacuationAtTime()
-            arahama.stepForward()
-            optimalChoice = bool(np.random.choice(2, p=[randomChoiceRate , optimalChoiceRate]))
-            arahama.checkTarget(ifOptChoice = optimalChoice)
-        arahama.updateValueFunctionDB()
-        survivedAgents[s] = np.sum( np.isin(arahama.pedDB[:,8], arahama.evacuationNodes) ) 
-        # outfile = "%s\sim_%04d.csv" % (folderStateNames, s )
-        # outfilepedDB = "%s\%04d.csv" % (folderStateNames, s )
-        outfile = os.path.join(folderStateNames , "sim_%04d.csv" % s)
-        outfilepedDB = os.path.join(folderStateNames , "ped_%04d.csv" % s)
-        arahama.exportStateMatrix(outnamefile = outfile)
-        arahama.exportAgentDBatTimet(outnamefile = outfilepedDB)
-        # arahama = None
-    np.savetxt(survivedAgentsPerSimName, survivedAgents, delimiter=",") 
-    
-    QFun, VFun, policy  = arahama.computeAction_Value_Policy()  #computeAction_Value_Policy
-    
-    # print("QFun")
-    # print(QFun)
-    # print("VFun")
-    # print(VFun)
-    # print("policy")
-    # print(policy)
-    return
-
-def testAramaha2020August28():
-    t0 = time.time()
-    simulTime = 67*60   #T*60 sec of tsunami arrival time
-    agentsProfileName = "IPF_AgentsCoordV2.csv"
-    folderStateNames = "Arahama_20191220"
-    numMaxSim = 2 #20
-    optimalChoiceRate = 0.9
-    randomChoiceRate = 1.0 - optimalChoiceRate
-    survivedAgentsPerSimName = "survivedAgents_Arahama20191220.csv"
-    meanRayleighTest = 20*60
-    
-    survivedAgents = np.zeros(numMaxSim)
-    arahama = MonteCarlo(agentsProfileName = agentsProfileName, meanRayleigh = meanRayleighTest)
-    
-    print(arahama.evacuationNodes)
-    
-    for p in arahama.expeStat:
-        print(p, len(p))
-    
-    
-    
-    # numSim= 0
-    
-    # for t in range( int(min(arahama.pedDB[:,9])) , int(min(max(arahama.pedDB[:,9]) , simulTime))  ):
-    #     arahama.initEvacuationAtTime()
-    #     arahama.stepForward()
-    #     arahama.checkTarget()
-    # arahama.updateValueFunctionDB()
-    
-    # for i in arahama.expeStat[0]:
-    #     print(i)
-    
-    # survivedAgents[0] = np.sum( np.isin(arahama.pedDB[:,8], arahama.evacuationNodes) )
-    # outfile = "%s\sim_%04d.csv" % (folderStateNames, numSim )
-    # outfilepedDB = "%s\%04d.csv" % (folderStateNames, numSim )
-    # arahama.exportStateMatrix(outnamefile = outfile)
-    # arahama.exportAgentDBatTimet(outnamefile = outfilepedDB)
-    arahama = None 
-    
-    return
-
-def ArahamaMTRL_20191220_Video(): 
-    folderStateNames = "Arahama_20191220"
-    stateSimFile = "sim_0498.csv"
-    namefile = os.path.join(folderStateNames, stateSimFile) #"%s\%s" % (folderStateNames, stateSimFile)
-    fileNameAgentsAtEvacNodevsTime = "agentsAtEvacuationNodesVsTime.csv"
-    videoNamefile = "ArahamaTest2020Oct06.avi"
-    meanRayleighTest = 20*60
-    
-    
-    t0 = time.time()
-    simulTime = 67*60
-    agentsProfileName = "IPF_AgentsCoordV2.csv"
-    optimalChoiceRate = 0.9
-    randomChoiceRate = 1.0 - optimalChoiceRate
-    
-    survivedAgents = np.zeros((simulTime,3))
-    
-    arahama = MonteCarlo(agentsProfileName = agentsProfileName , meanRayleigh = meanRayleighTest)
-    arahama.loadStateMatrixFromFile(namefile = namefile)
-    arahama.setFigureCanvas()
-    
-    for t in range( int(min(arahama.pedDB[:,9])) , simulTime  ):
-        arahama.initEvacuationAtTime()
-        arahama.stepForward()
-        optimalChoice = bool(np.random.choice(2, p=[randomChoiceRate , optimalChoiceRate]))
-        arahama.checkTarget(ifOptChoice = optimalChoice)
-        if not t % 5:
-            print(t)
-            arahama.getSnapshotV2()
-            arahama.computePedHistDenVelAtLinks()
-            arahama.updateVelocityAllPedestrians() 
-        survivedAgents[t,0] = np.sum( np.isin(arahama.pedDB[:,8], arahama.evacuationNodes[0]) )
-        survivedAgents[t,1] = np.sum( np.isin(arahama.pedDB[:,8], arahama.evacuationNodes[1]) )
-        survivedAgents[t,2] = np.sum( np.isin(arahama.pedDB[:,8], arahama.evacuationNodes[2]) )
-    
-    arahama.makeVideo(nameVideo = videoNamefile)
-    arahama.destroyCanvas()
-    arahama.deleteFigures()
-    arahama = None 
-    np.savetxt(fileNameAgentsAtEvacNodevsTime, survivedAgents, delimiter=",")
-    return 
-    
-def SurvivedAgentsPerEvacuationNode():
-    fileNameAgentsAtEvacNodevsTime = "agentsAtEvacuationNodesVsTime.csv"
-    rlDb = np.loadtxt(fileNameAgentsAtEvacNodevsTime, delimiter=',')
-    
-    plt.figure(num="comparison")
-    plt.subplot(1,4,1)
-    plt.plot(rlDb[:,0], color="b", label="Montecarlo")
-    plt.xlabel("Time (s)")
-    plt.ylabel("Number of evacuees at node")
-    plt.title("Evacuation node 1")
-    plt.grid()
-    plt.legend()
-    
-    plt.subplot(1,4,2)
-    plt.plot(rlDb[:,1], color="b", label="Montecarlo")
-    plt.xlabel("Time (s)")
-    plt.ylabel("Number of evacuees at node")
-    plt.title("Evacuation node 2")
-    plt.grid()
-    
-    plt.subplot(1,4,3)
-    plt.plot(rlDb[:,2], color="b", label="Montecarlo")
-    plt.xlabel("Time (s)")
-    plt.ylabel("Number of evacuees at node")
-    plt.title("Evacuation node 3")
-    plt.grid()
-    
-    plt.subplot(1,4,4)
-    plt.plot(np.sum(rlDb , axis=1), color="b", label="Montecarlo")
-    plt.xlabel("Time (s)")
-    plt.ylabel("Number of evacuees at nodes")
-    plt.title("All evacuation nodes")
-    plt.grid()
-    
-    plt.show()
-    return
-
-if __name__ == "__main__":
-#    SurvivedAgentsPerEvacuationNode()
-    # ArahamaMTRL_20191220_Video()
-    tt = time.time()
-    ArahamaMTRL_20191220_SeqSim() 
-    # # testAramaha2020August28()
-    print("Total time:",time.time()-tt)
-
-
-#if __name__ == "__main__":
-##    SurvivedAgentsPerEvacuationNode()
-##    ArahamaMTRL_20191220_Video()
-    #tt = time.time()
-    #pool = mp.Pool(mp.cpu_count())
-    #pool.apply(ArahamaMTRL_20191220_SeqSim())
-    #print("Total time:",time.time()-tt) 

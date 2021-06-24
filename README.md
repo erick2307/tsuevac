@@ -1,7 +1,10 @@
 # Tsunami Evacuation using Reinforcement Learning
 
-root directory  
---------------
+> This document explains the structure of the repository.
+> For an explanation on the use of the code see the [Manual](./Manual.md)
+
+##root directory  
+
 main.py => file to set a case of SARSA simulation  
 sarsa.py => SARSA class and functions (needs to be cleaned)  
 
@@ -10,8 +13,8 @@ make_video.py => to create a video (AVI) file of a particular epoch (statematrix
 
 mc.py => Monte Carlo method (needs to be revised)  
 
-data directory
---------------
+##data directory
+
 agentsdb.csv => input data of population (currently only 'Node' field is used)  
 * 'Node': Starting node (int)  
 
@@ -30,16 +33,16 @@ nodesdb.csv => nodes information (intersections of roads)
     
 actionsdb.csv;transitionsdb.csv => created with 'pre/SetActionsandTransitions.py'  
 
-figures directory
------------------
+##figures directory
+
 A folder to store snapshots for video (not present in this repository)
 
-other directory
----------------
+##other directory
+
 An informal Python Notebook for various calculations (weights, etc)
 
-pre directory
--------------
+##pre directory
+
 * CensusAndBuildingDatabase is a folder with original census data  
 * Household_database is a folder with original census data (integrated but not in used at the moment)  
 * Population_database is a folder with original census data  

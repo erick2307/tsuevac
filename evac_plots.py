@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-Created on Mon Oct 19 14:46:53 2020
-"""
 
 import numpy as np
 import pandas as pd
@@ -133,6 +130,6 @@ if __name__ == "__main__":
         survivorsVsTime(numfiles,startfile,simtime,population,meandeparture,allfiles,blocks,casealias,statefolder = "case_u30min")
         maxEvac = plotSurvivors(numfiles,simtime,population,meandeparture,allfiles,blocks,casealias,cls)
         print(f"Time: {time.time()-t0} s.")
-        os.system(f"osascript -e 'Tell application \"System Events\" "
-                  f"to display dialog \"Max Evacuees:{maxEvac}\"'")
+        # os.system(f"osascript -e 'Tell application \"System Events\" "
+                #   f"to display dialog \"Max Evacuees:{maxEvac}\"'")
     
