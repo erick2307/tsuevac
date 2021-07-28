@@ -6,17 +6,17 @@ import matplotlib.pyplot as plt
 import cv2
 import glob
 import os
-plt.ioff() 
+plt.ioff()
 
 class SARSA:
-    def __init__(self, agentsProfileName="kochi/data/agentsdb.csv", 
-                 nodesdbFile= "kochi/data/nodesdb.csv", 
-                 linksdbFile= "kochi/data/linksdb.csv", 
-                 transLinkdbFile= "kochi/data/actionsdb.csv", 
-                 transNodedbFile= "kochi/data/transitionsdb.csv",
-                 meanRayleigh=7*60, 
-                 discount = 0.9,
-                 folderStateNames  = "state"):
+    def __init__(self, agentsProfileName="kochi/data/agentsdb.csv",
+                 nodesdbFile="kochi/data/nodesdb.csv",
+                 linksdbFile="kochi/data/linksdb.csv",
+                 transLinkdbFile="kochi/data/actionsdb.csv",
+                 transNodedbFile="kochi/data/transitionsdb.csv",
+                 meanRayleigh=7*60,
+                 discount=0.9,
+                 folderStateNames="state"):
         # setting the rewards for survive or dead
         self.surviveReward = 100000
         self.deadReward = -1000

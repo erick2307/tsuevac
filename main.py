@@ -4,34 +4,36 @@
 from mc import MonteCarlo
 import numpy as np
 import os
-from sarsa import *
+from sarsa import SARSA
 import time
 
-def run_sarsa(area="kochi",simtime=30, meandeparture=15, numSim0=0, numBlocks= 5, simPerBlock= 1000,name='r'):
+
+def run_sarsa(area="kochi",simtime=30,meandeparture=15,numSim0=0,
+              numBlocks=5,simPerBlock=1000,name='r'):
     t0 = time.time()
-    agentsProfileName= os.path.join(area,"data","agentsdb.csv")
-    nodesdbFile= os.path.join(area,"data","nodesdb.csv")
-    linksdbFile= os.path.join(area,"data", "linksdb.csv")
-    transLinkdbFile= os.path.join(area,"data", "actionsdb.csv")
-    transNodedbFile= os.path.join(area,"data", "transitionsdb.csv")
-    folderStateNames = os.path.join(area,f"state_{name}")
+    agentsProfileName = os.path.join(area, "data", "agentsdb.csv")
+    nodesdbFile = os.path.join(area, "data", "nodesdb.csv")
+    linksdbFile = os.path.join(area, "data", "linksdb.csv")
+    transLinkdbFile = os.path.join(area, "data", "actionsdb.csv")
+    transNodedbFile = os.path.join(area, "data", "transitionsdb.csv")
+    folderStateNames = os.path.join(area, f"state_{name}")
     if not os.path.exists(folderStateNames):
         os.mkdir(folderStateNames)
     meanRayleighTest = meandeparture*60
     simulTime = simtime*60
-    survivorsPerSim= []
+    survivorsPerSim = []
     
     if numSim0 == 0:
         randomChoiceRate = 0.99
         optimalChoiceRate = 1.0 - randomChoiceRate
-        case = SARSA(agentsProfileName = agentsProfileName , 
-                      nodesdbFile= nodesdbFile,
-                      linksdbFile= linksdbFile, 
-                      transLinkdbFile= transLinkdbFile, 
-                      transNodedbFile= transNodedbFile,
+        case = SARSA(agentsProfileName = agentsProfileName,
+                      nodesdbFile = nodesdbFile,
+                      linksdbFile = linksdbFile, 
+                      transLinkdbFile = transLinkdbFile, 
+                      transNodedbFile = transNodedbFile,
                       meanRayleigh = meanRayleighTest,
-                      discount=0.9,
-                      folderStateNames= folderStateNames)
+                      discount =0.9,
+                      folderStateNames = folderStateNames)
 
         totalagents = np.sum(case.pedDB.shape[0])
 
@@ -169,9 +171,11 @@ def run_mc(area="kochi",simtime=30, meandeparture=15, numSim0=0, numBlocks= 5, s
         for s in range(simPerBlock):
             eoe = int(0.8*simPerBlock) #end of exploration
             if s < eoe:
-                randomChoiceRate = -1/(eoe)**2*s**2+1
+                # randomChoiceRate = -1/(eoe)**2*s**2+1
+                randomChoiceRate = 0.9
             else:
-                randomChoiceRate = 0.
+                # randomChoiceRate = 0.
+                randomChoiceRate = 0.1
             # randomChoiceRate = (simPerBlock - s - 1.0)/(simPerBlock - s + 1.0) #1.0/(0.015*s + 1.0)
             optimalChoiceRate = 1.0 - randomChoiceRate
             case = MonteCarlo(agentsProfileName = agentsProfileName , 
@@ -225,7 +229,7 @@ def kochi_mc():
     
     numSim0= 0
     numBlocks= 1
-    simPerBlock= 10
+    simPerBlock= 100
 
     name=f"mc_{simtime}_{meandeparture}"
     area="kochi"
@@ -239,7 +243,7 @@ def kochi_sarsa():
     
     numSim0= 0
     numBlocks= 1
-    simPerBlock= 10
+    simPerBlock= 100
 
     name=f"sarsa_{simtime}_{meandeparture}"
     area="kochi"
@@ -248,6 +252,37 @@ def kochi_sarsa():
         numSim0=numSim0, numBlocks=numBlocks, simPerBlock=simPerBlock, name=name) 
     return 
 
+def arahama_sarsa():  
+    simtime=67 #min
+    meandeparture=15 #min
+    
+    numSim0= 0
+    numBlocks= 1
+    simPerBlock= 10
+    
+    name=f"sarsa_{simtime}_{meandeparture}"
+    area="arahama"
+    
+    run_sarsa(area=area,simtime=simtime, meandeparture=meandeparture, 
+        numSim0=numSim0, numBlocks=numBlocks, simPerBlock=simPerBlock, name=name) 
+    return
+
+def arahama_mc():  
+    simtime=67 #min
+    meandeparture=15 #min
+    
+    numSim0= 0
+    numBlocks= 1
+    simPerBlock= 10
+
+    name=f"mc_{simtime}_{meandeparture}"
+    area="arahama"
+    
+    run_mc(area=area,simtime=simtime, meandeparture=meandeparture, 
+        numSim0=numSim0, numBlocks=numBlocks, simPerBlock=simPerBlock, name=name) 
+
 if __name__ == "__main__":
     # kochi_mc()
-    kochi_sarsa()
+    # kochi_sarsa()
+    arahama_mc()
+    # arahama_sarsa()
