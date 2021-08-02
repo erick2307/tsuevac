@@ -281,8 +281,25 @@ def arahama_mc():
     run_mc(area=area,simtime=simtime, meandeparture=meandeparture, 
         numSim0=numSim0, numBlocks=numBlocks, simPerBlock=simPerBlock, name=name) 
 
+def new_kochi_sarsa():
+    simtime=30 #min
+    meandeparture=15 #min
+    
+    numSim0= 0
+    numBlocks= 1
+    simPerBlock= 10
+
+    name=f"sarsa_{simtime}_{meandeparture}"
+    area="new_kochi"
+
+    run_sarsa(area=area,simtime=simtime, meandeparture=meandeparture, 
+        numSim0=numSim0, numBlocks=numBlocks, simPerBlock=simPerBlock, name=name) 
+    return 
+
+
 if __name__ == "__main__":
     # kochi_mc()
     # kochi_sarsa()
-    arahama_mc()
+    # arahama_mc()
     # arahama_sarsa()
+    new_kochi_sarsa()

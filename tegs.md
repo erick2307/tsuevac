@@ -1,5 +1,12 @@
 # Tsunami Evacuation Guidance System
 
+## PreProcess Manual (2021.Aug2)
+
+- Run `preProcess.py` in the case folder
+- Requires `createLinksAndNodes.py`, `getPopulation.py`,`setActionsAndTransitions.py`
+- Run `main.py` in the main folder
+
+
 ## Tsunami Simulation outputs:  
 1. `arrivaltime.dat.asc`:
 	This is a raster file with the arrival time.  
