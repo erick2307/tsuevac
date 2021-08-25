@@ -83,6 +83,7 @@ def run_mc(area="kochi",simtime=30, meandeparture=15, numSim0=0, numBlocks= 5, s
             
             namefile = os.path.join(folderStateNames , "sim_%09d.csv" % (numSim-1) )
             case.loadStateMatrixFromFile(namefile = namefile)
+            totalagents = np.sum(case.pedDB.shape[0])
             
             for t in range( int(min(case.pedDB[:,9])) , simulTime ):
                 case.initEvacuationAtTime()
