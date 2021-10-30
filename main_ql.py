@@ -5,7 +5,7 @@ import numpy as np
 import os
 from qlearn import QLearning
 import time
-import cProfile
+
 
 def run_ql(area="kochi",simtime=30,meandeparture=15,numSim0=0,
               numBlocks=5,simPerBlock=1000,name='r'):
@@ -83,7 +83,7 @@ def run_ql(area="kochi",simtime=30,meandeparture=15,numSim0=0,
             namefile = os.path.join(folderStateNames , "sim_%09d.csv" % (numSim-1) )
             case.loadStateMatrixFromFile(namefile = namefile)
             totalagents = np.sum(case.pedDB.shape[0])
-             
+
             for t in range( int(min(case.pedDB[:,9])) , simulTime ):
                 case.initEvacuationAtTime()
                 case.stepForward()
@@ -122,7 +122,7 @@ def kochi_ql():
     numBlocks= 1
     simPerBlock= 100
     
-    name=f"case_ql_{simtime}_{meandeparture}"
+    name=f"ql_{simtime}_{meandeparture}_{simPerBlock}"
     area="kochi"
     
     run_ql(area=area,simtime=simtime, meandeparture=meandeparture, 
@@ -136,9 +136,9 @@ def arahama_ql():
     
     numSim0= 0
     numBlocks= 1
-    simPerBlock= 100
+    simPerBlock= 1000
     
-    name=f"case_ql_{simtime}_{meandeparture}"
+    name=f"ql_{simtime}_{meandeparture}_{simPerBlock}"
     area="arahama"
     
     run_ql(area=area,simtime=simtime, meandeparture=meandeparture, 
@@ -153,7 +153,7 @@ def new_kochi_ql():
     numBlocks= 1
     simPerBlock= 100
 
-    name=f"sarsa_{simtime}_{meandeparture}"
+    name=f"ql_{simtime}_{meandeparture}_{simPerBlock}"
     area="new_kochi"
 
     run_ql(area=area,simtime=simtime, meandeparture=meandeparture, 
@@ -161,6 +161,6 @@ def new_kochi_ql():
     return 
 
 if __name__ == "__main__":
-    cProfile.run(arahama_ql(),'profile.stats',sort=-1)
-    #kochi_ql()
+    arahama_ql()
+    # kochi_ql()
     # new_kochi_ql()

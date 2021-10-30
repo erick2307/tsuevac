@@ -82,7 +82,7 @@ def run_sarsa(area="kochi",simtime=30,meandeparture=15,numSim0=0,
             namefile = os.path.join(folderStateNames , "sim_%09d.csv" % (numSim-1) )
             case.loadStateMatrixFromFile(namefile = namefile)
             totalagents = np.sum(case.pedDB.shape[0])
-            
+
             for t in range( int(min(case.pedDB[:,9])) , simulTime ):
                 case.initEvacuationAtTime()
                 case.stepForward()
@@ -119,9 +119,9 @@ def kochi_sarsa():
     
     numSim0= 0
     numBlocks= 1
-    simPerBlock= 100
+    simPerBlock= 1000
 
-    name=f"sarsa_{simtime}_{meandeparture}"
+    name=f"sarsa_{simtime}_{meandeparture}_{simPerBlock}"
     area="kochi"
 
     run_sarsa(area=area,simtime=simtime, meandeparture=meandeparture, 
@@ -130,13 +130,13 @@ def kochi_sarsa():
 
 def arahama_sarsa():  
     simtime=67 #min
-    meandeparture=15 #min
+    meandeparture=7 #min
     
     numSim0= 0
     numBlocks= 1
-    simPerBlock= 100
+    simPerBlock= 1000
     
-    name=f"sarsa_{simtime}_{meandeparture}"
+    name=f"sarsa_{simtime}_{meandeparture}_{simPerBlock}"
     area="arahama"
     
     run_sarsa(area=area,simtime=simtime, meandeparture=meandeparture, 
@@ -152,7 +152,7 @@ def new_kochi_sarsa():
     numBlocks= 1
     simPerBlock= 100
 
-    name=f"sarsa_{simtime}_{meandeparture}"
+    name=f"sarsa_{simtime}_{meandeparture}_{simPerBlock}"
     area="new_kochi"
 
     run_sarsa(area=area,simtime=simtime, meandeparture=meandeparture, 
