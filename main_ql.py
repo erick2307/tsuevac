@@ -5,7 +5,7 @@ import numpy as np
 import os
 from qlearn import QLearning
 import time
-
+import cProfile
 
 def run_ql(area="kochi",simtime=30,meandeparture=15,numSim0=0,
               numBlocks=5,simPerBlock=1000,name='r'):
@@ -161,6 +161,6 @@ def new_kochi_ql():
     return 
 
 if __name__ == "__main__":
-    # arahama_ql()
-    kochi_ql()
+    cProfile.run(arahama_ql(),'profile.stats',sort=-1)
+    #kochi_ql()
     # new_kochi_ql()
