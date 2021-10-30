@@ -84,7 +84,7 @@ def run_mc(area="kochi",simtime=30, meandeparture=15, numSim0=0, numBlocks= 5, s
             namefile = os.path.join(folderStateNames , "sim_%09d.csv" % (numSim-1) )
             case.loadStateMatrixFromFile(namefile = namefile)
             totalagents = np.sum(case.pedDB.shape[0])
-            
+
             for t in range( int(min(case.pedDB[:,9])) , simulTime ):
                 case.initEvacuationAtTime()
                 case.stepForward()
@@ -123,9 +123,9 @@ def kochi_mc():
     simtime=30 #min
     meandeparture=15 #min
     
-    numSim0= 0
+    numSim0= 1950
     numBlocks= 1
-    simPerBlock= 100
+    simPerBlock= 8050
 
     name=f"mc_{simtime}_{meandeparture}"
     area="kochi"
