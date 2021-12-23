@@ -28819,3 +28819,9 @@ system/data/shelters/39/PHRP3918.shp
 system/data/shelters/39/PHRP3918.shx
 pre/.DS_Store
 .DS_Store
+.DS_Store
+arahama/state_ql_67_7_10/sim_000000000.csv
+*.pyc
+*.csv
+*.png
+*.csv
