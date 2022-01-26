@@ -11,8 +11,8 @@ import setActionsAndTransitions as actrans
 
 
 def createBoundingBox(area={'north': 33.58, 'south': 33.53,'east': 133.58, 'west': 133.52}):
-    #create a Bounding Box
-    #returns a shapely geometry
+    # create a Bounding Box
+    # returns a shapely geometry
     bbox = shp.geometry.box(area["west"], area["south"], area["east"], area["north"])
     return bbox
 
