@@ -182,6 +182,7 @@ def new_kochi_ql_mod():
 
 
 if __name__ == "__main__":
-    cProfile.run('arahama_ql_mod()', filename='profile.stats', sort=-1)
+    # cProfile.run('arahama_ql_mod()', filename='profile.stats', sort=-1)
+    arahama_ql_mod()
     # kochi_ql_mod()
     # new_kochi_ql_mod()

@@ -11,15 +11,15 @@ import time
 
 t0 = time.time()
 
-#create a graph
+# create a graph
 G = nx.Graph()
 
-#read data
+# read data
 Nodesdf = pd.read_csv('nodesdb_utm_1.csv',names=["id","x","y","type"],skiprows=1)
 Edgesdf = pd.read_csv('linksdb.csv',names=["id","n1","n2","length"],skiprows=1)
 Sheltersdf = Nodesdf[Nodesdf["type"] == 1]
 
-#add nodes to graph
+# add nodes to graph
 for i,row in Nodesdf.iterrows():
     G.add_node(row[0],pos=(row[1],row[2]),ntype=row[3])
 
