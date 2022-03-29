@@ -22,6 +22,12 @@ def createFolders():
     if not Path.exists(datafolder):
         Path.mkdir(datafolder)
 
+def get_area_from_geojson(aos_file):
+    gdf = gpd.read_file(aos_file)
+    bbox = gdf.total_bounds
+    area = {'north': bbox[3], 'south': bbox[1],'east': bbox[2], 'west': bbox[0]}
+    return area
+
 
 def createBoundingBox(area={'north': 33.58, 'south': 33.53, 'east': 133.58, 'west': 133.52}):
     # create a Bounding Box
@@ -164,10 +170,16 @@ def copyDataFolder(case='kochi'):
 
 if __name__ == "__main__":
     # Set Prefecture / Area of Interest / working CRS
-    case = 'kochi'
-    pref_code = 39
-    area = {'north': 33.58, 'south': 33.53, 'east': 133.58, 'west': 133.52}
-    crs = 'EPSG:6690'
+    # case = 'kochi'
+    # pref_code = 39
+    # area = {'north': 33.58, 'south': 33.53, 'east': 133.58, 'west': 133.52}
+    # crs = 'EPSG:6690'
+    
+    # Set Prefecture / Area of Interest / working CRS
+    case = 'arahama'
+    pref_code = 4
+    area = get_area_from_geojson('../input/arahama_aos.geojson')
+    crs = 'EPSG:6691'
     # create Folders
     createFolders()
     # Get a Bounding Box of the area

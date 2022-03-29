@@ -72,9 +72,9 @@ class QLearning:
         # new structure:
         # [(0)x0, (1)y0, (2)xtarget,(3)ytarget,(4)vx,(5)vy, (6)currentLink, 
         #  (7)nodeTgt, (8)lastNode, (9)StartTimeEvacuation, (10)IfAlreadyEvacuated]
-        self.pedDB = np.zeros((self.numPedestrian,11)) 
+        self.pedDB = np.zeros((self.numPedestrian, 11))
         # Assigning initial node
-        self.pedDB[:,8] = self.pedProfiles[:,4]  
+        self.pedDB[:, 8] = self.pedProfiles[:, 4]
         # 2020Oct06: Before initiate evacuation, pedestrians do not have link
         # we assign a value of -2, which means, a pedestrian are not in a link
         self.pedDB[:,6] -= 2

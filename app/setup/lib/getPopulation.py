@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+from tkinter.filedialog import askopenfilenames
 import matplotlib.pyplot as plt
 import geopandas as gpd
 import pandas as pd
@@ -93,4 +94,8 @@ def plotFolium(gdata):
 
 if __name__ == '__main__':
     #plotPopulation(getPopulation(4))
-    getPopulationArea()
+    aos = '../../input/arahama_aos.geojson'
+    crs = 'EPSG:6691'
+    gdf_int = getPopulationArea(4, aos=aos, crs=crs)
+    map = plotFolium(gdf_int)
+    map.save('arahama.html')

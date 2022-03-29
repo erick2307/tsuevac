@@ -170,10 +170,10 @@ def new_kochi_ql_mod():
 
     numSim0 = 0
     numBlocks = 1
-    simPerBlock = 1000
+    simPerBlock = 10
 
     name = f"ql_{simtime}_{meandeparture}_{simPerBlock}"
-    area = "new_kochi"
+    area = "arahama"
 
     run_ql_mod(area=area, simtime=simtime, meandeparture=meandeparture,
                numSim0=numSim0, numBlocks=numBlocks, simPerBlock=simPerBlock,
@@ -183,6 +183,6 @@ def new_kochi_ql_mod():
 
 if __name__ == "__main__":
     # cProfile.run('arahama_ql_mod()', filename='profile.stats', sort=-1)
-    # arahama_ql_mod()
-    kochi_ql_mod()
+    arahama_ql_mod()
+    # kochi_ql_mod()
     # new_kochi_ql_mod()
