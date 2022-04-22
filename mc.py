@@ -8,23 +8,21 @@ Created on Fri Jan 11 16:31:19 2019
 
 import numpy as np
 import matplotlib.pyplot as plt
-#from osgeo import osr
-#from osgeo import ogr
 import cv2
 import glob
 import time
 import os
-plt.ioff() 
+plt.ioff()
 
 class MonteCarlo:
-    def __init__(self, agentsProfileName="kochi/data/agentsdb.csv", 
-                 nodesdbFile= "kochi/data/nodesdb.csv", 
-                 linksdbFile= "kochi/data/linksdb.csv", 
-                 transLinkdbFile= "kochi/data/actionsdb.csv", 
-                 transNodedbFile= "kochi/data/transitionsdb.csv",
-                 meanRayleigh=7*60, 
-                 discount = 0.9,
-                 folderStateNames  = "state"):
+    def __init__(self, agentsProfileName="kochi/data/agentsdb.csv",
+                 nodesdbFile="kochi/data/nodesdb.csv",
+                 linksdbFile="kochi/data/linksdb.csv",
+                 transLinkdbFile="kochi/data/actionsdb.csv",
+                 transNodedbFile="kochi/data/transitionsdb.csv",
+                 meanRayleigh=7 * 60,
+                 discount=0.9,
+                 folderStateNames="state"):
         # setting the rewards for survive or dead
         self.surviveReward = 100000
         self.deadReward = -1000
@@ -41,8 +39,9 @@ class MonteCarlo:
         # 2020Oct07: An additional column must be added to store the link width
         # Thus, this is the new format: [number, node1, node2, length, width]
         self.linksdb = np.loadtxt(linksdbFile, delimiter=',', dtype=np.int) 
-        self.populationAtLinks = np.zeros((self.linksdb.shape[0], 2)) # number of agents at links [linkNumber, numberOfAgentsAtLink, density]
-        self.populationAtLinks[:,0] = self.linksdb[:,0]
+        self.populationAtLinks = np.zeros((self.linksdb.shape[0], 2)) 
+        # number of agents at links [linkNumber, numberOfAgentsAtLink, density]
+        self.populationAtLinks[:, 0] = self.linksdb[:, 0]
         # Parameters to construct histograms of polations at every link: (1) unit length, (2) number of units
         self.popAtLink_HistParam = np.zeros((self.linksdb.shape[0], 2))
         self.popAtLink_HistParam[:,1] = np.ceil(self.linksdb[:,3] / 2. ) # assuming length units of about 2 meters

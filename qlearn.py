@@ -531,35 +531,36 @@ class QLearning:
     
     def loadShortestPathDB(self, namefile):
         self.shortestPathDB = np.loadtxt(namefile, delimiter=",", skiprows=1, dtype=np.int)
+        print(self.shortestPathDB.size)
         return
     
     def updateTargetShortestPath(self, pedIndx):
         if self.pedDB[pedIndx, 6] == -1:
             return
         else:
-            node0 = int(self.pedDB[pedIndx , 7])
-            x0_arr = np.array([ self.nodesdb[node0,1], self.nodesdb[node0,2] ])
-            nodeTgt = self.shortestPathDB[node0,1]
+            node0 = int(self.pedDB[pedIndx, 7])
+            x0_arr = np.array([self.nodesdb[node0, 1], self.nodesdb[node0, 2]])
+            nodeTgt = self.shortestPathDB[node0, 1]
             numNodesLinked = self.transNodedb[node0, 1]
-            nodesLinked = self.transNodedb[node0, 2:2+numNodesLinked]
+            nodesLinked = self.transNodedb[node0, 2 : 2 + numNodesLinked]
             indxTgt = np.where(nodesLinked == nodeTgt)[0][0]
-            link = self.transLinkdb[node0, 2+indxTgt]
+            link = self.transLinkdb[node0, 2 + indxTgt]
             if nodeTgt == node0:
                 xTgt_arr = x0_arr
-                vel_arr = np.array([0,0])
-                self.populationAtLinks[int(self.pedDB[pedIndx,6]), 1] -= 1
+                vel_arr = np.array([0, 0])
+                self.populationAtLinks[int(self.pedDB[pedIndx, 6]), 1] -= 1
             else:
                 self.populationAtLinks[int(self.pedDB[pedIndx,6]), 1] -= 1
                 self.populationAtLinks[link, 1] += 1
-                xTgt_arr = np.array([ self.nodesdb[nodeTgt,1], self.nodesdb[nodeTgt,2] ])
+                xTgt_arr = np.array([ self.nodesdb[nodeTgt, 1], self.nodesdb[nodeTgt, 2]])
                 unitDir = (xTgt_arr - x0_arr) / np.linalg.norm(xTgt_arr - x0_arr)
                 speed = self.updateSpeed(link)
                 vel_arr = speed * unitDir
-            self.pedDB[pedIndx , :9] = np.array( [x0_arr[0], x0_arr[1], xTgt_arr[0], xTgt_arr[1], vel_arr[0], vel_arr[1], link, nodeTgt, node0] )
+            self.pedDB[pedIndx, :9] = np.array([x0_arr[0], x0_arr[1], xTgt_arr[0], xTgt_arr[1], vel_arr[0], vel_arr[1], link, nodeTgt, node0])
         return
     
     def checkTargetShortestPath(self):
-        error = ( (self.pedDB[ : , 0 ] - self.pedDB[ : , 2 ])**2 + (self.pedDB[ :  , 1 ] - self.pedDB[ : , 3 ])**2 )**0.5
+        error = ((self.pedDB[:, 0] - self.pedDB[:, 2]) ** 2 + (self.pedDB[:, 1] - self.pedDB[:, 3]) ** 2) ** 0.5
         indx = np.where(error <= self.errorLoc)[0]
         for i in indx:
             self.updateTargetShortestPath(i)
@@ -678,7 +679,7 @@ class QLearning:
                 #     self.stateMat[state, 21 + choice] += 1
         return
     
-    def updateValueFunctionDB(self):
+    def  updateValueFunctionDB(self):
         """
         The matrix "stateMat" is updated for all pedestrians
 

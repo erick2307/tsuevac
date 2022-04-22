@@ -5,7 +5,6 @@ import numpy as np
 import os
 from qlearn import QLearning
 import time
-import cProfile
 
 
 def run_ql_mod(area="kochi", simtime=30, meandeparture=15,
@@ -19,8 +18,8 @@ def run_ql_mod(area="kochi", simtime=30, meandeparture=15,
     folderStateNames = os.path.join(area, f"state_{name}")
     if not os.path.exists(folderStateNames):
         os.mkdir(folderStateNames)
-    meanRayleighTest = meandeparture*60
-    simulTime = simtime*60
+    meanRayleighTest = meandeparture * 60
+    simulTime = simtime * 60
     survivorsPerSim = []
 
     if numSim0 == 0:
@@ -71,9 +70,9 @@ def run_ql_mod(area="kochi", simtime=30, meandeparture=15,
     numSim = numSim0 + 1
     for b in range(numBlocks):
         for s in range(simPerBlock):
-            eoe = int(0.8*simPerBlock)  # end of exploration
+            eoe = int(0.8 * simPerBlock)  # end of exploration
             if s < eoe:
-                randomChoiceRate = -1/(eoe)**2*s**2+1
+                randomChoiceRate = -1 / (eoe) ** 2 * s ** 2 + 1
             else:
                 randomChoiceRate = 0.0
             #  randomChoiceRate = (simPerBlock - s - 1.0)/
@@ -109,7 +108,7 @@ def run_ql_mod(area="kochi", simtime=30, meandeparture=15,
             outfile = os.path.join(folderStateNames, "sim_%09d.csv" % numSim)
             case.exportStateMatrix(outnamefile=outfile)
             print("\n\n ***** Simu %d (t= %.2f)*****" % (numSim,
-                  (time.time()-t0)/60.))
+                  (time.time() - t0) / 60.))
             print("epsilon greedy - exploration: %f" % randomChoiceRate)
             print(f"""survived: {np.sum(case.pedDB[:,10] == 1)}
                   / total: {totalagents}""")
@@ -182,7 +181,7 @@ def new_kochi_ql_mod():
 
 
 if __name__ == "__main__":
-    # cProfile.run('arahama_ql_mod()', filename='profile.stats', sort=-1)
+
     arahama_ql_mod()
     # kochi_ql_mod()
     # new_kochi_ql_mod()
