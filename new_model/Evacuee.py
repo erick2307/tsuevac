@@ -1,6 +1,6 @@
 import Agent
 import networkx as nx
-#'this is the latest'
+
 class Evacuee(Agent):
     """An Evacuee agent inherited from Agent class"""
     count = 0
