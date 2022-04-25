@@ -1,16 +1,16 @@
-import networkx as nx
-import folium
 import osmnx as ox
 import numpy as np
-import geopandas as gpd
-import pandas as pd
-from scipy.spatial import cKDTree
-import rasterio
-from rasterio.plot import show
 import matplotlib as mpl
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
-import matplotlib.patheffects as pe
+import networkx as nx
+import rasterio
+from rasterio.plot import show
+from scipy.spatial import cKDTree as cKDTree
+import pandas as pd
+import geopandas as gpd
+
+from tsuevac import setup
 
 class Environment(object):
     def __init__(self, bbox, nw_type='drive', verb=False):
@@ -159,6 +159,7 @@ class Environment(object):
             self.e_G_crs = self.e_G.graph["crs"]
         if verb:
             print(f"Your graph has this projection: {self.e_G_crs}")
+        return self.e_G_crs
 
     def e_get_nodes_attribute_list(self, verb=False):
         return set([k for n in self.e_G.nodes for k in self.e_G.nodes[n].keys()])

@@ -1,10 +1,5 @@
-import Agent
-import numpy as np
-import itertools as it
-
-REWARD = -1
-NUM_EPISODES = 100
-CONGESTION_LEVELS = [0, 1, 2]
+from tsuevac import Agent
+from tsuevac import setup
 
 class Node(Agent):
     """A Node agent inherited from Agent class."""
@@ -13,7 +8,7 @@ class Node(Agent):
 
     def __init__(self, verb=False):
         """Initialize attributes of the parent class."""
-        super().__init__(self, verb=False)
+        super().__init__(self, verb)
         self.n_uid = self.count  # unique node id
         self.n_num_evacuees = None  # number of evacuees in node
         self.n_num_edges = self.get_number_of_edges()  # number of edges in node
@@ -34,6 +29,7 @@ class Node(Agent):
         self.n_lag_time = None
         # The lag time is the time an agent need to spent in the node to account for interactions at intersections.
         # Can be a fix number or the outcome of a surrogate model.
+        self.__class__.count += 1
         Node.nodes.append(self)
         if verb:
             print(f'Node {self.n_uid} created')

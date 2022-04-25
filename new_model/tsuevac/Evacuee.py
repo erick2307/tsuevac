@@ -1,5 +1,5 @@
-import Agent
-import networkx as nx
+from tsuevac import Agent
+from tsuevac import setup
 
 class Evacuee(Agent):
     """An Evacuee agent inherited from Agent class"""
@@ -8,7 +8,7 @@ class Evacuee(Agent):
 
     def __init__(self, verb=False):
         """Initialize attributes of the parent class."""
-        super().__init__(self, verb=False)
+        super().__init__(self, verb)
         self.e_uid = self.count  # unique evacuee id
         self.e_origin = None  # current node in osmid code
         self.e_destination = None  # next node in osmid code
@@ -18,6 +18,7 @@ class Evacuee(Agent):
         self.e_evac_time = None
         self.e_behavior = None
         self.e_scheduled_time = None  # time for next move (scheduling)
+        self.__class__.count += 1
         Evacuee.evacuees.append(self)
         if verb:
             print(f'Evacuee {self.e_uid} created')
@@ -33,12 +34,12 @@ class Evacuee(Agent):
             print(f'target: {target}')
             print(f'path: {route}')
         return route
-    
+
     def get_path_to_shelter(self, G, agent):
         """Find the path from origin to shelter location."""
         target = self.get_shelter_location(agent)
         return self.get_shortest_path(G, self.e_origin, target)
-    
+
     def get_shelter_location(self, agent):
         """find the node location of a shelter."""
         return agent.get_node_location()
@@ -56,7 +57,7 @@ class Evacuee(Agent):
         """Resets the [e_path] to None."""
         self.e_path = None
         return
-        
+
     def update_e_path(self):
         self.e_path = self.get_shortest_path()
         return
@@ -94,10 +95,7 @@ class Evacuee(Agent):
         1 : Reinforcement Learning - Compliance of guidance system
         """
         pass
-    
+
     def get_closest_agent(self, agent_list):
         """Finds the closest agent from a list of agents with (x,y) coordinates."""
         pass
-    
-    
-    

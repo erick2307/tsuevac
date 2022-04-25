@@ -1,4 +1,4 @@
-import networkx as nx
+from tsuevac import setup
 
 class Agent(object):
     """An agent class"""
