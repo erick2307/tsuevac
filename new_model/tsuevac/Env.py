@@ -14,6 +14,7 @@ from tsuevac import setup
 
 class Environment(object):
     def __init__(self, bbox, nw_type='drive', verb=False):
+        """Create the environment as a road network"""
         # bbox is a dict of north,south,east,west lat,lon edges of target area
         self.e_bbox = {'north': bbox['north'], 'south': bbox['south'],
                        'east': bbox['east'], 'west': bbox['west']}
@@ -143,12 +144,11 @@ class Environment(object):
             fig.colorbar(cm.ScalarMappable(norm=norm, cmap=cmap), ax=ax, orientation='vertical')
         return fig, ax
 
-    def e_load_aos(self, aos_file, explore=False, verb=False):
+    def e_load_aos(self, aos_file, verb=False):
         # to load the geometry of the area of study (aos)
         self.e_aos = gpd.read_file(aos_file)
-        if explore:
-            self.e_aos.explore(style_kwds=dict(fill=False, color="black"))
         if verb:
+            self.e_aos.explore(style_kwds=dict(fill=False, color="black"))
             print('Geometry of area of study loaded')
 
     def e_get_network_projection(self, graph=None, verb=False):

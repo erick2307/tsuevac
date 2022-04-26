@@ -1,5 +1,6 @@
 from tsuevac import Agent
 from tsuevac import setup
+import networkx as nx
 
 class Evacuee(Agent):
     """An Evacuee agent inherited from Agent class"""
