@@ -135,7 +135,7 @@ def kochi_ql_mod():
 
     numSim0 = 0
     numBlocks = 1
-    simPerBlock = 100
+    simPerBlock = 10
 
     name = f"ql_mod_{simtime}_{meandeparture}_{simPerBlock}"
     area = "kochi"
@@ -181,7 +181,8 @@ def new_kochi_ql_mod():
 
 
 if __name__ == "__main__":
-
-    arahama_ql_mod()
-    # kochi_ql_mod()
+    t = time.time()
+    # arahama_ql_mod()
+    kochi_ql_mod()
     # new_kochi_ql_mod()
+    print(f"Time:{time.time()-t} s.")
