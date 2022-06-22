@@ -182,7 +182,7 @@ def new_kochi_ql_mod():
 
 if __name__ == "__main__":
     t = time.time()
-    # arahama_ql_mod()
-    kochi_ql_mod()
+    arahama_ql_mod()
+    # kochi_ql_mod()
     # new_kochi_ql_mod()
     print(f"Time:{time.time()-t} s.")
