@@ -679,7 +679,7 @@ class QLearning:
                 #     self.stateMat[state, 21 + choice] += 1
         return
     
-    def  updateValueFunctionDB(self):
+    def updateValueFunctionDB(self):
         """
         The matrix "stateMat" is updated for all pedestrians
 
