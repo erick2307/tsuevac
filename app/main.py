@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import numpy as np
 import os
-from bin import qlearn as ql
 import time
-import cProfile
+
+import numpy as np
+from bin import qlearn as ql
 
 
 def run_ql_mod(area="kochi", simtime=30, meandeparture=15,
@@ -19,12 +19,12 @@ def run_ql_mod(area="kochi", simtime=30, meandeparture=15,
     folderStateNames = os.path.join(area, f"state_{name}")
     if not os.path.exists(folderStateNames):
         os.mkdir(folderStateNames)
-    meanRayleighTest = meandeparture*60
-    simulTime = simtime*60
+    meanRayleighTest = meandeparture * 60
+    simulTime = simtime * 60
     survivorsPerSim = []
 
     if numSim0 == 0:
-        randomChoiceRate = 0.  # 0.99
+        randomChoiceRate = 0.99
         optimalChoiceRate = 1.0 - randomChoiceRate
         case = ql.QLearning(agentsProfileName=agentsProfileName,
                          nodesdbFile=nodesdbFile,
@@ -71,15 +71,15 @@ def run_ql_mod(area="kochi", simtime=30, meandeparture=15,
     numSim = numSim0 + 1
     for b in range(numBlocks):
         for s in range(simPerBlock):
-            eoe = int(0.8*simPerBlock)  # end of exploration
+            eoe = int(0.8 * simPerBlock)  # end of exploration
             if s < eoe:
-                randomChoiceRate = -1/(eoe)**2*s**2+1
+                randomChoiceRate = -1 / (eoe) ** 2 * s ** 2 + 1
             else:
                 randomChoiceRate = 0.0
             #  randomChoiceRate = (simPerBlock - s - 1.0)/
             # (simPerBlock - s + 1.0) #1.0/(0.015*s + 1.0)
             # added to check if this is Q-Learning 2021.08.03
-            randomChoiceRate = 0.0
+            # randomChoiceRate = 0.0
             optimalChoiceRate = 1.0 - randomChoiceRate
             case = ql.QLearning(agentsProfileName=agentsProfileName,
                              nodesdbFile=nodesdbFile,
@@ -109,7 +109,7 @@ def run_ql_mod(area="kochi", simtime=30, meandeparture=15,
             outfile = os.path.join(folderStateNames, "sim_%09d.csv" % numSim)
             case.exportStateMatrix(outnamefile=outfile)
             print("\n\n ***** Simu %d (t= %.2f)*****" % (numSim,
-                  (time.time()-t0)/60.))
+                  (time.time() - t0) / 60.))
             print("epsilon greedy - exploration: %f" % randomChoiceRate)
             print(f"""survived: {np.sum(case.pedDB[:,10] == 1)}
                   / total: {totalagents}""")
@@ -136,7 +136,7 @@ def kochi_ql_mod():
 
     numSim0 = 0
     numBlocks = 1
-    simPerBlock = 100
+    simPerBlock = 10
 
     name = f"ql_mod_{simtime}_{meandeparture}_{simPerBlock}"
     area = "kochi"
@@ -170,10 +170,10 @@ def new_kochi_ql_mod():
 
     numSim0 = 0
     numBlocks = 1
-    simPerBlock = 10
+    simPerBlock = 1000
 
     name = f"ql_{simtime}_{meandeparture}_{simPerBlock}"
-    area = "arahama"
+    area = "new_kochi"
 
     run_ql_mod(area=area, simtime=simtime, meandeparture=meandeparture,
                numSim0=numSim0, numBlocks=numBlocks, simPerBlock=simPerBlock,
@@ -181,8 +181,38 @@ def new_kochi_ql_mod():
     return
 
 
+def arahama_db():
+    simtime = [60]
+    meandeparture = [14]
+    numSim0 = 0
+    numBlocks = 1
+    simPerBlock = 10000
+    times = {'s': [], 'md': [], 't': []}
+
+    for s in simtime:
+        for md in meandeparture:
+            name = f"db_ql_mod_{s}_{md}"
+            area = "arahama"
+            times['s'].append(s)
+            times['md'].append(md)
+            t = time.time()
+            run_ql_mod(area=area, simtime=s, meandeparture=md, numSim0=numSim0,
+                       numBlocks=numBlocks, simPerBlock=simPerBlock, name=name)
+            tt = time.time() - t
+            times['t'].append(round(tt, 3))
+            print(times)
+    return
+
+
 if __name__ == "__main__":
-    # cProfile.run('arahama_ql_mod()', filename='profile.stats', sort=-1)
-    arahama_ql_mod()
+    tot = time.time()
+    # arahama_ql_mod()
     # kochi_ql_mod()
     # new_kochi_ql_mod()
+    arahama_db()
+    print(f"Time:{time.time()-tot} s.")
+
+    # 2022.05.13
+    # Lets test arahama case with a DB and a quasi real case
+    # store best policies of several mean departures
+    # [5,10,15,20,25,30,35,40,45,50,55,60]
