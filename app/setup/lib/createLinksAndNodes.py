@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-from osgeo import ogr
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+from osgeo import ogr
+
 
 def readEdges(iShpPath):
     # driver = ogr.GetDriverByName("GPKG")
