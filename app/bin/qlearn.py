@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import numpy as np
-import matplotlib.pyplot as plt
-import cv2
 import glob
 import os
+
+import cv2
+import matplotlib.pyplot as plt
+import numpy as np
+
 plt.ioff()
 
 
@@ -30,10 +32,10 @@ class QLearning:
         # That is, a reward will be assigned every time an agent arrives a node:
         # new structure: [number, coordX, coordY, evacuationCode, rewardCode]
         # 2020Oct08: the reward node is replaced by reward every step
-        self.nodesdb = np.loadtxt(nodesdbFile, delimiter=',') 
+        self.nodesdb = np.loadtxt(nodesdbFile, delimiter=',', skiprows=1) 
         # 2020Oct07: An additional column must be added to store the link width
         # Thus, this is the new format: [number, node1, node2, length, width]
-        self.linksdb = np.loadtxt(linksdbFile, delimiter=',', dtype=np.int) 
+        self.linksdb = np.loadtxt(linksdbFile, delimiter=',', skiprows=1, dtype=np.int) 
         self.populationAtLinks = np.zeros((self.linksdb.shape[0], 2)) # number of agents at links [linkNumber, numberOfAgentsAtLink, density]
         self.populationAtLinks[:,0] = self.linksdb[:,0]
         # Parameters to construct histograms of polations at every link: (1) unit length, (2) number of units
@@ -54,7 +56,7 @@ class QLearning:
         self.transNodedb = np.loadtxt(transNodedbFile, delimiter=',', dtype=np.int) # database with possible transitions between nodes [currentNode, numberOfNodesTarget, nodeTarget1, nodeTarget2,...]
         # identifying evacuation nodes
         self.evacuationNodes = self.nodesdb[self.nodesdb[:,3] == 1,0].astype(np.int)
-        self.pedProfiles = np.loadtxt(agentsProfileName, delimiter=',', dtype=np.int) # agents profile [age, gender, householdType, householdId, closestNodeNumber]
+        self.pedProfiles = np.loadtxt(agentsProfileName, delimiter=',', skiprows=1, dtype=np.int) # agents profile [age, gender, householdType, householdId, closestNodeNumber]
         self.numPedestrian = self.pedProfiles.shape[0]
         self.errorLoc = 2.0   # acceptable error between coordinate of a node and a coordinate of a pedestrian
         self.snapshotNumber = 0

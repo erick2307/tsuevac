@@ -186,7 +186,7 @@ def arahama_db():
     meandeparture = [14]
     numSim0 = 0
     numBlocks = 1
-    simPerBlock = 10000
+    simPerBlock = 10
     times = {'s': [], 'md': [], 't': []}
 
     for s in simtime:
@@ -205,12 +205,12 @@ def arahama_db():
 
 
 if __name__ == "__main__":
-    tot = time.time()
+    tot = time.process_time()
     # arahama_ql_mod()
     # kochi_ql_mod()
     # new_kochi_ql_mod()
     arahama_db()
-    print(f"Time:{time.time()-tot} s.")
+    print(f"Time:{time.process_time()-tot} s.")
 
     # 2022.05.13
     # Lets test arahama case with a DB and a quasi real case

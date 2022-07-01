@@ -73,5 +73,6 @@ def setMatrices():
     # np.savetxt('rewarddb.csv', rewarddb, delimiter=',', fmt='%d')
     return
 
+
 if __name__ == "__main__":
-    setMatrices() 
+    setMatrices()

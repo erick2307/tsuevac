@@ -5,11 +5,11 @@ import shutil
 from pathlib import Path
 
 import geopandas as gpd
+import matplotlib.pyplot as plt
 import numpy as np
 import osmnx as ox
 import pandas as pd
 import shapely as shp
-from lib import createLinksAndNodes as cln
 from lib import getPopulation as gp
 from lib import setActionsAndTransitions as actrans
 
@@ -43,7 +43,6 @@ def createGraph(
     area={"north": 33.58, "south": 33.53, "east": 133.58, "west": 133.52},
     crs="EPSG:6690",
     ntype="drive",
-    plot=False,
     simplify=False,
 ):
     # NEW AREA (Aug, 2021)
@@ -83,20 +82,83 @@ def createGraph(
         )
     # save the OSM data as Geopackage
     ox.io.save_graph_geopackage(G_out, filepath="./tmp/graph.gpkg")
-    # Draw a map
-    if plot:
-        ox.plot_graph(G_out, bgcolor="white", node_color="red", edge_color="black")
-    # Create edges file
-    edges = gpd.read_file("./tmp/graph.gpkg", layer="edges")
-    edges.to_file("./tmp/edges.shp")
+    # # Draw a map
+    # if plot:
+    #     ox.plot_graph(G_out, bgcolor="white", node_color="red", edge_color="black")
+    # # Create edges file
+    # edges = gpd.read_file("./tmp/graph.gpkg", layer="edges")
+    # edges.to_file("./tmp/edges.shp")
+    nnodes = G.number_of_nodes()
     nedges = G.number_of_edges()
-    print(f"{nedges} edges in graph. The edges file was saved as ESRI shapefile")
-    # create database of links and edges
-    cln.main()
-    print("Database created!")
-    if plot:
-        cln.plotNetwork()
+    print(f"{nnodes} nodes and {nedges} edges in graph.")
+    # # create database of links and edges
+    # cln.main()
+    # print("Database created!")
     return G_out
+
+
+def createLinksAndNodes(G, shelters, plot=True):
+    # Get nodes and edge from graph
+    n, e = ox.graph_to_gdfs(G)
+    # Create nodes db
+    nodesdb = n[["x", "y"]].copy()
+    nodesdb["evacuation"] = pd.Series([0 for _ in range(nodesdb.shape[0])])
+    nodesdb["reward"] = pd.Series([1 for _ in range(nodesdb.shape[0])])
+    nodesdb["number"] = pd.Series([i for i in range(nodesdb.shape[0])])
+    nodesdb = nodesdb.rename(columns={"x": "coord_x", "y": "coord_y"})
+    nodesdb0 = nodesdb[["number", "coord_x", "coord_y", "evacuation", "reward"]]
+    nodesdb0.to_csv("./tmp/nodesdb0.csv", index=False)
+    # Create linksdb
+    linksdb = np.zeros((e.shape[0], 5), dtype=np.int64)
+    for i, j in enumerate(e.iterrows()):
+        u = j[0][0]
+        v = j[0][1]
+        linksdb[i, :] = [i, u, v, np.int64(j[1][3]), 3]
+    linksdb0 = pd.DataFrame(
+        linksdb, columns=["number", "node1", "node2", "length", "width"]
+    )
+    linksdb0.to_csv("./tmp/linksdb0.csv", index=False)
+    # Fix the nodesdb
+    if shelters.shape[0] > 0:
+        print("Warning!: No shelters!")
+        fixLinksDBAndNodesDB(shelters)
+    else:
+        np.savetxt(
+            "./data/nodesdb.csv",
+            nodesdb0,
+            delimiter=",",
+            header="number,coord_x,coord_y,evacuation,reward",
+            fmt="%d,%.6f,%.6f,%d,%d",
+        )
+        np.savetxt(
+            "./data/linksdb.csv",
+            linksdb0,
+            delimiter=",",
+            header="number,node1,node2,length,width",
+            fmt="%d,%d,%d,%d,%d",
+        )
+    if plot:
+        plotNetwork()
+    return
+
+
+def plotNetwork():
+    noDB = np.loadtxt("./data/nodesdb.csv", delimiter=",", skiprows=1)
+    edDB = np.loadtxt("./data/linksdb.csv", delimiter=",", skiprows=1)
+    print(noDB.shape, edDB.shape)
+    plt.figure(num=1, figsize=(10, 10))
+    for i in range(edDB.shape[0]):
+        indS, indT = int(edDB[i, 1]), int(edDB[i, 2])
+        # print("here",indS, indT)
+        plt.plot(
+            [noDB[indS, 1], noDB[indT, 1]], [noDB[indS, 2], noDB[indT, 2]], c="r", lw=1
+        )
+    plt.scatter(noDB[:, 1], noDB[:, 2], s=5)
+    for i in range(noDB.shape[0]):
+        plt.annotate(str(noDB[i, 0].astype(np.int64)), [noDB[i, 1], noDB[i, 2]])
+    plt.axis("equal")
+    plt.savefig("./data/network.png")
+    return
 
 
 def getPrefShelters(pref_code=39, crs="EPSG:6690", filter=True):
@@ -128,7 +190,7 @@ def getAreaShelters(
 
 
 def getPrefEvacBldgs(crs="EPSG:4326"):
-    rootfolder = "/volumes/Pegasus32/kochi/evacuation"
+    rootfolder = "/Volumes/Pegasus32/kochi/evacuation"
     filename = "Kochi_EvacBldg_20211220.csv"
     path = Path(rootfolder, filename)
     bldgs_pd = pd.read_csv(path)
@@ -168,8 +230,8 @@ def fixLinksDBAndNodesDB(shelters):
     # fixes the nodesdb to add shelters as nodes
     # requires 'shelters' geodataframe
     # the 'nodesdb.csv' was created with 'createLinksAndNodes.py'
-    nodesnp = np.loadtxt("./tmp/nodesdb0.csv", delimiter=",")
-    linksdb = np.loadtxt("./tmp/linksdb0.csv", delimiter=",")
+    nodesnp = np.loadtxt("./tmp/nodesdb0.csv", delimiter=",", skiprows=1)
+    linksdb = np.loadtxt("./tmp/linksdb0.csv", delimiter=",", skiprows=1)
     # create a numpy array for nodesdb
     nodesdb = np.zeros((nodesnp.shape[0], nodesnp.shape[1] + 2))
     nodesdb[:, :3] = nodesnp[:, :3]
@@ -246,27 +308,66 @@ if __name__ == "__main__":
         pref_code=pref_code, aos=aos, crs=crs, before311=before311
     )
     # Create a Graph object
-    G = createGraph(area=area, crs=crs, ntype="drive", plot=False, simplify=False)
+    G = createGraph(area=area, crs=crs, ntype="drive", simplify=True)
     # Create a Shelter GeoDataframe
     shelters = getAreaShelters(area=area, pref_code=pref_code, crs=crs)
     if pref_code == 39:
         bldgs = getAreaEvacBldgs(area=area, crs=crs)
-    # Create  Links and nodes?
-    cln.main()
-    # Fix the nodesdb
-    fixLinksDBAndNodesDB(shelters)
+    # Create linksdb and nodesdb
+    createLinksAndNodes(G, shelters, plot=True)
+    # Create actionsdb and transitionsdb
     actrans.setMatrices()
-    # Create the agentsdb
-    agentsdb = np.zeros((pop.TotalPop.sum().astype("int64"), 5))
-    for i, g in enumerate(pop.geometry.to_list()):
-        agentsdb = appendAgents(agentsdb, pop=pop, index=i, poly=g)
-    last = np.trim_zeros(agentsdb[:, 4], "b").shape[0]
-    agentsdb = agentsdb[:last, :]
-    np.savetxt(
-        "./data/agentsdb.csv",
-        agentsdb,
-        delimiter=",",
-        header="age,gender,hhType,hhId,Node",
-        fmt="%d,%d,%d,%d,%d",
+    # Dissaggregate population
+    df = pd.read_csv("./data/nodesdb.csv")
+    nodes = gpd.GeoDataFrame(
+        df, geometry=gpd.points_from_xy(df.coord_x, df.coord_y), crs=6691
     )
+    Gn = nodes
+    gdf_int_wgs84 = pop
+    Gn["pop"] = [None] * Gn.shape[0]
+    Gn_p = Gn.to_crs(crs=6691)
+    gdf_int_wgs84.drop_duplicates(subset=["mesh", "TotalPop"], inplace=True)
+    Census_p = gdf_int_wgs84.to_crs(crs=6691)
+    for i in range(gdf_int_wgs84.shape[0] - 1):
+        pip = gpd.sjoin(
+            Gn, gdf_int_wgs84.iloc[i : i + 1, :], how="inner", predicate="intersects"
+        )
+        if pip.empty:
+            pip = Census_p.iloc[i : i + 1, :].sjoin_nearest(Gn_p, how="inner")
+        n = pip.shape[0]
+        t = float(pip["TotalPop"].values[0])
+        a = np.round(t / n)
+        for idx, piprow in pip.iterrows():
+            if Gn.loc[idx, "pop"] is None:
+                Gn.loc[idx, "pop"] = a
+            else:
+                Gn.loc[idx, "pop"] = Gn.loc[idx, "pop"] + a
+    # Spread the difference among nodes with the smallest number of agents
+    diff = np.ceil(sum([float(x) for x in Census_p["TotalPop"]])) - Gn["pop"].sum()
+    while diff > 5:
+        num_nodes = Gn[Gn["pop"] == Gn["pop"].min()].shape[0]
+        for idx, row in Gn[Gn["pop"] == Gn["pop"].min()].iterrows():
+            Gn.loc[idx, "pop"] = Gn.loc[idx, "pop"] + np.round(diff / num_nodes)
+        diff = np.ceil(sum([float(x) for x in Census_p["TotalPop"]])) - Gn["pop"].sum()
+    # Create the agentsdb
+    num_people = Gn["pop"].sum().astype("int64")
+    agentsdb = pd.DataFrame()
+    agentsdb["age"] = [0] * num_people
+    agentsdb["gender"] = [0] * num_people
+    agentsdb["hhType"] = [0] * num_people
+    agentsdb["hhId"] = [0] * num_people
+    agentsdb["Node"] = [-1] * num_people
+    prev_sum = 0
+    for i, r in Gn.iterrows():
+        if r["pop"] is not None:
+            agg_pop = int(Gn["pop"].loc[:i].sum())
+            for j in range(prev_sum, prev_sum + int(r["pop"])):
+                agentsdb.iat[j, 4] = int(r["# number"])
+            prev_sum = agg_pop
+        # else:
+        #     agentsdb['Node'].iloc[i] = None
+    agentsdb = agentsdb.dropna()
+    agentsdb["Node"] = agentsdb["Node"].astype("int64")
+    agentsdb.to_csv("./data/agentsdb.csv", index=False)
+
     copyDataFolder(case)
