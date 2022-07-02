@@ -7,6 +7,8 @@ import geopandas as gpd
 import matplotlib.pyplot as plt
 import pandas as pd
 
+OFFICE = True
+
 pref = {
     1: "北海道",
     2: "青森県",
@@ -58,14 +60,17 @@ pref = {
 }
 
 
-def getPopulation(pref_code=39):
+def getPopulation(pref_code=39, office=OFFICE):
     """
     Returns a GeoDataFrame of Census Data
     Args:
     pref_code (int, optional): Prefecture code.
     Defaults to 39 (Kochi Pref.).
     """
-    rootfolder = "/Volumes/Pegasus32/data"
+    if office:
+        rootfolder = "/Volumes/Pegasus32/data"
+    else:
+        rootfolder = "/Users/erick/ReGID Dropbox/zDATA"
     # GetAreaCodes
     datafolder = "PAREA_Town_2018/Shape形式/Shape形式/世界測地系"
     areafile = f"{pref_code:02d}/A{pref_code:02d}24POL.shp"
@@ -103,16 +108,19 @@ def getPopulation(pref_code=39):
     return gdata
 
 
-def getPopulation_before2011(pref_code=39):
+def getPopulation_before2011(pref_code=39, office=OFFICE):
     """
     Returns a GeoDataFrame of Census Data
     Args:
     pref_code (int, optional): Prefecture code.
     Defaults to 39 (Kochi Pref.).
     """
-    rootfolder = "/Volumes/Pegasus32/data"
+    if office:
+        rootfolder = "/Volumes/Pegasus32/data"
+    else:
+        rootfolder = "/Users/erick/ReGID Dropbox/zDATA"
     # GetAreaCodes
-    datafolder = "Census_2010/平成22年国勢調査100mメッシュ推計データ"
+    datafolder = "平成22年国勢調査100mメッシュ推計データ"
     areafile = f"{pref_code:02d}{pref[pref_code]}/メッシュ地図2010WH_{pref_code:02d}.shp"
     path = os.path.join(rootfolder, datafolder, areafile)
     area = gpd.read_file(path, encoding="shift_jis")
@@ -130,9 +138,9 @@ def getPopulation_before2011(pref_code=39):
     return gdata
 
 
-def getPopulationArea(pref_code, aos, crs=6690, before311=False):
+def getPopulationArea(pref_code, aos, crs=6690, before311=False, office=OFFICE):
     if before311:
-        gdf1 = getPopulation_before2011(pref_code)
+        gdf1 = getPopulation_before2011(pref_code, office)
     else:
         gdf1 = getPopulation(pref_code)
     gdf1.to_crs(crs, inplace=True)
