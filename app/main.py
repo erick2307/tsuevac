@@ -24,7 +24,7 @@ def run_ql_mod(area="kochi", simtime=30, meandeparture=15,
     survivorsPerSim = []
 
     if numSim0 == 0:
-        randomChoiceRate = 0.  # 0.99
+        randomChoiceRate = 0.99
         optimalChoiceRate = 1.0 - randomChoiceRate
         case = ql.QLearning(agentsProfileName=agentsProfileName,
                          nodesdbFile=nodesdbFile,

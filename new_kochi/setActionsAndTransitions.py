@@ -1,7 +1,5 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import numpy as np
-
 
 def setMatrices(numcolumns = 12):
     nodesdb = np.loadtxt("./data/nodesdb.csv", delimiter=',', skiprows=1)

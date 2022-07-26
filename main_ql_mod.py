@@ -23,7 +23,7 @@ def run_ql_mod(area="kochi", simtime=30, meandeparture=15,
     survivorsPerSim = []
 
     if numSim0 == 0:
-        randomChoiceRate = 0.  # 0.99
+        randomChoiceRate = 0.99
         optimalChoiceRate = 1.0 - randomChoiceRate
         case = QLearning(agentsProfileName=agentsProfileName,
                          nodesdbFile=nodesdbFile,
@@ -182,7 +182,7 @@ def new_kochi_ql_mod():
 
 if __name__ == "__main__":
     t = time.time()
-    # arahama_ql_mod()
-    kochi_ql_mod()
+    arahama_ql_mod()
+    #kochi_ql_mod()
     # new_kochi_ql_mod()
     print(f"Time:{time.time()-t} s.")
