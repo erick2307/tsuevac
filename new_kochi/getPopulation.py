@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 import matplotlib.pyplot as plt
@@ -25,7 +24,7 @@ def getPopulation(pref_code=39):
     pref_code (int, optional): Prefecture code. 
     Defaults to 39 (Kochi Pref.).
     """
-    rootfolder = "/Users/erick/ReGID Dropbox/zDATA"
+    rootfolder = "/Volumes/Pegasus32/data" #"/Users/erick/ReGID Dropbox/zDATA"
     # GetAreaCodes
     datafolder = u"PAREA_Town_2018/Shape形式/Shape形式/世界測地系"
     areafile = f"{pref_code:02d}/A{pref_code:02d}24POL.shp"
@@ -63,22 +62,25 @@ def getPopulationArea(pref_code, aos, crs=6690):
     return gdf_int
 
 
-def plotPopulation(gdata, bck=False):
+def plotPopulation(gdata, crs=3857, bck=False):
     fig, ax = plt.subplots(1, 1)
     if bck:
         import contextily as ctx
-        gdata.to_crs(3857, inplace=True)
+        gdata.to_crs(crs, inplace=True)
+    ccrs = gdata.crs
     gdata.plot(column='TotalPop', ax=ax, legend=True,
                legend_kwds={'loc': 4},
                cmap='OrRd', scheme='quantiles')
     if bck:
         ctx.add_basemap(ax, zoom=12)
     plt.show()
+    print(f"Plotted in CRS:{ccrs}")
+    return
 
 
-def plotFolium(gdata):
+def plotFolium(gdata, crs=4326):
     import folium
-    gdata.to_crs(4326, inplace=True)
+    gdata.to_crs(crs, inplace=True)
     lonlat = gdata.geometry.total_bounds[0:2]
     loc = list([lonlat[1], lonlat[0]])
     map = folium.Map(location=loc, tiles='OpenStreetMap', zoom_start=14)
@@ -88,6 +90,7 @@ def plotFolium(gdata):
         geo_j = folium.GeoJson(data=geo_j,
                                style_function=lambda x: {'fillColor': 'orange'})
         geo_j.add_to(map)
+    print(f"Data in CRS:{crs}")
     return map
 
 
