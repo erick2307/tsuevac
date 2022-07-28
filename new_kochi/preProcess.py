@@ -1,13 +1,14 @@
 # Download OSM data
 import os
-import osmnx as ox
-import numpy as np
-import pandas as pd
-import shapely as shp
+
+import createLinksAndNodes as cln
 import geopandas as gpd
 import getPopulation as gp
-import createLinksAndNodes as cln
+import numpy as np
+import osmnx as ox
+import pandas as pd
 import setActionsAndTransitions as actrans
+import shapely as shp
 
 
 def createBoundingBox(area={'north': 33.58, 'south': 33.53, 'east': 133.58, 'west': 133.52}):

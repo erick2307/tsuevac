@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+
 import numpy as np
 import os
 from qlearn import QLearning
@@ -77,7 +78,7 @@ def run_ql_mod(area="kochi", simtime=30, meandeparture=15,
             #  randomChoiceRate = (simPerBlock - s - 1.0)/
             # (simPerBlock - s + 1.0) #1.0/(0.015*s + 1.0)
             # added to check if this is Q-Learning 2021.08.03
-            # randomChoiceRate = 0.0
+            randomChoiceRate = 0.0
             optimalChoiceRate = 1.0 - randomChoiceRate
             case = QLearning(agentsProfileName=agentsProfileName,
                              nodesdbFile=nodesdbFile,
@@ -179,38 +180,9 @@ def new_kochi_ql_mod():
     return
 
 
-def arahama_db():
-    simtime = [60]
-    meandeparture = [14]
-    numSim0 = 0
-    numBlocks = 1
-    simPerBlock = 10000
-    times = {'s': [], 'md': [], 't': []}
-
-    for s in simtime:
-        for md in meandeparture:
-            name = f"db_ql_mod_{s}_{md}"
-            area = "arahama"
-            times['s'].append(s)
-            times['md'].append(md)
-            t = time.time()
-            run_ql_mod(area=area, simtime=s, meandeparture=md, numSim0=numSim0,
-                       numBlocks=numBlocks, simPerBlock=simPerBlock, name=name)
-            tt = time.time() - t
-            times['t'].append(round(tt, 3))
-            print(times)
-    return
-
-
 if __name__ == "__main__":
-    tot = time.time()
-    # arahama_ql_mod()
-    # kochi_ql_mod()
+    t = time.time()
+    arahama_ql_mod()
+    #kochi_ql_mod()
     # new_kochi_ql_mod()
-    arahama_db()
-    print(f"Time:{time.time()-tot} s.")
-
-    # 2022.05.13
-    # Lets test arahama case with a DB and a quasi real case
-    # store best policies of several mean departures
-    # [5,10,15,20,25,30,35,40,45,50,55,60]
+    print(f"Time:{time.time()-t} s.")
