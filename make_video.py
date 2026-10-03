@@ -3,6 +3,7 @@
 
 import numpy as np
 import os
+import paths
 from sarsa import SARSA
 from qlearn import QLearning
 import time
@@ -13,7 +14,7 @@ def createVideo(filename, foldername, method='ql',area="kochi",
                 simtime=30, meandeparture=15):
     # setup
     t0 = time.time()
-    fn = os.path.join(area, foldername, filename)
+    fn = paths.case_path(area, foldername, filename)
     videoNamefile = f"{method}_{area}_{filename[:-4]}.avi"
     optimalChoiceRate = 0.99
     randomChoiceRate = 1.0 - optimalChoiceRate
@@ -21,15 +22,15 @@ def createVideo(filename, foldername, method='ql',area="kochi",
     simulTime = simtime*60
 
     # load files
-    agentsProfileName = os.path.join(area, "data", "agentsdb.csv")
-    nodesdbFile = os.path.join(area, "data", "nodesdb.csv")
-    linksdbFile = os.path.join(area, "data", "linksdb.csv")
-    transLinkdbFile = os.path.join(area, "data", "actionsdb.csv")
-    transNodedbFile = os.path.join(area, "data", "transitionsdb.csv")
+    agentsProfileName = paths.case_path(area, "data", "agentsdb.csv")
+    nodesdbFile = paths.case_path(area, "data", "nodesdb.csv")
+    linksdbFile = paths.case_path(area, "data", "linksdb.csv")
+    transLinkdbFile = paths.case_path(area, "data", "actionsdb.csv")
+    transNodedbFile = paths.case_path(area, "data", "transitionsdb.csv")
 
     # check folders
-    resultsfolder = os.path.join(area, "results")
-    figuresfolder = os.path.join("figures")
+    resultsfolder = paths.case_path(area, "results")
+    figuresfolder = str(paths.FIGURES_DIR)
     if not os.path.exists(resultsfolder):
         os.mkdir(resultsfolder)
     if not os.path.exists(figuresfolder):
@@ -60,7 +61,7 @@ def createVideo(filename, foldername, method='ql',area="kochi",
     case.loadStateMatrixFromFile(namefile=fn)
 
     # output population initial condition
-    outnamefile = os.path.join(area, "results", "agents_startcondition.csv")
+    outnamefile = paths.case_path(area, "results", "agents_startcondition.csv")
     case.exportAgentDBatTimet(outnamefile)
 
     # setup canvas
@@ -81,12 +82,12 @@ def createVideo(filename, foldername, method='ql',area="kochi",
 
     # output population condition
 
-    outnamefile = os.path.join(area, "results", "agents_finalcondition.csv")
+    outnamefile = paths.case_path(area, "results", "agents_finalcondition.csv")
     case.exportAgentDBatTimet(outnamefile)
 
     # output population path and time (this is a list of arrays)
     # print(case.expeStat)
-    fname = os.path.join(area, "results", "agents_experience.pkl")
+    fname = paths.case_path(area, "results", "agents_experience.pkl")
     f = open(fname, "wb")
     pickle.dump(case.expeStat, f)
     f.close()

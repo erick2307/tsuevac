@@ -4,17 +4,18 @@
 from mc import MonteCarlo
 import numpy as np
 import os
+import paths
 import time
 
 
 def run_mc(area="kochi",simtime=30, meandeparture=15, numSim0=0, numBlocks= 5, simPerBlock= 1000,name='r'):
     t0 = time.time()
-    agentsProfileName= os.path.join(area,"data","agentsdb.csv")
-    nodesdbFile= os.path.join(area,"data","nodesdb.csv")
-    linksdbFile= os.path.join(area,"data", "linksdb.csv")
-    transLinkdbFile= os.path.join(area,"data", "actionsdb.csv")
-    transNodedbFile= os.path.join(area,"data", "transitionsdb.csv")
-    folderStateNames = os.path.join(area,f"state_{name}")
+    agentsProfileName= paths.case_path(area,"data","agentsdb.csv")
+    nodesdbFile= paths.case_path(area,"data","nodesdb.csv")
+    linksdbFile= paths.case_path(area,"data", "linksdb.csv")
+    transLinkdbFile= paths.case_path(area,"data", "actionsdb.csv")
+    transNodedbFile= paths.case_path(area,"data", "transitionsdb.csv")
+    folderStateNames = paths.case_path(area,f"state_{name}")
     if not os.path.exists(folderStateNames):
         os.mkdir(folderStateNames)
     meanRayleighTest = meandeparture*60

@@ -85,10 +85,16 @@ def run_golden_case(name, workdir):
         if str(d) not in sys.path:
             sys.path.insert(0, str(d))
     import main_ql_mod  # noqa: E402  (imported late so CODE_DIRS is honoured)
+    import paths  # noqa: E402
 
-    np.random.seed(cfg["seed"])
-    with contextlib.redirect_stdout(io.StringIO()):
-        main_ql_mod.run_ql_mod(area=str(case), **cfg["run"])
+    # Resolve the case by NAME through paths.CASES_DIR, exactly as real runs do (area="kochi").
+    saved_cases_dir, paths.CASES_DIR = paths.CASES_DIR, Path(workdir)
+    try:
+        np.random.seed(cfg["seed"])
+        with contextlib.redirect_stdout(io.StringIO()):
+            main_ql_mod.run_ql_mod(area="case", **cfg["run"])
+    finally:
+        paths.CASES_DIR = saved_cases_dir
 
     run = cfg["run"]
     state_dir = case / f"state_{run['name']}"

@@ -6,15 +6,16 @@ import matplotlib.pyplot as plt
 import cv2
 import glob
 import os
+import paths
 plt.ioff()
 
 
 class QLearning:
-    def __init__(self, agentsProfileName="kochi/data/agentsdb.csv",
-                 nodesdbFile="kochi/data/nodesdb.csv",
-                 linksdbFile="kochi/data/linksdb.csv",
-                 transLinkdbFile="kochi/data/actionsdb.csv",
-                 transNodedbFile="kochi/data/transitionsdb.csv",
+    def __init__(self, agentsProfileName=paths.case_path("kochi", "data", "agentsdb.csv"),
+                 nodesdbFile=paths.case_path("kochi", "data", "nodesdb.csv"),
+                 linksdbFile=paths.case_path("kochi", "data", "linksdb.csv"),
+                 transLinkdbFile=paths.case_path("kochi", "data", "actionsdb.csv"),
+                 transNodedbFile=paths.case_path("kochi", "data", "transitionsdb.csv"),
                  meanRayleigh=7*60,
                  discount=0.9,
                  folderStateNames="state"):
@@ -166,7 +167,7 @@ class QLearning:
     
     def computeWeightsAtLinks(self):
         filename="w_%09d.csv" % self.time
-        fout=os.path.join("weights",filename)
+        fout=os.path.join(paths.WEIGHTS_DIR, filename)
         np.savetxt(fout,self.populationAtLinks,delimiter=",",fmt="%d")
         return
         
@@ -750,14 +751,14 @@ class QLearning:
         # self.fig.colorbar(self.p2)
         self.labelTime.remove()
         self.labelTime = self.fig.text( 0, 0, "t = %.2f min; evacuated: %d of %d" % (self.time/60., np.sum(self.pedDB[:,10] == 1), self.pedDB.shape[0]))
-        self.fig.savefig(os.path.join("figures", "Figure_%04d.png" % self.snapshotNumber), 
+        self.fig.savefig(os.path.join(paths.FIGURES_DIR, "Figure_%04d.png" % self.snapshotNumber), 
                          bbox_inches="tight", dpi=150)
         
         self.snapshotNumber += 1
         return
     
     def makeVideo(self, nameVideo = "Simul.avi"):
-        listImagesUS = glob.glob( os.path.join("figures", "*png"))
+        listImagesUS = glob.glob( os.path.join(paths.FIGURES_DIR, "*png"))
         numSS_ar= np.zeros( len(listImagesUS) , dtype= int)
         for i, li in enumerate(listImagesUS):
             numSS_ar[i]= int( li[-8:-4] ) 
@@ -786,7 +787,7 @@ class QLearning:
         return
     
     def deleteFigures(self):
-        figures = glob.glob( os.path.join("figures","*") ) 
+        figures = glob.glob( os.path.join(paths.FIGURES_DIR, "*") ) 
         
         for f in figures:
             os.remove(f)

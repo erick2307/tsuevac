@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 import os
+import paths
 from qlearn import QLearning
 from mc import MonteCarlo
 plt.ioff()
@@ -12,12 +13,12 @@ plt.ioff()
 def run_shortpath(area="kochi", simtime=30, meandeparture=15,
                   numSim0=0, numBlocks=5, simPerBlock=1000, name='r'):
     t0 = time.time()
-    agentsProfileName = os.path.join(area, "data", "agentsdb.csv")
-    nodesdbFile = os.path.join(area, "data", "nodesdb.csv")
-    linksdbFile = os.path.join(area, "data", "linksdb.csv")
-    transLinkdbFile = os.path.join(area, "data", "actionsdb.csv")
-    transNodedbFile = os.path.join(area, "data", "transitionsdb.csv")
-    folderStateNames = os.path.join(area, f"state_{name}")
+    agentsProfileName = paths.case_path(area, "data", "agentsdb.csv")
+    nodesdbFile = paths.case_path(area, "data", "nodesdb.csv")
+    linksdbFile = paths.case_path(area, "data", "linksdb.csv")
+    transLinkdbFile = paths.case_path(area, "data", "actionsdb.csv")
+    transNodedbFile = paths.case_path(area, "data", "transitionsdb.csv")
+    folderStateNames = paths.case_path(area, f"state_{name}")
     if not os.path.exists(folderStateNames):
         os.mkdir(folderStateNames)
     meanRayleighTest = meandeparture * 60
@@ -37,7 +38,7 @@ def run_shortpath(area="kochi", simtime=30, meandeparture=15,
                          folderStateNames=folderStateNames)
 
         totalagents = np.sum(case.pedDB.shape[0])
-        nextnodepath = os.path.join(area, "data", "nextnode.csv")
+        nextnodepath = paths.case_path(area, "data", "nextnode.csv")
         case.loadShortestPathDB(namefile=nextnodepath)
         # case.setFigureCanvas()
         # survivedAgents = np.zeros((simulTime, 3))
