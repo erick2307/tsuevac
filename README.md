@@ -14,7 +14,7 @@
 | `make_video.py` | Create a video (AVI) of a particular epoch (state matrix or policy). |
 | `tdcontrol.py`, `tests_mc.py` | Toy TD-control skeleton and ad-hoc tests for `mc.py`. |
 | `check_policies.ipynb`, `plot_survivors.ipynb` | Notebooks to compare policies and plot survivors per simulation. |
-| `kochi/`, `new_kochi/`, `arahama/` | One folder per study area. Inputs live in `<area>/data/`; runs write to `<area>/state_<name>/` (not tracked, see `.gitignore`). `arahama/` is not part of this repository. Input status: `kochi/data` has everything except the real `agentsdb.csv`; `new_kochi/data` has everything except `linksdb.csv`. |
+| `kochi/`, `new_kochi/`, `arahama/` | One folder per study area. Inputs live in `<area>/data/`; runs write to `<area>/state_<name>/` (not tracked, see `.gitignore`). `arahama/` is not part of this repository. Input status: `new_kochi/data` is complete; `kochi/data` has everything except the real `agentsdb.csv`. |
 | `tests/` | `test_golden_ql.py`: regression test that runs short Q-learning simulations on the Kochi network (synthetic population in `tests/fixtures/`) and compares them with recorded results. Run it before and after any restructuring. |
 | `new_kochi/` | Also contains the pre-processing pipeline for the Kochi case (`preProcess.py`, `createLinksAndNodes.py`, `getPopulation.py`, `setActionsAndTransitions.py`, `preprocess.ipynb`). |
 | `variants/app_2022/` (formerly `app/`) | Newer, self-contained version of the workflow: `main.py` (Q-learning, uses `bin/qlearn.py`), `setup/` (builds a case from an area-of-study GeoJSON in `input/`), `make_video.py`, `analysis.ipynb`. |
