@@ -1,14 +1,19 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))  # run without installing evacrl
+
 import numpy as np
 import os
-import paths
-from qlearn import QLearning
+from evacrl import paths
+from evacrl.sarsa import SARSA
 import time
 
 
-def run_ql(area="kochi",simtime=30,meandeparture=15,numSim0=0,
+def run_sarsa(area="kochi",simtime=30,meandeparture=15,numSim0=0,
               numBlocks=5,simPerBlock=1000,name='r'):
     t0 = time.time()
     agentsProfileName = paths.case_path(area, "data", "agentsdb.csv")
@@ -24,9 +29,9 @@ def run_ql(area="kochi",simtime=30,meandeparture=15,numSim0=0,
     survivorsPerSim = []
     
     if numSim0 == 0:
-        randomChoiceRate = 0. #0.99
+        randomChoiceRate = 0.99
         optimalChoiceRate = 1.0 - randomChoiceRate
-        case = QLearning(agentsProfileName = agentsProfileName,
+        case = SARSA(agentsProfileName = agentsProfileName,
                       nodesdbFile = nodesdbFile,
                       linksdbFile = linksdbFile, 
                       transLinkdbFile = transLinkdbFile, 
@@ -71,9 +76,8 @@ def run_ql(area="kochi",simtime=30,meandeparture=15,numSim0=0,
             else:
                 randomChoiceRate = 0.
             # randomChoiceRate = (simPerBlock - s - 1.0)/(simPerBlock - s + 1.0) #1.0/(0.015*s + 1.0)
-            randomChoiceRate = 0. #added to check if this is Q-Learning 2021.08.03
             optimalChoiceRate = 1.0 - randomChoiceRate
-            case = QLearning(agentsProfileName = agentsProfileName , 
+            case = SARSA(agentsProfileName = agentsProfileName , 
                           nodesdbFile= nodesdbFile,
                           linksdbFile= linksdbFile, 
                           transLinkdbFile= transLinkdbFile, 
@@ -115,23 +119,22 @@ def run_ql(area="kochi",simtime=30,meandeparture=15,numSim0=0,
     return 
 
 
-def kochi_ql():  
+def kochi_sarsa():
     simtime=30 #min
     meandeparture=15 #min
     
     numSim0= 0
     numBlocks= 1
-    simPerBlock= 100
-    
-    name=f"ql_{simtime}_{meandeparture}_{simPerBlock}"
+    simPerBlock= 1000
+
+    name=f"sarsa_{simtime}_{meandeparture}_{simPerBlock}"
     area="kochi"
-    
-    run_ql(area=area,simtime=simtime, meandeparture=meandeparture, 
+
+    run_sarsa(area=area,simtime=simtime, meandeparture=meandeparture, 
         numSim0=numSim0, numBlocks=numBlocks, simPerBlock=simPerBlock, name=name) 
-    return
+    return 
 
-
-def arahama_ql():  
+def arahama_sarsa():  
     simtime=67 #min
     meandeparture=7 #min
     
@@ -139,14 +142,15 @@ def arahama_ql():
     numBlocks= 1
     simPerBlock= 1000
     
-    name=f"ql_{simtime}_{meandeparture}_{simPerBlock}"
+    name=f"sarsa_{simtime}_{meandeparture}_{simPerBlock}"
     area="arahama"
     
-    run_ql(area=area,simtime=simtime, meandeparture=meandeparture, 
+    run_sarsa(area=area,simtime=simtime, meandeparture=meandeparture, 
         numSim0=numSim0, numBlocks=numBlocks, simPerBlock=simPerBlock, name=name) 
     return
 
-def new_kochi_ql():
+
+def new_kochi_sarsa():
     simtime=30 #min
     meandeparture=15 #min
     
@@ -154,14 +158,15 @@ def new_kochi_ql():
     numBlocks= 1
     simPerBlock= 100
 
-    name=f"ql_{simtime}_{meandeparture}_{simPerBlock}"
+    name=f"sarsa_{simtime}_{meandeparture}_{simPerBlock}"
     area="new_kochi"
 
-    run_ql(area=area,simtime=simtime, meandeparture=meandeparture, 
+    run_sarsa(area=area,simtime=simtime, meandeparture=meandeparture, 
         numSim0=numSim0, numBlocks=numBlocks, simPerBlock=simPerBlock, name=name) 
     return 
 
+
 if __name__ == "__main__":
-    arahama_ql()
-    # kochi_ql()
-    # new_kochi_ql()
+    kochi_sarsa()
+    # arahama_sarsa()
+    # new_kochi_sarsa()

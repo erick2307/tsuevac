@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 import os
-from mc import MonteCarlo
+from evacrl.mc import MonteCarlo
 plt.ioff() 
 
 def simulationShortestPath():

@@ -11,13 +11,13 @@ __pycache__/
 /figures/
 /state/
 /weights/w_*.csv
-/*/state_*/
+/cases/*/state_*/
 *.avi
 
 # --- Large local GIS data (kept out of git; regenerate with QGIS / the preprocessing scripts) ---
-/new_kochi/qgis/
-/new_kochi/data/edges.*
-/new_kochi/data/Kochi*DB.csv
+/cases/new_kochi/qgis/
+/cases/new_kochi/data/edges.*
+/cases/new_kochi/data/Kochi*DB.csv
 /pre/AOS/
 /pre/kochi_small.*
 /datasets/gis/cache/

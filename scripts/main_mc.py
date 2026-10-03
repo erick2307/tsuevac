@@ -1,40 +1,43 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))  # run without installing evacrl
+
+from evacrl.mc import MonteCarlo
 import numpy as np
 import os
-import paths
-from sarsa import SARSA
+from evacrl import paths
 import time
 
 
-def run_sarsa(area="kochi",simtime=30,meandeparture=15,numSim0=0,
-              numBlocks=5,simPerBlock=1000,name='r'):
+def run_mc(area="kochi",simtime=30, meandeparture=15, numSim0=0, numBlocks= 5, simPerBlock= 1000,name='r'):
     t0 = time.time()
-    agentsProfileName = paths.case_path(area, "data", "agentsdb.csv")
-    nodesdbFile = paths.case_path(area, "data", "nodesdb.csv")
-    linksdbFile = paths.case_path(area, "data", "linksdb.csv")
-    transLinkdbFile = paths.case_path(area, "data", "actionsdb.csv")
-    transNodedbFile = paths.case_path(area, "data", "transitionsdb.csv")
-    folderStateNames = paths.case_path(area, f"state_{name}")
+    agentsProfileName= paths.case_path(area,"data","agentsdb.csv")
+    nodesdbFile= paths.case_path(area,"data","nodesdb.csv")
+    linksdbFile= paths.case_path(area,"data", "linksdb.csv")
+    transLinkdbFile= paths.case_path(area,"data", "actionsdb.csv")
+    transNodedbFile= paths.case_path(area,"data", "transitionsdb.csv")
+    folderStateNames = paths.case_path(area,f"state_{name}")
     if not os.path.exists(folderStateNames):
         os.mkdir(folderStateNames)
     meanRayleighTest = meandeparture*60
     simulTime = simtime*60
-    survivorsPerSim = []
-    
+    survivorsPerSim= []
+
     if numSim0 == 0:
         randomChoiceRate = 0.99
         optimalChoiceRate = 1.0 - randomChoiceRate
-        case = SARSA(agentsProfileName = agentsProfileName,
-                      nodesdbFile = nodesdbFile,
-                      linksdbFile = linksdbFile, 
-                      transLinkdbFile = transLinkdbFile, 
-                      transNodedbFile = transNodedbFile,
+        case = MonteCarlo(agentsProfileName = agentsProfileName , 
+                      nodesdbFile= nodesdbFile,
+                      linksdbFile= linksdbFile, 
+                      transLinkdbFile= transLinkdbFile, 
+                      transNodedbFile= transNodedbFile,
                       meanRayleigh = meanRayleighTest,
-                      discount =0.9,
-                      folderStateNames = folderStateNames)
-
+                      folderStateNames= folderStateNames)
+        
         totalagents = np.sum(case.pedDB.shape[0])
 
         for t in range( int(min(case.pedDB[:,9])) , simulTime ):
@@ -45,9 +48,11 @@ def run_sarsa(area="kochi",simtime=30,meandeparture=15,numSim0=0,
             if not t % 10:
                 case.computePedHistDenVelAtLinks()
                 case.updateVelocityAllPedestrians()
-                
+        case.updateValueFunctionDB()        
         outfile = os.path.join(folderStateNames , "sim_%09d.csv" % numSim0)
+        outfilepedDB = os.path.join(folderStateNames , "ped_%09d.csv" % numSim0)
         case.exportStateMatrix(outnamefile = outfile)
+        case.exportAgentDBatTimet(outnamefile = outfilepedDB)
         print("\n\n ***** Simu %d (t= %.2f)*****" % ( numSim0, (time.time()-t0)/60. ))
         print("epsilon greedy - exploration: %f" % randomChoiceRate)
         print(f"survived: {np.sum(case.pedDB[:,10] == 1)} / total: {totalagents}")
@@ -55,11 +60,11 @@ def run_sarsa(area="kochi",simtime=30,meandeparture=15,numSim0=0,
         survivorsPerSim.append([numSim0, np.sum(case.pedDB[:,10] == 1)])
         fname = f"survivorsPerSim_{numBlocks}x{simPerBlock}.csv"
         outSurvivors= os.path.join(folderStateNames, fname)
-        np.savetxt(outSurvivors, np.array(survivorsPerSim), delimiter= ",", fmt= "%d" )
+        np.savetxt(outSurvivors, np.array(survivorsPerSim), delimiter= ",", fmt= "%d" )  
 
         if survivorsPerSim[-1] == case.pedDB.shape[0]:
             return
-        
+
         case= None
     
     numSim= numSim0 +1
@@ -67,12 +72,14 @@ def run_sarsa(area="kochi",simtime=30,meandeparture=15,numSim0=0,
         for s in range(simPerBlock):
             eoe = int(0.8*simPerBlock) #end of exploration
             if s < eoe:
-                randomChoiceRate = -1/(eoe)**2*s**2+1
+                # randomChoiceRate = -1/(eoe)**2*s**2+1
+                randomChoiceRate = 0.9
             else:
-                randomChoiceRate = 0.
+                # randomChoiceRate = 0.
+                randomChoiceRate = 0.1
             # randomChoiceRate = (simPerBlock - s - 1.0)/(simPerBlock - s + 1.0) #1.0/(0.015*s + 1.0)
             optimalChoiceRate = 1.0 - randomChoiceRate
-            case = SARSA(agentsProfileName = agentsProfileName , 
+            case = MonteCarlo(agentsProfileName = agentsProfileName , 
                           nodesdbFile= nodesdbFile,
                           linksdbFile= linksdbFile, 
                           transLinkdbFile= transLinkdbFile, 
@@ -93,12 +100,15 @@ def run_sarsa(area="kochi",simtime=30,meandeparture=15,numSim0=0,
                     case.computePedHistDenVelAtLinks()
                     case.updateVelocityAllPedestrians()
                     
+            case.updateValueFunctionDB()
             outfile = os.path.join(folderStateNames , "sim_%09d.csv" % numSim)
+            outfilepedDB = os.path.join(folderStateNames , "ped_%09d.csv" % numSim)
             case.exportStateMatrix(outnamefile = outfile)
+            case.exportAgentDBatTimet(outnamefile = outfilepedDB)
             print("\n\n ***** Simu %d (t= %.2f)*****" % ( numSim , (time.time()-t0)/60. ))
             print("epsilon greedy - exploration: %f" % randomChoiceRate)
             print(f"survived: {np.sum(case.pedDB[:,10] == 1)} / total: {totalagents}")
-
+            
             #evaluate survivors in simulation
             survivorsPerSim.append([numSim, np.sum(case.pedDB[:,10] == 1)])
             fname = f"survivorsPerSim_{numBlocks}x{simPerBlock}.csv"
@@ -107,45 +117,43 @@ def run_sarsa(area="kochi",simtime=30,meandeparture=15,numSim0=0,
             
             if survivorsPerSim[-1] == case.pedDB.shape[0]:
                 return
-
+            
             case= None
             numSim += 1
 
+    #QFun, VFun, policy  = case.computeAction_Value_Policy()  #computeAction_Value_Policy
+
     return 
 
-
-def kochi_sarsa():
+def kochi_mc():  
     simtime=30 #min
+    meandeparture=15 #min
+    
+    numSim0= 1950
+    numBlocks= 1
+    simPerBlock= 8050
+
+    name=f"mc_{simtime}_{meandeparture}"
+    area="kochi"
+    
+    run_mc(area=area,simtime=simtime, meandeparture=meandeparture, 
+        numSim0=numSim0, numBlocks=numBlocks, simPerBlock=simPerBlock, name=name) 
+
+def arahama_mc():  
+    simtime=67 #min
     meandeparture=15 #min
     
     numSim0= 0
     numBlocks= 1
-    simPerBlock= 1000
+    simPerBlock= 100
 
-    name=f"sarsa_{simtime}_{meandeparture}_{simPerBlock}"
-    area="kochi"
-
-    run_sarsa(area=area,simtime=simtime, meandeparture=meandeparture, 
-        numSim0=numSim0, numBlocks=numBlocks, simPerBlock=simPerBlock, name=name) 
-    return 
-
-def arahama_sarsa():  
-    simtime=67 #min
-    meandeparture=7 #min
-    
-    numSim0= 0
-    numBlocks= 1
-    simPerBlock= 1000
-    
-    name=f"sarsa_{simtime}_{meandeparture}_{simPerBlock}"
+    name=f"mc_{simtime}_{meandeparture}"
     area="arahama"
     
-    run_sarsa(area=area,simtime=simtime, meandeparture=meandeparture, 
+    run_mc(area=area,simtime=simtime, meandeparture=meandeparture, 
         numSim0=numSim0, numBlocks=numBlocks, simPerBlock=simPerBlock, name=name) 
-    return
 
-
-def new_kochi_sarsa():
+def new_kochi_mc():
     simtime=30 #min
     meandeparture=15 #min
     
@@ -153,15 +161,15 @@ def new_kochi_sarsa():
     numBlocks= 1
     simPerBlock= 100
 
-    name=f"sarsa_{simtime}_{meandeparture}_{simPerBlock}"
+    name=f"mc_{simtime}_{meandeparture}"
     area="new_kochi"
 
-    run_sarsa(area=area,simtime=simtime, meandeparture=meandeparture, 
+    run_mc(area=area,simtime=simtime, meandeparture=meandeparture, 
         numSim0=numSim0, numBlocks=numBlocks, simPerBlock=simPerBlock, name=name) 
     return 
 
 
 if __name__ == "__main__":
-    kochi_sarsa()
-    # arahama_sarsa()
-    # new_kochi_sarsa()
+    kochi_mc()
+    # arahama_mc()
+    # new_kochi_mc()

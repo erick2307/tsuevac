@@ -1,13 +1,18 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))  # run without installing evacrl
+
 import numpy as np
 import matplotlib.pyplot as plt
 import time
 import os
-import paths
-from qlearn import QLearning
-from mc import MonteCarlo
+from evacrl import paths
+from evacrl.qlearn import QLearning
+from evacrl.mc import MonteCarlo
 plt.ioff()
 
 def run_shortpath(area="kochi", simtime=30, meandeparture=15,

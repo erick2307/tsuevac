@@ -3,9 +3,9 @@
 
 import numpy as np
 import os
-import paths
-from sarsa import SARSA
-from qlearn import QLearning
+from evacrl import paths
+from evacrl.sarsa import SARSA
+from evacrl.qlearn import QLearning
 import time
 import pickle
 

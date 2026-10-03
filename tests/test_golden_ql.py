@@ -8,7 +8,7 @@ tests/fixtures/<case>_golden_expected.json:
 * kochi      real 4,315-node road network + a small SYNTHETIC population
              (tests/fixtures/kochi_golden_agents.csv, NOT real Kochi data), 3 short simulations
 * new_kochi  real 19,207-node road network + a deterministic 1-in-1000 sample of its real
-             population (new_kochi/data/agentsdb.csv), 2 short simulations
+             population (cases/new_kochi/data/agentsdb.csv), 2 short simulations
 
 Their purpose is to prove that restructuring the repository (moving files, changing how
 paths are resolved) does not change the results.
@@ -39,11 +39,11 @@ FIXTURES = Path(__file__).resolve().parent / "fixtures"
 
 # The only places that know where the case data and the code live.
 # Update these (and nothing else) when the repository layout changes.
-CODE_DIRS = [REPO]
+CODE_DIRS = [REPO / "src", REPO / "scripts"]
 
 
 def case_data_dir(area):
-    return REPO / area / "data"
+    return REPO / "cases" / area / "data"
 
 
 CASE_FILES = ("nodesdb", "linksdb", "actionsdb", "transitionsdb")
@@ -85,7 +85,7 @@ def run_golden_case(name, workdir):
         if str(d) not in sys.path:
             sys.path.insert(0, str(d))
     import main_ql_mod  # noqa: E402  (imported late so CODE_DIRS is honoured)
-    import paths  # noqa: E402
+    from evacrl import paths  # noqa: E402
 
     # Resolve the case by NAME through paths.CASES_DIR, exactly as real runs do (area="kochi").
     saved_cases_dir, paths.CASES_DIR = paths.CASES_DIR, Path(workdir)

@@ -1,13 +1,18 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))  # run without installing evacrl
+
 import os
-import paths
+from evacrl import paths
 import time
 
 import numpy as np
 
-from qlearn import QLearning
+from evacrl.qlearn import QLearning
 
 
 def run_ql_mod(

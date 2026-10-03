@@ -4,7 +4,7 @@
 import numpy as np
 import pandas as pd
 import os
-from sarsa import SARSA
+from evacrl.sarsa import SARSA
 import matplotlib.pyplot as plt
 from scipy.stats import rayleigh
 import time

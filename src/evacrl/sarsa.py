@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import cv2
 import glob
 import os
-import paths
+from evacrl import paths
 plt.ioff()
 
 

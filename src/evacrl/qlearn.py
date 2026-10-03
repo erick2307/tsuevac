@@ -1,27 +1,22 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-Created on Fri Jan 11 16:31:19 2019
-
-@author: root
-"""
 
 import numpy as np
 import matplotlib.pyplot as plt
 import cv2
 import glob
-import time
 import os
-import paths
+from evacrl import paths
 plt.ioff()
 
-class MonteCarlo:
+
+class QLearning:
     def __init__(self, agentsProfileName=paths.case_path("kochi", "data", "agentsdb.csv"),
                  nodesdbFile=paths.case_path("kochi", "data", "nodesdb.csv"),
                  linksdbFile=paths.case_path("kochi", "data", "linksdb.csv"),
                  transLinkdbFile=paths.case_path("kochi", "data", "actionsdb.csv"),
                  transNodedbFile=paths.case_path("kochi", "data", "transitionsdb.csv"),
-                 meanRayleigh=7 * 60,
+                 meanRayleigh=7*60,
                  discount=0.9,
                  folderStateNames="state"):
         # setting the rewards for survive or dead
@@ -40,21 +35,21 @@ class MonteCarlo:
         # 2020Oct07: An additional column must be added to store the link width
         # Thus, this is the new format: [number, node1, node2, length, width]
         self.linksdb = np.loadtxt(linksdbFile, delimiter=',', dtype=int) 
-        self.populationAtLinks = np.zeros((self.linksdb.shape[0], 2)) 
-        # number of agents at links [linkNumber, numberOfAgentsAtLink, density]
-        self.populationAtLinks[:, 0] = self.linksdb[:, 0]
+        self.populationAtLinks = np.zeros((self.linksdb.shape[0], 2)) # number of agents at links [linkNumber, numberOfAgentsAtLink, density]
+        self.populationAtLinks[:,0] = self.linksdb[:,0]
         # Parameters to construct histograms of polations at every link: (1) unit length, (2) number of units
         self.popAtLink_HistParam = np.zeros((self.linksdb.shape[0], 2))
         self.popAtLink_HistParam[:,1] = np.ceil(self.linksdb[:,3] / 2. ) # assuming length units of about 2 meters
         self.popAtLink_HistParam[:,0] = self.linksdb[:,3] / self.popAtLink_HistParam[:,1] 
         # Separating memory for histogram information
         # the number of columns contains the larges number of segments of all the links
+        # 2021Jan08 an error of out of bound in axis 1 was 'solved' by adding +1 to these three arrays         
         self.popHistPerLink = np.zeros(( self.linksdb.shape[0] , int(max(self.popAtLink_HistParam[:,1]))+1))
-        # 2020Oct07: Memory for density array at links
+        # 2020Oct07: Memory for density array at links+1
         self.denArrPerLink= np.zeros(( self.linksdb.shape[0] , int(max(self.popAtLink_HistParam[:,1]))+1))
         # 2020Oct07: Memory for velocity array at links
         self.speArrPerLink= np.zeros(( self.linksdb.shape[0] , int(max(self.popAtLink_HistParam[:,1]))+1))
-        
+    
         # for p in self.popHistPerLink: print(p)
         self.transLinkdb = np.loadtxt(transLinkdbFile, delimiter=',', dtype=int) # database of actions [currentNode, numberOfNodesTarget, linkConnectingNode1, linkConnectingNode2,...]
         self.transNodedb = np.loadtxt(transNodedbFile, delimiter=',', dtype=int) # database with possible transitions between nodes [currentNode, numberOfNodesTarget, nodeTarget1, nodeTarget2,...]
@@ -175,7 +170,7 @@ class MonteCarlo:
         fout=os.path.join(paths.WEIGHTS_DIR, filename)
         np.savetxt(fout,self.populationAtLinks,delimiter=",",fmt="%d")
         return
-
+        
     def getPedHistAtLink(self, codeLink):
         numComp= int( self.popAtLink_HistParam[codeLink,1] )
         return self.popHistPerLink[codeLink, :numComp] 
@@ -263,7 +258,7 @@ class MonteCarlo:
         indx= np.random.choice( self.pedDB.shape[0] , size= size )
         self.pedDB = self.pedDB[indx, :]
         return
-
+    
     #new function to create diff size of population
     def resizePedDB(self, size):
         cs = self.pedDB.shape[0]
@@ -280,7 +275,8 @@ class MonteCarlo:
             indx= np.random.choice(self.pedDB.shape[0],size=fillnum)
             self.pedDB = self.pedDB[indx, :]
             self.pedDB[:,0]=newindx
-        return
+        return   
+    
     ######### Move a unit step in the simulation #########
     def stepForward(self, dt=1):
         """
@@ -328,11 +324,12 @@ class MonteCarlo:
 ##            print("high density of %.4f at %d" % (density,codeLink))
             #return 1.39 + np.random.randn()*0.01 
         
-    #### COMMENTED ON 2021 JAN 06 ######
-    
+    #### COMMENTED ON 2021 JAN 06 ######    
     def updateSpeed(self, codeLink, linkWidth = 2.):
         """
         Computes the speed at link "codeLink" considering its actual pedestrian-density.
+        2021Jan06(E) we need to consider vehicles instead of pedestrians.
+        A new function was copied with different speeds.
         """
         # Computes the density at link
         density = self.populationAtLinks[codeLink,1] /(linkWidth * self.linksdb[codeLink,3])
@@ -345,12 +342,15 @@ class MonteCarlo:
             return 0.695 + np.random.randn()*0.1
         else:
 #            print("high density of %.4f at %d" % (density,codeLink))
-            return 0.20 + np.random.randn()*0.01 
+            return 0.20 + np.random.randn()*0.01     
+    ######################################
     
-    def updateVelocity(self, pedIndx, codeLink, linkWidth = 2.):
+    def updateVelocityV1(self, pedIndx, linkWidth = 2.):
         """
         Updates the velocity of a pedestrian "pedIndx" according to the link the pedestrian is located.
         """
+        codeLink= int( self.pedDB[pedIndx, 6] )
+
         # Compute speed:
         speed = self.updateSpeed(codeLink = codeLink, linkWidth = linkWidth)
         # Unit vector pointing to the node target
@@ -361,6 +361,9 @@ class MonteCarlo:
         return
     
     def updateVelocityV2(self, pedIndx):
+        """
+        Update the velocity of a pedestrian "pedIndx" according to a histogram of density in the link.
+        """
         codeLink= int( self.pedDB[pedIndx, 6] )
         
         if codeLink == -1:
@@ -370,12 +373,10 @@ class MonteCarlo:
             x0L, y0L= self.nodesdb[n0L,1] , self.nodesdb[n0L,2]
             dist= ( (self.pedDB[pedIndx,0] - x0L)**2 + (self.pedDB[pedIndx,1] - y0L)**2 )**0.5
             unitL= self.popAtLink_HistParam[codeLink,0]
-            xAtLink= int( np.floor( dist / unitL) )
+            xAtLink= int( np.floor( dist / unitL) ) 
             speed= self.speArrPerLink[codeLink, xAtLink] + np.random.rand()*0.02 - 0.01  
             unitDir = (self.pedDB[pedIndx,2:4] - self.pedDB[pedIndx,:2]) / np.linalg.norm(self.pedDB[pedIndx,2:4] - self.pedDB[pedIndx,:2])
             vel_arr = speed * unitDir
-            # print("\n******here")
-            # print(speed)
             self.pedDB[pedIndx, 4:6] = vel_arr
         return
     
@@ -394,17 +395,14 @@ class MonteCarlo:
         """
         this function updates the velocity of the agents according to their initial evacuation time.
         That is, the function will identify the agents whose initial evacuation time equals the current parameter "self.time".
-        Then, the velocity of these agents are updates (because they have velocity zero at first).
+        Then, the velocity of these agents are updated (because they have velocity zero at first).
         furthermore, here the first experienced state is recorded.
         """
         # Find pedestrian initiating evacuation
         indxPed = np.where(self.pedDB[:,9] == self.time)[0]
-        # Check if there are pdestrians starting evacuation
+        # Check if there are pedestrians starting evacuation
         if len(indxPed) != 0:
             for i in indxPed:
-                # 2020Oct06: I moved the initial random target here.
-                #Previously this section was in __init__ function
-                #-----init-----
                 node0 = int(self.pedDB[i,8]) # current node
                 indxTgt = np.random.choice( int(self.transNodedb[node0,1]) ) # random choice for the next node
                 nodeTgt = self.transNodedb[node0, 2+indxTgt] # next number node
@@ -418,7 +416,6 @@ class MonteCarlo:
                 firstState[1] = int(indxTgt)
                 #-----end-----
                 # Update velocity
-                # 2020Oct07: we updated function to compute velocity
                 self.updateVelocityV2(i)  
                 #previous: self.updateVelocity(i, int(self.pedDB[i,6]))
                 
@@ -430,23 +427,13 @@ class MonteCarlo:
                 self.expeStat[i] = [firstState] 
                 # Save the first state code experienced by the pedestrian "i" at the list "expeStat".
                 # Note we only save the state code, the action (target node) chosen was assigned in the initiation:
-                    
                 # self.expeStat[i][0][0] = int(indxStat)
-                
-                
-                
                 # Save also the starting time
-                
                 # self.expeStat[i][0][2] = int(self.time)
-                
-                
                 # Report a new pedestrian enter link
                 # But first we check if the pedestrian arrived an evacuation-node
                 if int(self.pedDB[i,6]) >= 0:
                     self.populationAtLinks[int(self.pedDB[i,6]), 1] += 1
-                
-                # delete this too
-                #if i == 1126: print(self.expeStat[i])
         return
     
     def updateTarget(self, pedIndx, ifOptChoice = False):
@@ -455,10 +442,7 @@ class MonteCarlo:
         It considers whether the pedestrian uses optimal (exploting) 
         or random (exploring) approach. 
         """
-        # If pedestrian is already in evacuation node, nothing is done:
-        # if self.pedDB[pedIndx, 6] == -1:
-        #     return
-        # 2020Aug28: using new column of pedDB:
+        # 2020Aug28: using new column of pedDBid ped is in evacuation node:
         if self.pedDB[pedIndx,10]:
             return
         # Otherwise, we assign new target node:
@@ -479,13 +463,7 @@ class MonteCarlo:
             # If not optimal choice, then we select randomly, 
             # but using a distribution based on the current action-values
             else:
-                # print("state index:", stateIndx)
-                # print("Qval_arr")
-                # print(Qval_arr)
-                # prob_arr = np.e**Qval_arr / np.sum(np.e**Qval_arr)
-                # indxTgt = np.random.choice(int(self.transNodedb[node0,1]), p=prob_arr)
                 indxTgt = np.random.choice(int(self.transNodedb[node0,1]))
-                # print("here random: ", indxTgt, self.transNodedb[node0,:])
             # Get chosen link and new target node:
             link = self.transLinkdb[node0, 2+indxTgt]
             nodeTgt = self.transNodedb[node0, 2+indxTgt]
@@ -518,44 +496,72 @@ class MonteCarlo:
             # Record state and action experienced by the pedestrian:
             self.expeStat[pedIndx].append(expeStatAndVal) 
             # delete this
-            # if pedIndx == 1126:
-            #     print("pedestrian 1126 (updateTarget, 2nd)")
-            #     print(self.expeStat[pedIndx]) 
+            
+            # 2020Oct08: Apply here TDControl
+            self.tdControl(pedIndx)
+        return
+    
+    def tdControl(self, pedIndx, alpha= 0.05):
+        """
+        This funciton represents the main change between SARSA and MonteCarlo.
+        Here we update the variable "stateMat" during the episode, rather than at the end.
+
+        """
+        trackPed = np.array(self.expeStat[pedIndx])
+        # current and previous states
+        current_S= trackPed[-1,0]
+        pre_S= trackPed[-2,0]
+        # current and previous actions
+        current_A= trackPed[-1,1]
+        pre_A= trackPed[-2,1]
+        # current and pre time
+        current_t = trackPed[-1,2]
+        pre_t = trackPed[-2,2]
+        
+        if self.pedDB[pedIndx,10]:
+            currentReward= self.surviveReward
+            self.stateMat[current_S, 11 + current_A] += alpha * (currentReward - self.stateMat[current_S, 11 + current_A])
+            self.stateMat[current_S, 21 + current_A] += 1
+        
+        preReward= self.stepReward * (current_t - pre_t)
+        self.stateMat[pre_S, 11 + pre_A] += alpha * (preReward + self.discount * self.stateMat[current_S, 11 + current_A] - self.stateMat[pre_S, 11 + pre_A])
+        self.stateMat[pre_S, 21 + pre_A] += 1
         return
     
     ########## functions to use shortest path
     
     def loadShortestPathDB(self, namefile):
         self.shortestPathDB = np.loadtxt(namefile, delimiter=",", skiprows=1, dtype=int)
+        print(self.shortestPathDB.size)
         return
     
     def updateTargetShortestPath(self, pedIndx):
         if self.pedDB[pedIndx, 6] == -1:
             return
         else:
-            node0 = int(self.pedDB[pedIndx , 7])
-            x0_arr = np.array([ self.nodesdb[node0,1], self.nodesdb[node0,2] ])
-            nodeTgt = self.shortestPathDB[node0,1]
+            node0 = int(self.pedDB[pedIndx, 7])
+            x0_arr = np.array([self.nodesdb[node0, 1], self.nodesdb[node0, 2]])
+            nodeTgt = self.shortestPathDB[node0, 1]
             numNodesLinked = self.transNodedb[node0, 1]
-            nodesLinked = self.transNodedb[node0, 2:2+numNodesLinked]
+            nodesLinked = self.transNodedb[node0, 2 : 2 + numNodesLinked]
             indxTgt = np.where(nodesLinked == nodeTgt)[0][0]
-            link = self.transLinkdb[node0, 2+indxTgt]
+            link = self.transLinkdb[node0, 2 + indxTgt]
             if nodeTgt == node0:
                 xTgt_arr = x0_arr
-                vel_arr = np.array([0,0])
-                self.populationAtLinks[int(self.pedDB[pedIndx,6]), 1] -= 1
+                vel_arr = np.array([0, 0])
+                self.populationAtLinks[int(self.pedDB[pedIndx, 6]), 1] -= 1
             else:
                 self.populationAtLinks[int(self.pedDB[pedIndx,6]), 1] -= 1
                 self.populationAtLinks[link, 1] += 1
-                xTgt_arr = np.array([ self.nodesdb[nodeTgt,1], self.nodesdb[nodeTgt,2] ])
+                xTgt_arr = np.array([ self.nodesdb[nodeTgt, 1], self.nodesdb[nodeTgt, 2]])
                 unitDir = (xTgt_arr - x0_arr) / np.linalg.norm(xTgt_arr - x0_arr)
                 speed = self.updateSpeed(link)
                 vel_arr = speed * unitDir
-            self.pedDB[pedIndx , :9] = np.array( [x0_arr[0], x0_arr[1], xTgt_arr[0], xTgt_arr[1], vel_arr[0], vel_arr[1], link, nodeTgt, node0] )
+            self.pedDB[pedIndx, :9] = np.array([x0_arr[0], x0_arr[1], xTgt_arr[0], xTgt_arr[1], vel_arr[0], vel_arr[1], link, nodeTgt, node0])
         return
     
     def checkTargetShortestPath(self):
-        error = ( (self.pedDB[ : , 0 ] - self.pedDB[ : , 2 ])**2 + (self.pedDB[ :  , 1 ] - self.pedDB[ : , 3 ])**2 )**0.5
+        error = ((self.pedDB[:, 0] - self.pedDB[:, 2]) ** 2 + (self.pedDB[:, 1] - self.pedDB[:, 3]) ** 2) ** 0.5
         indx = np.where(error <= self.errorLoc)[0]
         for i in indx:
             self.updateTargetShortestPath(i)
@@ -724,6 +730,8 @@ class MonteCarlo:
         self.p2 = self.ax.scatter(self.pedDB[indx,0], self.pedDB[indx,1], 
                                   c= speed, s=10, vmin=0.1, vmax=1.3, 
                                   cmap="jet_r", edgecolors='none')
+        # indxN= self.nodesdb[:,3] == 1
+        
         self.fig.colorbar(self.p2)
         self.ax.axis("equal")
         self.ax.set_axis_off()
@@ -742,7 +750,6 @@ class MonteCarlo:
                                   cmap="jet_r", edgecolors='none') 
         # self.fig.colorbar(self.p2)
         self.labelTime.remove()
-        # self.labelTime = self.fig.text( 0, 0, "t = %.2f" % self.time)
         self.labelTime = self.fig.text( 0, 0, "t = %.2f min; evacuated: %d of %d" % (self.time/60., np.sum(self.pedDB[:,10] == 1), self.pedDB.shape[0]))
         self.fig.savefig(os.path.join(paths.FIGURES_DIR, "Figure_%04d.png" % self.snapshotNumber), 
                          bbox_inches="tight", dpi=150)
@@ -801,229 +808,3 @@ class MonteCarlo:
         plt.xticks([])
         plt.yticks([])
         plt.show()
-
-###############################################################################
-
-def simulationShortestPath():
-    simulTime = 67*60
-#    sendai = pedestrianMonteCarlo(agentsProfileName = "IPF_AgentsCoordV2_ThreeTimes.csv")
-#    sendai = pedestrianMonteCarlo(agentsProfileName = "IPF_AgentsCoordV2_SixTimes.csv")
-    sendai = MonteCarlo(agentsProfileName = "IPF_AgentsCoordV2.csv")
-    sendai.loadShortestPathDB(namefile= "nextnode.csv")
-    sendai.setFigureCanvas()
-    survivedAgents = np.zeros((simulTime,3))
-    for t in range( int(min(sendai.pedDB[:,9])) , max( min( int(max(sendai.pedDB[:,9])), simulTime), simulTime) ):
-        sendai.initEvacuationAtTime()
-        sendai.stepForward()
-        if not t % 60:
-            print(t)
-            sendai.getSnapshotV2()
-        sendai.checkTargetShortestPath()
-        survivedAgents[t,0] = np.sum( np.isin(sendai.pedDB[:,8], sendai.evacuationNodes[0]) )
-        survivedAgents[t,1] = np.sum( np.isin(sendai.pedDB[:,8], sendai.evacuationNodes[1]) )
-        survivedAgents[t,2] = np.sum( np.isin(sendai.pedDB[:,8], sendai.evacuationNodes[2]) )
-    sendai.makeVideo(nameVideo="Simulation20191211_shortestPath_OriginalCensus.avi") 
-    sendai.destroyCanvas()  
-    sendai.deleteFigures()
-    sendai = None
-    np.savetxt("agentsAtEvacuationNodesVsTime_shortesPath_OriginalCensus.csv", survivedAgents, delimiter=",")
-    return
-
-def ArahamaMTRL_20191220_SeqSim():
-    t0 = time.time()
-    simulTime = 67*60   #T*60 sec of tsunami arrival time
-    agentsProfileName = "IPF_AgentsCoordV2.csv"
-    folderStateNames = "Arahama_20191220"
-    numMaxSim = 5 #20
-    optimalChoiceRate = 0.9
-    randomChoiceRate = 1.0 - optimalChoiceRate
-    survivedAgentsPerSimName = "survivedAgents_Arahama20191220.csv"
-    meanRayleighTest = 20*60
-    
-    survivedAgents = np.zeros(numMaxSim)
-    arahama = MonteCarlo(agentsProfileName = agentsProfileName, meanRayleigh = meanRayleighTest)
-    
-    numSim= 0
-    for t in range( int(min(arahama.pedDB[:,9])) , int(min(max(arahama.pedDB[:,9]) , simulTime))  ):
-        arahama.initEvacuationAtTime()
-        arahama.stepForward()
-        arahama.checkTarget()
-    arahama.updateValueFunctionDB()
-    survivedAgents[0] = np.sum( np.isin(arahama.pedDB[:,8], arahama.evacuationNodes) )
-    # outfile = "%s\sim_%04d.csv" % (folderStateNames, numSim )
-    # outfilepedDB = "%s\%04d.csv" % (folderStateNames, numSim )
-    outfile = os.path.join(folderStateNames,"sim_%04d.csv" % numSim)
-    outfilepedDB = os.path.join(folderStateNames, "ped_%04d.csv" % numSim)
-    arahama.exportStateMatrix(outnamefile = outfile)
-    arahama.exportAgentDBatTimet(outnamefile = outfilepedDB)
-    arahama = None 
-    
-    for s in range(1,numMaxSim):
-        print("simulation number %d , t = %.1f" % ( s , time.time()-t0 )) 
-        arahama = MonteCarlo(agentsProfileName = agentsProfileName, meanRayleigh = meanRayleighTest)
-        # namefile = "%s\sim_%04d.csv" % (folderStateNames , s-1)
-        namefile = os.path.join(folderStateNames , "sim_%04d.csv" % (s-1) )
-        arahama.loadStateMatrixFromFile(namefile = namefile)
-        
-        for t in range( int(min(arahama.pedDB[:,9])) , simulTime  ):
-            arahama.initEvacuationAtTime()
-            arahama.stepForward()
-            optimalChoice = bool(np.random.choice(2, p=[randomChoiceRate , optimalChoiceRate]))
-            arahama.checkTarget(ifOptChoice = optimalChoice)
-        arahama.updateValueFunctionDB()
-        survivedAgents[s] = np.sum( np.isin(arahama.pedDB[:,8], arahama.evacuationNodes) ) 
-        # outfile = "%s\sim_%04d.csv" % (folderStateNames, s )
-        # outfilepedDB = "%s\%04d.csv" % (folderStateNames, s )
-        outfile = os.path.join(folderStateNames , "sim_%04d.csv" % s)
-        outfilepedDB = os.path.join(folderStateNames , "ped_%04d.csv" % s)
-        arahama.exportStateMatrix(outnamefile = outfile)
-        arahama.exportAgentDBatTimet(outnamefile = outfilepedDB)
-        # arahama = None
-    np.savetxt(survivedAgentsPerSimName, survivedAgents, delimiter=",") 
-    
-    QFun, VFun, policy  = arahama.computeAction_Value_Policy()  #computeAction_Value_Policy
-    
-    # print("QFun")
-    # print(QFun)
-    # print("VFun")
-    # print(VFun)
-    # print("policy")
-    # print(policy)
-    return
-
-def testAramaha2020August28():
-    t0 = time.time()
-    simulTime = 67*60   #T*60 sec of tsunami arrival time
-    agentsProfileName = "IPF_AgentsCoordV2.csv"
-    folderStateNames = "Arahama_20191220"
-    numMaxSim = 2 #20
-    optimalChoiceRate = 0.9
-    randomChoiceRate = 1.0 - optimalChoiceRate
-    survivedAgentsPerSimName = "survivedAgents_Arahama20191220.csv"
-    meanRayleighTest = 20*60
-    
-    survivedAgents = np.zeros(numMaxSim)
-    arahama = MonteCarlo(agentsProfileName = agentsProfileName, meanRayleigh = meanRayleighTest)
-    
-    print(arahama.evacuationNodes)
-    
-    for p in arahama.expeStat:
-        print(p, len(p))
-    
-    
-    
-    # numSim= 0
-    
-    # for t in range( int(min(arahama.pedDB[:,9])) , int(min(max(arahama.pedDB[:,9]) , simulTime))  ):
-    #     arahama.initEvacuationAtTime()
-    #     arahama.stepForward()
-    #     arahama.checkTarget()
-    # arahama.updateValueFunctionDB()
-    
-    # for i in arahama.expeStat[0]:
-    #     print(i)
-    
-    # survivedAgents[0] = np.sum( np.isin(arahama.pedDB[:,8], arahama.evacuationNodes) )
-    # outfile = "%s\sim_%04d.csv" % (folderStateNames, numSim )
-    # outfilepedDB = "%s\%04d.csv" % (folderStateNames, numSim )
-    # arahama.exportStateMatrix(outnamefile = outfile)
-    # arahama.exportAgentDBatTimet(outnamefile = outfilepedDB)
-    arahama = None 
-    
-    return
-
-def ArahamaMTRL_20191220_Video(): 
-    folderStateNames = "Arahama_20191220"
-    stateSimFile = "sim_0498.csv"
-    namefile = os.path.join(folderStateNames, stateSimFile) #"%s\%s" % (folderStateNames, stateSimFile)
-    fileNameAgentsAtEvacNodevsTime = "agentsAtEvacuationNodesVsTime.csv"
-    videoNamefile = "ArahamaTest2020Oct06.avi"
-    meanRayleighTest = 20*60
-    
-    
-    t0 = time.time()
-    simulTime = 67*60
-    agentsProfileName = "IPF_AgentsCoordV2.csv"
-    optimalChoiceRate = 0.9
-    randomChoiceRate = 1.0 - optimalChoiceRate
-    
-    survivedAgents = np.zeros((simulTime,3))
-    
-    arahama = MonteCarlo(agentsProfileName = agentsProfileName , meanRayleigh = meanRayleighTest)
-    arahama.loadStateMatrixFromFile(namefile = namefile)
-    arahama.setFigureCanvas()
-    
-    for t in range( int(min(arahama.pedDB[:,9])) , simulTime  ):
-        arahama.initEvacuationAtTime()
-        arahama.stepForward()
-        optimalChoice = bool(np.random.choice(2, p=[randomChoiceRate , optimalChoiceRate]))
-        arahama.checkTarget(ifOptChoice = optimalChoice)
-        if not t % 5:
-            print(t)
-            arahama.getSnapshotV2()
-            arahama.computePedHistDenVelAtLinks()
-            arahama.updateVelocityAllPedestrians() 
-        survivedAgents[t,0] = np.sum( np.isin(arahama.pedDB[:,8], arahama.evacuationNodes[0]) )
-        survivedAgents[t,1] = np.sum( np.isin(arahama.pedDB[:,8], arahama.evacuationNodes[1]) )
-        survivedAgents[t,2] = np.sum( np.isin(arahama.pedDB[:,8], arahama.evacuationNodes[2]) )
-    
-    arahama.makeVideo(nameVideo = videoNamefile)
-    arahama.destroyCanvas()
-    arahama.deleteFigures()
-    arahama = None  
-    np.savetxt(fileNameAgentsAtEvacNodevsTime, survivedAgents, delimiter=",")
-    return 
-    
-def SurvivedAgentsPerEvacuationNode():
-    fileNameAgentsAtEvacNodevsTime = "agentsAtEvacuationNodesVsTime.csv"
-    rlDb = np.loadtxt(fileNameAgentsAtEvacNodevsTime, delimiter=',')
-    
-    plt.figure(num="comparison")
-    plt.subplot(1,4,1)
-    plt.plot(rlDb[:,0], color="b", label="Montecarlo")
-    plt.xlabel("Time (s)")
-    plt.ylabel("Number of evacuees at node")
-    plt.title("Evacuation node 1")
-    plt.grid()
-    plt.legend()
-    
-    plt.subplot(1,4,2)
-    plt.plot(rlDb[:,1], color="b", label="Montecarlo")
-    plt.xlabel("Time (s)")
-    plt.ylabel("Number of evacuees at node")
-    plt.title("Evacuation node 2")
-    plt.grid()
-    
-    plt.subplot(1,4,3)
-    plt.plot(rlDb[:,2], color="b", label="Montecarlo")
-    plt.xlabel("Time (s)")
-    plt.ylabel("Number of evacuees at node")
-    plt.title("Evacuation node 3")
-    plt.grid()
-    
-    plt.subplot(1,4,4)
-    plt.plot(np.sum(rlDb , axis=1), color="b", label="Montecarlo")
-    plt.xlabel("Time (s)")
-    plt.ylabel("Number of evacuees at nodes")
-    plt.title("All evacuation nodes")
-    plt.grid()
-    
-    plt.show()
-    return
-
-if __name__ == "__main__":
-#    SurvivedAgentsPerEvacuationNode()
-    # ArahamaMTRL_20191220_Video()
-    tt = time.time()
-    ArahamaMTRL_20191220_SeqSim() 
-    # # testAramaha2020August28()
-    print("Total time:",time.time()-tt)
-
-
-#if __name__ == "__main__":
-##    SurvivedAgentsPerEvacuationNode()
-##    ArahamaMTRL_20191220_Video()
-    #tt = time.time()
-    #pool = mp.Pool(mp.cpu_count())
-    #pool.apply(ArahamaMTRL_20191220_SeqSim())
-    #print("Total time:",time.time()-tt) 
