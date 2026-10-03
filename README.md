@@ -3,6 +3,7 @@
 > This document explains the structure of the repository.
 > For an explanation on the use of the code see the [Manual](./docs/manual.md).
 > Notes on pre-processing and tsunami data are in [docs/preprocessing.md](./docs/preprocessing.md).
+> Looking for a file you remember at its old location? See [docs/migration.md](./docs/migration.md).
 
 ## Repository layout
 
@@ -14,7 +15,7 @@ src/evacrl/          importable code: qlearn.py, sarsa.py, mc.py, evac_plots.py,
 scripts/             entry points: main_ql.py, main_ql_mod.py, main_sarsa.py, main_mc.py, main_ShortPath.py
 notebooks/           analysis notebooks
 tests/               golden regression tests
-docs/                manual, pre-processing notes, diagrams
+docs/                manual, pre-processing notes, migration guide (old -> new paths), diagrams
 datasets/            large raw / shared inputs: census/, gis/ (QGIS data and its notebook), legacy/ (older samples)
 pre/                 pre-processing scripts (population disaggregation, shelters, shortest paths)
 variants/app_2022/   self-contained 2022 workflow (its own qlearn.py and setup pipeline)
