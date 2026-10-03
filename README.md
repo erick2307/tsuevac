@@ -27,6 +27,18 @@
 Scripts are meant to be run from the repository root, because inputs and outputs
 are addressed as `<area>/data/...` and `<area>/state_<name>/...`.
 
+### Two code stacks (not interchangeable)
+
+The root scripts and `app/` each carry their own `qlearn.py`. They look similar but are **not** duplicates:
+
+| | Root stack (`main_*.py`, `qlearn.py`, `make_video.py`) | `app/` stack (`main.py`, `bin/qlearn.py`, `setup/`) |
+|---|---|---|
+| Actions/transitions DB | 12 columns, at most 10 links per node (`new_kochi/setActionsAndTransitions.py`) | 20 columns (`app/setup/lib/setActionsAndTransitions.py`) |
+| State matrix (`state_*/sim_*.csv`) | fixed 31 columns | `3 x (actions DB width) + 1` columns |
+| Input header line | read as a `#` comment | first line always skipped (`skiprows=1`) |
+
+State files written by one stack cannot be loaded by the other (for example `other/kochi_old/state/` is in the 31-column layout).
+
 ## Input data (`<area>/data/`)
 
 Header lines start with `#`, so `numpy.loadtxt` treats them as comments.
@@ -49,7 +61,7 @@ Header lines start with `#`, so `numpy.loadtxt` treats them as comments.
 * `reward`: abs of the penalty 'reward' given at each node (-1 to account for time pressure in evacuation)  
 
 `actionsdb.csv`, `transitionsdb.csv` => created from the nodes and links with
-`setActionsAndTransitions.py` (`pre/SetActionsAndTransitions.py`, or the copy next to each case's `preProcess.py`).
+`setActionsAndTransitions.py` (`new_kochi/setActionsAndTransitions.py` for the root stack, `app/setup/lib/setActionsAndTransitions.py` for the `app/` stack).
 
 ## `pre/` directory
 
@@ -57,9 +69,11 @@ Header lines start with `#`, so `numpy.loadtxt` treats them as comments.
 * `DisaggregationLibrary.py`, `SetDatabaseBldMeshCodes.py`, `SetPopDB.py` => population disaggregation (see [tegs.md](./tegs.md)).  
 * `defPathsFromNodes.py` => a function to calculate the next node for a pre-determined shortest path run.  
 * `DetectionShelters.py` => to detect evacuation points from the network.  
-* `lib_ImportOSM.py` => to transform OSM data into suitable format.  
 * `makeUniformPedestrianProfiles.py` => creates an `agentsdb`-style file with a fixed number of agents per (non-evacuation) node.  
-* `getPopulation.py`, `SetActionsAndTransitions.py` => earlier versions of scripts that also exist in `new_kochi/` and `app/setup/lib/` (the copies differ; see `git log`).  
+* `tests.ipynb` => scratch notebook (uses `app/setup/lib/getPopulation.py`).  
+
+The older `pre/getPopulation.py`, `pre/SetActionsAndTransitions.py` and `pre/lib_ImportOSM.py` were removed because they were superseded
+by `app/setup/lib/getPopulation.py`, `new_kochi/setActionsAndTransitions.py` and `new_kochi/createLinksAndNodes.py` (OSM edges to nodes/links DB). They remain available in git history.
 
 ## Repository conventions
 

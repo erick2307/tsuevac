@@ -40,7 +40,7 @@ Find the population inside the inundation area.
 1. Abe san data is on EPSG: 2446 (JGD2000 / JPR CS IV) and OSMNX downloads the graph in WGS84 EPSG 4326. 
 2. The OSMNX data can be projected and exported to shp, then the CRS is EPSG 32653 - WGS84 / UTM zone 53N
 3. Kochi polygon shp is in EPSG 4612 - JGD2000  
-4. The file `lib_ImportOSM.py` works in Terminal but not from VS Code. VS Code terminal shows another interpreter Python 3.8.2 compared to one in conda 3.7.7
+4. The file `lib_ImportOSM.py` (now `new_kochi/createLinksAndNodes.py`) works in Terminal but not from VS Code. VS Code terminal shows another interpreter Python 3.8.2 compared to one in conda 3.7.7
 5. The file `preprocess.ipynb` also can generate a `linksdb.csv` file.
 
 
