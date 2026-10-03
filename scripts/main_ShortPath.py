@@ -10,7 +10,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 import os
-from evacrl import paths
+from evacrl import cli, paths
+import functools
 from evacrl.qlearn import QLearning
 from evacrl.mc import MonteCarlo
 plt.ioff()
@@ -18,6 +19,10 @@ plt.ioff()
 def run_shortpath(area="kochi", simtime=30, meandeparture=15,
                   numSim0=0, numBlocks=5, simPerBlock=1000, name='r'):
     t0 = time.time()
+    nextnodepath = paths.case_path(area, "data", "nextnode.csv")
+    if not os.path.exists(nextnodepath):
+        raise SystemExit(f"{nextnodepath} not found. The shortest-path baseline needs it; it is not part of this repository "
+                         "(pre/defPathsFromNodes.py is the legacy script that produced such a file).")
     agentsProfileName = paths.case_path(area, "data", "agentsdb.csv")
     nodesdbFile = paths.case_path(area, "data", "nodesdb.csv")
     linksdbFile = paths.case_path(area, "data", "linksdb.csv")
@@ -43,7 +48,6 @@ def run_shortpath(area="kochi", simtime=30, meandeparture=15,
                          folderStateNames=folderStateNames)
 
         totalagents = np.sum(case.pedDB.shape[0])
-        nextnodepath = paths.case_path(area, "data", "nextnode.csv")
         case.loadShortestPathDB(namefile=nextnodepath)
         # case.setFigureCanvas()
         # survivedAgents = np.zeros((simulTime, 3))
@@ -238,7 +242,10 @@ def arahama_shortpath():
                   numSim0=0, numBlocks=1, simPerBlock=10, name='a')
 
 if __name__ == "__main__":
-    arahama_shortpath()
+    # python scripts/main_ShortPath.py [kochi | arahama | new_kochi]   (default: arahama)
+    _run = functools.partial(run_shortpath, simtime=30, meandeparture=15, numSim0=0, numBlocks=1, simPerBlock=10, name='a')
+    cli.run_case({"arahama": arahama_shortpath, "kochi": functools.partial(_run, area="kochi"),
+                  "new_kochi": functools.partial(_run, area="new_kochi")}, default="arahama")
     # SurvivedAgentsPerEvacuationNode()
     # ArahamaMTRL_20191220_Video()
     # ArahamaMTRL_20191220_SeqSim()

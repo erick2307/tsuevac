@@ -27,7 +27,7 @@ Each method has its own entry point in the root directory, importing its class f
 | `scripts/main_mc.py` | `MonteCarlo` (`src/evacrl/mc.py`) | Monte Carlo |
 | `scripts/main_ShortPath.py` | `QLearning`, `MonteCarlo` | Shortest-path baseline (no learning) |
 
-Run a script from any directory (e.g. `python scripts/main_ql_mod.py`); the case to run is chosen in its `__main__` block (e.g. `kochi_ql()`, `arahama_sarsa()`) and is looked up in `cases/<area>/` (see `src/evacrl/paths.py`).
+Run a script from any directory (e.g. `python scripts/main_ql_mod.py`); the case to run is the first argument (`python scripts/main_ql_mod.py kochi`; one of the `kochi_*`, `arahama_*`, `new_kochi_*` helpers of the script) and is looked up in `cases/<area>/` (see `src/evacrl/paths.py`). Without an argument the script runs its default case.
 The newer workflow in `variants/app_2022/` has its own `main.py`, run from inside that folder.
 
 The files required as input, for an `<area>`, are in `cases/<area>/data/` (their format is described in the [README](../README.md)):   

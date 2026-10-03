@@ -9,7 +9,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))  # run with
 from evacrl.mc import MonteCarlo
 import numpy as np
 import os
-from evacrl import paths
+from evacrl import cli, paths
 import time
 
 
@@ -170,6 +170,5 @@ def new_kochi_mc():
 
 
 if __name__ == "__main__":
-    kochi_mc()
-    # arahama_mc()
-    # new_kochi_mc()
+    # python scripts/main_mc.py [kochi | arahama | new_kochi]   (default: kochi)
+    cli.run_case({"kochi": kochi_mc, "arahama": arahama_mc, "new_kochi": new_kochi_mc}, default="kochi")

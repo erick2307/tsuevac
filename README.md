@@ -24,8 +24,8 @@ results/, weights/   outputs shared by the notebooks
 
 | Path | What it is |
 |------|------------|
-| `scripts/main_*.py` | Entry points. Each one defines `run_*` plus one helper per area (`kochi_*`, `arahama_*`, `new_kochi_*`); pick the case in the `__main__` block. `main_ql_mod.py` is a variant of `main_ql.py` that reloads the best-performing state matrix at the start of each block. `main_ShortPath.py` is the shortest-path baseline (no learning). |
-| `src/evacrl/` | The `QLearning`, `SARSA` and `MonteCarlo` classes, `evac_plots.py` (evacuation curves per epoch), `make_video.py` (AVI of a particular epoch) and `paths.py`. |
+| `scripts/main_*.py` | Entry points. Each one defines `run_*` plus one helper per area (`kochi_*`, `arahama_*`, `new_kochi_*`); pick the case on the command line, e.g. `python scripts/main_ql_mod.py kochi` (the default of each script is unchanged; a case whose data is not in `cases/` gets a message listing the ones that are). `main_ql_mod.py` is a variant of `main_ql.py` that reloads the best-performing state matrix at the start of each block. `main_ShortPath.py` is the shortest-path baseline (no learning); it needs a `cases/<area>/data/nextnode.csv`, which is not in the repository (`pre/defPathsFromNodes.py` is the legacy script that produced such a file). |
+| `src/evacrl/` | The `QLearning`, `SARSA` and `MonteCarlo` classes, `evac_plots.py` (evacuation curves per epoch), `make_video.py` (AVI of a particular epoch), `cli.py` (case selection of the scripts) and `paths.py`. |
 | `src/evacrl/paths.py` | **The only place that knows the layout.** Case data, `figures/`, `weights/` and `results/` are all resolved through it, so moving a folder means editing this file. |
 | `cases/new_kochi/` | Besides its data, holds the pre-processing pipeline of the case (`preProcess.py`, `createLinksAndNodes.py`, `getPopulation.py`, `setActionsAndTransitions.py`, `preprocess.ipynb`); run it from inside this folder (it uses `./data` and `./tmp`). |
 | `notebooks/` | `check_policies`, `plot_survivors` (compare policies, survivors per simulation), `operation_*` (batches of runs: survivors vs. simulation and departure time), `CalculateWeights` (link weights from SARSA). Each starts with a bootstrap cell that finds the repository, so they run from any directory. |
@@ -42,7 +42,7 @@ results/, weights/   outputs shared by the notebooks
 
 ```
 pip install -r requirements.txt         # numpy, matplotlib, opencv-python, scipy, pandas + `evacrl` (editable)
-python scripts/main_ql_mod.py            # runs the case chosen in its __main__ block, from any directory
+python scripts/main_ql_mod.py kochi      # runs a case (kochi | new_kochi | arahama), from any directory
 python -m unittest discover tests        # regression + data-provenance tests (about 30 s)
 ```
 

@@ -8,7 +8,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))  # run with
 
 import numpy as np
 import os
-from evacrl import paths
+from evacrl import cli, paths
 from evacrl.qlearn import QLearning
 import time
 
@@ -167,6 +167,5 @@ def new_kochi_ql():
     return 
 
 if __name__ == "__main__":
-    arahama_ql()
-    # kochi_ql()
-    # new_kochi_ql()
+    # python scripts/main_ql.py [kochi | arahama | new_kochi]   (default: arahama)
+    cli.run_case({"kochi": kochi_ql, "arahama": arahama_ql, "new_kochi": new_kochi_ql}, default="arahama")

@@ -8,7 +8,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))  # run with
 
 import numpy as np
 import os
-from evacrl import paths
+from evacrl import cli, paths
 from evacrl.sarsa import SARSA
 import time
 
@@ -167,6 +167,5 @@ def new_kochi_sarsa():
 
 
 if __name__ == "__main__":
-    kochi_sarsa()
-    # arahama_sarsa()
-    # new_kochi_sarsa()
+    # python scripts/main_sarsa.py [kochi | arahama | new_kochi]   (default: kochi)
+    cli.run_case({"kochi": kochi_sarsa, "arahama": arahama_sarsa, "new_kochi": new_kochi_sarsa}, default="kochi")

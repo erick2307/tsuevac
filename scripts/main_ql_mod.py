@@ -7,7 +7,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))  # run without installing evacrl
 
 import os
-from evacrl import paths
+from evacrl import cli, paths
 import time
 
 import numpy as np
@@ -230,8 +230,9 @@ def new_kochi_ql_mod():
 
 
 if __name__ == "__main__":
+    # python scripts/main_ql_mod.py [kochi | arahama | new_kochi]   (default: arahama)
     t = time.time()
-    arahama_ql_mod()
-    # kochi_ql_mod()
-    # new_kochi_ql_mod()
+    cli.run_case(
+        {"kochi": kochi_ql_mod, "arahama": arahama_ql_mod, "new_kochi": new_kochi_ql_mod}, default="arahama"
+    )
     print(f"Time:{time.time()-t} s.")
