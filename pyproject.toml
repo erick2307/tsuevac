@@ -19,7 +19,10 @@ notebooks = ["scipy", "pandas", "seaborn", "geopandas", "contextily", "jupyter"]
 # Building a case from raw data: cases/new_kochi pipeline, pre/, variants/app_2022/setup, datasets/gis,
 # experimental/new_model. The `osgeo` module (createLinksAndNodes.py, SetDatabaseBldMeshCodes.py) comes from
 # GDAL, which is best installed with conda (`conda install gdal`) rather than pip.
-preprocessing = ["scipy", "pandas", "seaborn", "geopandas", "shapely", "osmnx", "networkx", "rasterio", "folium", "contextily"]
+# osmnx < 2: the pipeline uses graph_from_bbox(north, south, east, west), save_graph_shapefile, config and
+# plot_graph_folium, which osmnx 2.0 changed or removed (checked offline against osmnx 1.9.4 and 2.1.1).
+# This also selects an older, compatible numpy / pandas / geopandas stack.
+preprocessing = ["scipy", "pandas", "seaborn", "geopandas", "shapely", "osmnx<2", "networkx", "rasterio", "folium", "contextily"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

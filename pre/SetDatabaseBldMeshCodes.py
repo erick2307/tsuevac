@@ -91,7 +91,7 @@ def createCensusAndPopDatabase(bldShp, meshShp, outBldDb_path,
                                outCensusDb_path, fileOriginalDataSource):
     dataSubmeshCode = np.loadtxt(fileOriginalDataSource.decode("utf-8"),
                                  skiprows=1, usecols=(3,), delimiter='"',
-                                 dtype=np.str)
+                                 dtype=str)
     submeshCodeArray = np.unique(dataSubmeshCode)
 #    print(submeshCodeArray)
 #    print(submeshCodeArray[0], len(submeshCodeArray), type(submeshCodeArray))

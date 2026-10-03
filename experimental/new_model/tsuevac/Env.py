@@ -132,7 +132,7 @@ class Environment(object):
                                              start=0, stop=3, na_color='none', equal_size=True)
         ncr = ox.plot.get_node_colors_by_attr(G=self.e_G, attr='depth', num_bins=5, cmap='Reds',
                                               start=0, stop=3, na_color='none', equal_size=False)
-        cmap = plt.cm.get_cmap('Reds')
+        cmap = mpl.colormaps['Reds']
         norm = plt.Normalize(vmin=0, vmax=3)
         # (vmin=nodes['tsu'].min(), vmax=nodes['tsu'].max())
         sm = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)

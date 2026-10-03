@@ -18,7 +18,7 @@ class PopulationDisaggregation:
         if len(self.dataCenso.shape) == 1:
             self.dataCenso = self.dataCenso.reshape((1,43))
         print(self.dataCenso)
-        self.mesh4thOrderCode = np.loadtxt(censoFile, usecols = (0,), skiprows=1, delimiter=',', dtype = np.str, ndmin=1)
+        self.mesh4thOrderCode = np.loadtxt(censoFile, usecols = (0,), skiprows=1, delimiter=',', dtype = str, ndmin=1)
         self.population = int(np.sum(self.dataCenso[:,:36]))
         print("population")
         print(self.population)
@@ -236,7 +236,7 @@ class PopulationDisaggregation:
         for i in range(7):
             for j in range(len(adjHHMesh4Order)):
                 HH_SubMeshLabel += int(adjHHMesh4Order[j,i])*[self.mesh4thOrderCode[j]]
-        HH_SubMeshLabel = np.array(HH_SubMeshLabel, dtype = np.str)
+        HH_SubMeshLabel = np.array(HH_SubMeshLabel, dtype = str)
         
         print("HH_SubMeshLabel")
         print(HH_SubMeshLabel)
