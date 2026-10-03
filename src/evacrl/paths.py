@@ -17,6 +17,7 @@ CASES_DIR = REPO_ROOT / "cases"
 FIGURES_DIR = REPO_ROOT / "figures"  # snapshots used to build videos (not tracked)
 WEIGHTS_DIR = REPO_ROOT / "weights"  # link weights exported while learning
 RESULTS_DIR = REPO_ROOT / "results"  # analysis outputs shared by the notebooks
+CENSUS_DIR = REPO_ROOT / "datasets" / "census"  # census, household and building databases
 
 
 def case_dir(area):

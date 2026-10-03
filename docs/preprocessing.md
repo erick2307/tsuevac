@@ -60,6 +60,8 @@ https://epsg.org/home.html
 	
 # Preprocess for Population
 
+The census databases are in `datasets/census/`; the scripts are in `pre/`.
+
 1. `SetDatabaseBldMeshCodes.py`
 2. `SetPopDB.py`
 3. `DisaggregationLibrary.py`

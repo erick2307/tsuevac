@@ -15,8 +15,8 @@ scripts/             entry points: main_ql.py, main_ql_mod.py, main_sarsa.py, ma
 notebooks/           analysis notebooks
 tests/               golden regression tests
 docs/                manual, pre-processing notes, diagrams
-datasets/            large raw / shared inputs: gis/ (QGIS data and its notebook), legacy/ (older samples)
-pre/                 pre-processing and census scripts, with the census data
+datasets/            large raw / shared inputs: census/, gis/ (QGIS data and its notebook), legacy/ (older samples)
+pre/                 pre-processing scripts (population disaggregation, shelters, shortest paths)
 variants/app_2022/   self-contained 2022 workflow (its own qlearn.py and setup pipeline)
 experimental/        new_model/ (object-oriented rewrite), tdcontrol.py, tests_mc.py
 results/, weights/   outputs shared by the notebooks
@@ -32,6 +32,7 @@ results/, weights/   outputs shared by the notebooks
 | `tests/` | `test_golden_ql.py`: regression tests that run short Q-learning simulations on both Kochi networks and compare them with recorded results. Run them before and after any restructuring. |
 | `variants/app_2022/` | Newer, self-contained version of the workflow: `main.py` (Q-learning, uses `bin/qlearn.py`), `setup/` (builds a case from an area-of-study GeoJSON in `input/`), `make_video.py`, `analysis.ipynb`. Run from inside the folder. |
 | `experimental/new_model/` | Work-in-progress object-oriented rewrite (`tsuevac` package: `Environment`, `Agent`, `Evacuee`, `Node`, `Shelter`, `Model`). Most methods are still stubs. |
+| `datasets/census/` | Census, household and building databases (`CensusAndBuildingDatabase`, `Household_database`, `Population_database`), the inputs of `pre/SetPopDB.py`. |
 | `datasets/gis/` | GIS data (QGIS projects, rasters) and figures for the tsunami inundation / road network, plus the notebook that reads them (it uses `./data`, so it stays next to the data). |
 | `datasets/legacy/` | Older samples: `kochi_old/` (state and results in the 31-column layout) and two evacuee start/end/departure tables. |
 | `experimental/` | Also `tdcontrol.py` (toy TD-control skeleton) and `tests_mc.py` (ad-hoc runs of `mc.py`). |
@@ -47,7 +48,7 @@ python -m unittest discover tests   # regression tests (about 25 s)
 
 The scripts, the tests and the notebooks also work without installing the package.
 Dependencies: `numpy`, `matplotlib`, `opencv-python`; `evac_plots.py` and the notebooks also use `scipy` and `pandas`.
-Input status of the cases: `cases/new_kochi/data` is complete; `cases/kochi/data` has everything except the real `agentsdb.csv`. `arahama` is not part of this repository.
+Input status of the cases: `cases/new_kochi/data` is complete; `cases/kochi/data` has everything except `agentsdb.csv`, which `python pre/SetPopDB.py` regenerates from `datasets/census/` and the case's `nodesdb.csv` (35,930 agents, the same start nodes as the recorded old-Kochi run in `results/`). `arahama` is not part of this repository.
 
 ### Two code stacks (not interchangeable)
 
@@ -87,10 +88,10 @@ Header lines start with `#`, so `numpy.loadtxt` treats them as comments.
 
 ## `pre/` directory
 
-The census folders stay here for now: `SetPopDB.py` addresses them by relative name. They move to `datasets/census/` together with that script's path fix.
+The census data they use is in `datasets/census/` (the household database is integrated but not in use at the moment).
 
-* `CensusAndBuildingDatabase`, `Household_database`, `Population_database` are folders with the census data (the household database is integrated but not in use at the moment).  
-* `DisaggregationLibrary.py`, `SetDatabaseBldMeshCodes.py`, `SetPopDB.py` => population disaggregation (see [docs/preprocessing.md](./docs/preprocessing.md)).  
+* `DisaggregationLibrary.py`, `SetDatabaseBldMeshCodes.py` => population disaggregation (see [docs/preprocessing.md](./docs/preprocessing.md)).  
+* `SetPopDB.py` => builds `cases/<area>/data/agentsdb.csv` (default `kochi`) from the census databases and the case's `nodesdb.csv`: each agent starts on the node closest to its building.  
 * `defPathsFromNodes.py` => a function to calculate the next node for a pre-determined shortest path run.  
 * `DetectionShelters.py` => to detect evacuation points from the network.  
 * `makeUniformPedestrianProfiles.py` => creates an `agentsdb`-style file with a fixed number of agents per (non-evacuation) node.  
