@@ -29,7 +29,7 @@ results/, weights/   outputs shared by the notebooks
 | `src/evacrl/paths.py` | **The only place that knows the layout.** Case data, `figures/`, `weights/` and `results/` are all resolved through it, so moving a folder means editing this file. |
 | `cases/new_kochi/` | Besides its data, holds the pre-processing pipeline of the case (`preProcess.py`, `createLinksAndNodes.py`, `getPopulation.py`, `setActionsAndTransitions.py`, `preprocess.ipynb`); run it from inside this folder (it uses `./data` and `./tmp`). |
 | `notebooks/` | `check_policies`, `plot_survivors` (compare policies, survivors per simulation), `operation_*` (batches of runs: survivors vs. simulation and departure time), `CalculateWeights` (link weights from SARSA). Each starts with a bootstrap cell that finds the repository, so they run from any directory. |
-| `tests/` | `test_golden_ql.py`: regression tests that run short Q-learning simulations on both Kochi networks and compare them with recorded results. Run them before and after any restructuring. |
+| `tests/` | `test_golden_ql.py`: regression tests that run short Q-learning simulations on both Kochi networks and compare them with recorded results. `test_data_provenance.py`: proves the derived inputs can be regenerated from their sources (actions/transitions from nodes+links, the Kochi population from the census, `new_kochi/data/linksdb.csv` from `tmp/linksdb0.csv`). Run them before and after any restructuring. |
 | `variants/app_2022/` | Newer, self-contained version of the workflow: `main.py` (Q-learning, uses `bin/qlearn.py`), `setup/` (builds a case from an area-of-study GeoJSON in `input/`), `make_video.py`, `analysis.ipynb`. Run from inside the folder. |
 | `experimental/new_model/` | Work-in-progress object-oriented rewrite (`tsuevac` package: `Environment`, `Agent`, `Evacuee`, `Node`, `Shelter`, `Model`). Most methods are still stubs. |
 | `datasets/census/` | Census, household and building databases (`CensusAndBuildingDatabase`, `Household_database`, `Population_database`), the inputs of `pre/SetPopDB.py`. |
@@ -43,7 +43,7 @@ results/, weights/   outputs shared by the notebooks
 ```
 pip install -r requirements.txt         # numpy, matplotlib, opencv-python, scipy, pandas + `evacrl` (editable)
 python scripts/main_ql_mod.py            # runs the case chosen in its __main__ block, from any directory
-python -m unittest discover tests        # regression tests (about 25 s)
+python -m unittest discover tests        # regression + data-provenance tests (about 30 s)
 ```
 
 More dependencies are optional groups declared in `pyproject.toml`: `pip install -e ".[notebooks]"` for the notebooks and
