@@ -7,7 +7,7 @@ import time
 
 import numpy as np
 
-from qlearn import QLearning
+from bin.qlearn import QLearning
 
 
 def createVideo(
