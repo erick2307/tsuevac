@@ -22,15 +22,15 @@ Each method has its own entry point in the root directory, importing its class f
 
 | Script | Class (module) | Method |
 |--------|----------------|--------|
-| `main_ql.py`, `main_ql_mod.py` | `QLearning` (`qlearn.py`) | Q-learning |
-| `main_sarsa.py` | `SARSA` (`sarsa.py`) | SARSA |
-| `main_mc.py` | `MonteCarlo` (`mc.py`) | Monte Carlo |
-| `main_ShortPath.py` | `QLearning`, `MonteCarlo` | Shortest-path baseline (no learning) |
+| `scripts/main_ql.py`, `scripts/main_ql_mod.py` | `QLearning` (`src/evacrl/qlearn.py`) | Q-learning |
+| `scripts/main_sarsa.py` | `SARSA` (`src/evacrl/sarsa.py`) | SARSA |
+| `scripts/main_mc.py` | `MonteCarlo` (`src/evacrl/mc.py`) | Monte Carlo |
+| `scripts/main_ShortPath.py` | `QLearning`, `MonteCarlo` | Shortest-path baseline (no learning) |
 
-Run a script from the repository root; the case to run is chosen in its `__main__` block (e.g. `kochi_ql()`, `arahama_sarsa()`).
+Run a script from any directory (e.g. `python scripts/main_ql_mod.py`); the case to run is chosen in its `__main__` block (e.g. `kochi_ql()`, `arahama_sarsa()`) and is looked up in `cases/<area>/` (see `src/evacrl/paths.py`).
 The newer workflow in `variants/app_2022/` has its own `main.py`, run from inside that folder.
 
-The files required as input, for an `<area>`, are in `<area>/data/` (their format is described in the [README](../README.md)):   
+The files required as input, for an `<area>`, are in `cases/<area>/data/` (their format is described in the [README](../README.md)):   
 * `agentsdb.csv`  
 * `nodesdb.csv`  
 * `linksdb.csv`  
@@ -42,7 +42,7 @@ The parameters of the `run_*` functions are:
 * `simtime` .- Simulated time in minutes.  
 * `meandeparture` .- Mean departure time in minutes (see `meanRayleigh` below).  
 * `numSim0`, `numBlocks`, `simPerBlock` .- Index of the first simulation, number of blocks and simulations per block.  
-* `name` .- Suffix of the folder (`<area>/state_<name>`) where the states are stored.  
+* `name` .- Suffix of the folder (`cases/<area>/state_<name>`) where the states are stored.  
 
 The parameters needed by the classes are:  
 * `meanRayleigh` .- This is the mean value of a Rayleigh distribution for the evacuation departure time decision (in seconds).  
