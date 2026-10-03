@@ -1,8 +1,8 @@
 # Tsunami Evacuation using Reinforcement Learning
 
 > This document explains the structure of the repository.
-> For an explanation on the use of the code see the [Manual](./Manual.md).
-> Notes on pre-processing and tsunami data are in [tegs.md](./tegs.md).
+> For an explanation on the use of the code see the [Manual](./docs/manual.md).
+> Notes on pre-processing and tsunami data are in [docs/preprocessing.md](./docs/preprocessing.md).
 
 ## Repository layout
 
@@ -17,10 +17,11 @@
 | `kochi/`, `new_kochi/`, `arahama/` | One folder per study area. Inputs live in `<area>/data/`; runs write to `<area>/state_<name>/` (not tracked, see `.gitignore`). `arahama/` is not part of this repository. Input status: `kochi/data` has everything except the real `agentsdb.csv`; `new_kochi/data` has everything except `linksdb.csv`. |
 | `tests/` | `test_golden_ql.py`: regression test that runs short Q-learning simulations on the Kochi network (synthetic population in `tests/fixtures/`) and compares them with recorded results. Run it before and after any restructuring. |
 | `new_kochi/` | Also contains the pre-processing pipeline for the Kochi case (`preProcess.py`, `createLinksAndNodes.py`, `getPopulation.py`, `setActionsAndTransitions.py`, `preprocess.ipynb`). |
-| `app/` | Newer, self-contained version of the workflow: `main.py` (Q-learning, uses `bin/qlearn.py`), `setup/` (builds a case from an area-of-study GeoJSON in `input/`), `make_video.py`, `analysis.ipynb`. |
-| `new_model/` | Work-in-progress object-oriented rewrite (`tsuevac` package: `Environment`, `Agent`, `Evacuee`, `Node`, `Shelter`, `Model`). Most methods are still stubs. |
+| `variants/app_2022/` (formerly `app/`) | Newer, self-contained version of the workflow: `main.py` (Q-learning, uses `bin/qlearn.py`), `setup/` (builds a case from an area-of-study GeoJSON in `input/`), `make_video.py`, `analysis.ipynb`. |
+| `experimental/new_model/` (formerly `new_model/`) | Work-in-progress object-oriented rewrite (`tsuevac` package: `Environment`, `Agent`, `Evacuee`, `Node`, `Shelter`, `Model`). Most methods are still stubs. |
 | `pre/` | Original pre-processing scripts and census/population data (see below). |
-| `system/` | GIS data (QGIS projects, rasters) and figures for the tsunami inundation / road network. |
+| `datasets/gis/` (formerly `system/`) | GIS data (QGIS projects, rasters) and figures for the tsunami inundation / road network, plus the notebook that reads them (it uses `./data`, so it stays next to the data). |
+| `docs/` | `manual.md`, `preprocessing.md` (formerly `tegs.md`) and `diagrams/` (draw.io flow charts). |
 | `database/` | Notebooks that analyse batches of runs (survivors vs. simulation time and mean departure time). |
 | `other/` | Informal notebook for various calculations (e.g. weights from SARSA) and sample outputs. |
 | `results/`, `weights/` | Sample outputs. |
@@ -30,11 +31,11 @@ are addressed as `<area>/data/...` and `<area>/state_<name>/...`.
 
 ### Two code stacks (not interchangeable)
 
-The root scripts and `app/` each carry their own `qlearn.py`. They look similar but are **not** duplicates:
+The root scripts and `variants/app_2022/` each carry their own `qlearn.py`. They look similar but are **not** duplicates:
 
-| | Root stack (`main_*.py`, `qlearn.py`, `make_video.py`) | `app/` stack (`main.py`, `bin/qlearn.py`, `setup/`) |
+| | Root stack (`main_*.py`, `qlearn.py`, `make_video.py`) | `variants/app_2022/` stack (`main.py`, `bin/qlearn.py`, `setup/`) |
 |---|---|---|
-| Actions/transitions DB | 12 columns, at most 10 links per node (`new_kochi/setActionsAndTransitions.py`) | 20 columns (`app/setup/lib/setActionsAndTransitions.py`) |
+| Actions/transitions DB | 12 columns, at most 10 links per node (`new_kochi/setActionsAndTransitions.py`) | 20 columns (`variants/app_2022/setup/lib/setActionsAndTransitions.py`) |
 | State matrix (`state_*/sim_*.csv`) | fixed 31 columns | `3 x (actions DB width) + 1` columns |
 | Input header line | read as a `#` comment | first line always skipped (`skiprows=1`) |
 
@@ -62,19 +63,21 @@ Header lines start with `#`, so `numpy.loadtxt` treats them as comments.
 * `reward`: abs of the penalty 'reward' given at each node (-1 to account for time pressure in evacuation)  
 
 `actionsdb.csv`, `transitionsdb.csv` => created from the nodes and links with
-`setActionsAndTransitions.py` (`new_kochi/setActionsAndTransitions.py` for the root stack, `app/setup/lib/setActionsAndTransitions.py` for the `app/` stack).
+`setActionsAndTransitions.py` (`new_kochi/setActionsAndTransitions.py` for the root stack, `variants/app_2022/setup/lib/setActionsAndTransitions.py` for the `variants/app_2022/` stack).
 
 ## `pre/` directory
 
+The census folders stay here for now: `SetPopDB.py` addresses them by relative name. They move to `datasets/census/` together with that script's path fix.
+
 * `CensusAndBuildingDatabase`, `Household_database`, `Population_database` are folders with the census data (the household database is integrated but not in use at the moment).  
-* `DisaggregationLibrary.py`, `SetDatabaseBldMeshCodes.py`, `SetPopDB.py` => population disaggregation (see [tegs.md](./tegs.md)).  
+* `DisaggregationLibrary.py`, `SetDatabaseBldMeshCodes.py`, `SetPopDB.py` => population disaggregation (see [docs/preprocessing.md](./docs/preprocessing.md)).  
 * `defPathsFromNodes.py` => a function to calculate the next node for a pre-determined shortest path run.  
 * `DetectionShelters.py` => to detect evacuation points from the network.  
 * `makeUniformPedestrianProfiles.py` => creates an `agentsdb`-style file with a fixed number of agents per (non-evacuation) node.  
-* `tests.ipynb` => scratch notebook (uses `app/setup/lib/getPopulation.py`).  
+* `tests.ipynb` => scratch notebook (uses `variants/app_2022/setup/lib/getPopulation.py`).  
 
 The older `pre/getPopulation.py`, `pre/SetActionsAndTransitions.py` and `pre/lib_ImportOSM.py` were removed because they were superseded
-by `app/setup/lib/getPopulation.py`, `new_kochi/setActionsAndTransitions.py` and `new_kochi/createLinksAndNodes.py` (OSM edges to nodes/links DB). They remain available in git history.
+by `variants/app_2022/setup/lib/getPopulation.py`, `new_kochi/setActionsAndTransitions.py` and `new_kochi/createLinksAndNodes.py` (OSM edges to nodes/links DB). They remain available in git history.
 
 ## Repository conventions
 

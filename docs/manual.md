@@ -28,9 +28,9 @@ Each method has its own entry point in the root directory, importing its class f
 | `main_ShortPath.py` | `QLearning`, `MonteCarlo` | Shortest-path baseline (no learning) |
 
 Run a script from the repository root; the case to run is chosen in its `__main__` block (e.g. `kochi_ql()`, `arahama_sarsa()`).
-The newer workflow in `app/` has its own `main.py`, run from inside `app/`.
+The newer workflow in `variants/app_2022/` has its own `main.py`, run from inside that folder.
 
-The files required as input, for an `<area>`, are in `<area>/data/` (their format is described in the [README](./README.md)):   
+The files required as input, for an `<area>`, are in `<area>/data/` (their format is described in the [README](../README.md)):   
 * `agentsdb.csv`  
 * `nodesdb.csv`  
 * `linksdb.csv`  

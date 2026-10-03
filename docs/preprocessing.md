@@ -4,7 +4,7 @@
 
 - Run `preProcess.py` in the case folder
 - Requires `createLinksAndNodes.py`, `getPopulation.py`,`setActionsAndTransitions.py`
-- Run one of the `main_*.py` scripts (e.g. `main_ql.py`) in the main folder (see the [Manual](./Manual.md))
+- Run one of the `main_*.py` scripts (e.g. `main_ql.py`) in the main folder (see the [Manual](./manual.md))
 
 
 ## Tsunami Simulation outputs:  
