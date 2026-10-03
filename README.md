@@ -14,7 +14,8 @@
 | `make_video.py` | Create a video (AVI) of a particular epoch (state matrix or policy). |
 | `tdcontrol.py`, `tests_mc.py` | Toy TD-control skeleton and ad-hoc tests for `mc.py`. |
 | `check_policies.ipynb`, `plot_survivors.ipynb` | Notebooks to compare policies and plot survivors per simulation. |
-| `kochi/`, `new_kochi/`, `arahama/` | One folder per study area. Inputs live in `<area>/data/`; runs write to `<area>/state_<name>/` (not tracked, see `.gitignore`). `arahama/` is not part of this repository. |
+| `kochi/`, `new_kochi/`, `arahama/` | One folder per study area. Inputs live in `<area>/data/`; runs write to `<area>/state_<name>/` (not tracked, see `.gitignore`). `arahama/` is not part of this repository. Input status: `kochi/data` has everything except the real `agentsdb.csv`; `new_kochi/data` has everything except `linksdb.csv`. |
+| `tests/` | `test_golden_ql.py`: regression test that runs short Q-learning simulations on the Kochi network (synthetic population in `tests/fixtures/`) and compares them with recorded results. Run it before and after any restructuring. |
 | `new_kochi/` | Also contains the pre-processing pipeline for the Kochi case (`preProcess.py`, `createLinksAndNodes.py`, `getPopulation.py`, `setActionsAndTransitions.py`, `preprocess.ipynb`). |
 | `app/` | Newer, self-contained version of the workflow: `main.py` (Q-learning, uses `bin/qlearn.py`), `setup/` (builds a case from an area-of-study GeoJSON in `input/`), `make_video.py`, `analysis.ipynb`. |
 | `new_model/` | Work-in-progress object-oriented rewrite (`tsuevac` package: `Environment`, `Agent`, `Evacuee`, `Node`, `Shelter`, `Model`). Most methods are still stubs. |
@@ -79,3 +80,4 @@ by `app/setup/lib/getPopulation.py`, `new_kochi/setActionsAndTransitions.py` and
 
 * Simulation outputs (`state_*/`, `figures/`, `weights/w_*.csv`, `*.avi`) and large local GIS data are not tracked; see [`.gitignore`](./.gitignore).
 * Input CSVs and images are **not** ignored: commit any `data/*.csv` a case needs to run.
+* Run the regression test with `python -m unittest discover tests` (needs `numpy`, `matplotlib` and `opencv-python`; about 10 s). After an intentional change of behaviour, regenerate the recorded results with `UPDATE_GOLDEN=1 python tests/test_golden_ql.py`.
