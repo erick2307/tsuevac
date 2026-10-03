@@ -41,13 +41,16 @@ results/, weights/   outputs shared by the notebooks
 ## Quick start
 
 ```
-pip install -e .                    # optional: makes `evacrl` importable from anywhere
-python scripts/main_ql_mod.py       # runs the case chosen in its __main__ block, from any directory
-python -m unittest discover tests   # regression tests (about 25 s)
+pip install -r requirements.txt         # numpy, matplotlib, opencv-python, scipy, pandas + `evacrl` (editable)
+python scripts/main_ql_mod.py            # runs the case chosen in its __main__ block, from any directory
+python -m unittest discover tests        # regression tests (about 25 s)
 ```
 
-The scripts, the tests and the notebooks also work without installing the package.
-Dependencies: `numpy`, `matplotlib`, `opencv-python`; `evac_plots.py` and the notebooks also use `scipy` and `pandas`.
+More dependencies are optional groups declared in `pyproject.toml`: `pip install -e ".[notebooks]"` for the notebooks and
+`pip install -e ".[preprocessing]"` for building a case from raw data (geopandas, osmnx, rasterio, ...). The `osgeo` module used by
+`createLinksAndNodes.py` and `SetDatabaseBldMeshCodes.py` comes from GDAL, which is best installed with conda (`conda install gdal`).
+The full `opencv-python` is needed (not `-headless`): `makeVideo` calls `cv2.destroyAllWindows()`.
+The scripts, the tests and the notebooks also work without installing the package. Tested with Python 3.11, numpy 2.4, matplotlib 3.11, opencv-python 5.0.
 Input status of the cases: `cases/new_kochi/data` is complete; `cases/kochi/data` has everything except `agentsdb.csv`, which `python pre/SetPopDB.py` regenerates from `datasets/census/` and the case's `nodesdb.csv` (35,930 agents, the same start nodes as the recorded old-Kochi run in `results/`). `arahama` is not part of this repository.
 
 ### Two code stacks (not interchangeable)

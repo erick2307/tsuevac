@@ -7,7 +7,19 @@ name = "evacrl"
 version = "0.1.0"
 description = "Tsunami evacuation guidance with reinforcement learning (Q-learning, SARSA, Monte Carlo)"
 readme = "README.md"
+# Core: the algorithms (src/evacrl), the entry points (scripts/) and the regression tests (tests/).
+# The full opencv-python is required, not -headless: makeVideo() calls cv2.destroyAllWindows().
 dependencies = ["numpy", "matplotlib", "opencv-python"]
+
+[project.optional-dependencies]
+# evacrl.evac_plots (evacuation curves)
+plots = ["scipy", "pandas"]
+# notebooks/
+notebooks = ["scipy", "pandas", "seaborn", "geopandas", "contextily", "jupyter"]
+# Building a case from raw data: cases/new_kochi pipeline, pre/, variants/app_2022/setup, datasets/gis,
+# experimental/new_model. The `osgeo` module (createLinksAndNodes.py, SetDatabaseBldMeshCodes.py) comes from
+# GDAL, which is best installed with conda (`conda install gdal`) rather than pip.
+preprocessing = ["scipy", "pandas", "seaborn", "geopandas", "shapely", "osmnx", "networkx", "rasterio", "folium", "contextily"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

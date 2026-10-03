@@ -1,0 +1,7 @@
+# Everything needed to run the scripts, the tests and evacrl.evac_plots.
+# The dependency lists live in pyproject.toml (optional groups: plots, notebooks, preprocessing).
+#
+#   pip install -r requirements.txt              this file
+#   pip install -e ".[notebooks]"                + what the notebooks need
+#   pip install -e ".[preprocessing]"            + the geospatial stack (GDAL / osgeo via conda)
+-e .[plots]
