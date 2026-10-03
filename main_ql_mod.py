@@ -208,7 +208,7 @@ def new_kochi_ql_mod():
     numBlocks = 1
     simPerBlock = 1000
 
-    name = f"ql_{simtime}_{meandeparture}_{simPerBlock}"
+    name = f"ql_mod_{simtime}_{meandeparture}_{simPerBlock}"
     area = "new_kochi"
 
     run_ql_mod(

@@ -155,7 +155,7 @@ def new_kochi_mc():
     numBlocks= 1
     simPerBlock= 100
 
-    name=f"sarsa_{simtime}_{meandeparture}"
+    name=f"mc_{simtime}_{meandeparture}"
     area="new_kochi"
 
     run_mc(area=area,simtime=simtime, meandeparture=meandeparture, 

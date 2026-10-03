@@ -7,7 +7,7 @@ class Shelter(Agent):
     shelters = []
 
     def __init__(self, verb=False):
-        super().__init__(self, verb)
+        super().__init__(verb)
         self.s_uid = self.count
         self.s_name = ""
         self.s_type = None

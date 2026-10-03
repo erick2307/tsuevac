@@ -22,4 +22,4 @@ class Agent(object):
         self.__class__.count += 1
         Agent.agents.append(self)
         if verb:
-            print(f'Agent {self.a_uid} created')
+            print(f'Agent {self.who} created')

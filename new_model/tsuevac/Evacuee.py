@@ -9,7 +9,7 @@ class Evacuee(Agent):
 
     def __init__(self, verb=False):
         """Initialize attributes of the parent class."""
-        super().__init__(self, verb)
+        super().__init__(verb)
         self.e_uid = self.count  # unique evacuee id
         self.e_origin = None  # current node in osmid code
         self.e_destination = None  # next node in osmid code
@@ -51,7 +51,7 @@ class Evacuee(Agent):
 
     def get_shortest_path_time(self, G, source, target, weight='length', method='dijkstra', verb=False):
         """Find the total time along a path from source to target."""
-        distance = self.get_shortest_path_length(G, source, target, weight, method, verb)
+        distance = self.get_shortest_path_length(G, source, target, weight, method)
         return int(distance / self.e_speed)
 
     def reset_path(self):

@@ -9,8 +9,6 @@ import numpy as np
 
 from qlearn import QLearning
 
-# from sarsa import SARSA
-
 
 def createVideo(
     filename, foldername, method="ql", area="kochi", simtime=30, meandeparture=15
@@ -39,30 +37,19 @@ def createVideo(
     if not os.path.exists(figuresfolder):
         os.mkdir(figuresfolder)
 
-    # initiate class
-    if method == "sarsa":
-        case = SARSA(
-            agentsProfileName=agentsProfileName,
-            nodesdbFile=nodesdbFile,
-            linksdbFile=linksdbFile,
-            transLinkdbFile=transLinkdbFile,
-            transNodedbFile=transNodedbFile,
-            meanRayleigh=meanRayleighTest,
-            discount=0.9,
-            folderStateNames=foldername,
-        )
-
-    if method == "ql":
-        case = QLearning(
-            agentsProfileName=agentsProfileName,
-            nodesdbFile=nodesdbFile,
-            linksdbFile=linksdbFile,
-            transLinkdbFile=transLinkdbFile,
-            transNodedbFile=transNodedbFile,
-            meanRayleigh=meanRayleighTest,
-            discount=0.9,
-            folderStateNames=foldername,
-        )
+    # initiate class (only Q-learning is available in app/; SARSA lives in the root sarsa.py)
+    if method != "ql":
+        raise ValueError(f"Unsupported method '{method}'; only 'ql' is available here")
+    case = QLearning(
+        agentsProfileName=agentsProfileName,
+        nodesdbFile=nodesdbFile,
+        linksdbFile=linksdbFile,
+        transLinkdbFile=transLinkdbFile,
+        transNodedbFile=transNodedbFile,
+        meanRayleigh=meanRayleighTest,
+        discount=0.9,
+        folderStateNames=foldername,
+    )
 
     # input policy
     case.loadStateMatrixFromFile(namefile=fn)

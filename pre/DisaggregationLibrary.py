@@ -134,8 +134,8 @@ class PopulationDisaggregation:
         print("\n***************************************************")
         print("*********** CREATE_SYNTHETIC_POPULATION ***********")
         print("***************************************************\n")
-        MD = np.round(self.getBidimensionalDistribution(), decimals=1)#.astype(np.int)
-        MD = np.ceil(MD).astype(np.int)
+        MD = np.round(self.getBidimensionalDistribution(), decimals=1)#.astype(int)
+        MD = np.ceil(MD).astype(int)
         print("MD")
         print(MD)
         print("MD-no round")
@@ -168,12 +168,12 @@ class PopulationDisaggregation:
                 ind_id += MD[r,c]
         
         print("ASP: adjusted synthetic people")
-        print(ASP.astype(np.int))
+        print(ASP.astype(int))
 
-        adjustNumHH = np.ceil(np.sum(MD, axis=0)/(np.arange(len(self.distributions[1]))+1)).astype(np.int)
+        adjustNumHH = np.ceil(np.sum(MD, axis=0)/(np.arange(len(self.distributions[1]))+1)).astype(int)
         print("adjustNumHH")
         print(adjustNumHH)
-        totalHH = np.sum(adjustNumHH, dtype = np.int) # total adjusted households
+        totalHH = np.sum(adjustNumHH, dtype = int) # total adjusted households
         
         # Set household database 
         HH_DB = np.zeros((totalHH, 3))
@@ -182,7 +182,7 @@ class PopulationDisaggregation:
                      adjustNumHH[3]*[4] + adjustNumHH[4]*[5] + adjustNumHH[5]*[6] + adjustNumHH[6]*[7])   # household HH_code
                      
         # Assigning household ID to each synthetic person
-        totalSubSample = np.sum(MD[:,0], dtype = np.int)
+        totalSubSample = np.sum(MD[:,0], dtype = int)
         hhCodeTmp = np.random.choice(np.arange(totalSubSample), size = totalSubSample, replace = False)
         ASP[0:totalSubSample, -1] = hhCodeTmp
         accum_total = totalSubSample
@@ -246,7 +246,7 @@ class PopulationDisaggregation:
         if len(bldData.shape) == 1:
             bldData = bldData.reshape((1,len(bldData)))
             
-        hh_per_submesh = np.sum(adjHHMesh4Order, axis = 1, dtype = np.int)
+        hh_per_submesh = np.sum(adjHHMesh4Order, axis = 1, dtype = int)
         
         print("hh_per_submesh")
         print(hh_per_submesh)
@@ -265,17 +265,17 @@ class PopulationDisaggregation:
             
             if (total_hh < total_bld):
 #                print("numbers of households are lower than number of buildings in submesh %s" % self.mesh4thOrderCode[i])
-                bld2hh_array = np.random.choice(bldDataSubmesh[:,0], size = total_hh, replace = False).astype(np.int)
+                bld2hh_array = np.random.choice(bldDataSubmesh[:,0], size = total_hh, replace = False).astype(int)
                 HH_DB[ HH_SubMeshLabel == self.mesh4thOrderCode[i], 2 ] = bld2hh_array
             else:
                 hh_per_bld = np.ones(total_bld)
-                hh_per_bld += np.floor(bldDataSubmesh[:,3] * bldDataSubmesh[:,4] * float(total_hh - total_bld) / float(total_vol)).astype(np.int)
+                hh_per_bld += np.floor(bldDataSubmesh[:,3] * bldDataSubmesh[:,4] * float(total_hh - total_bld) / float(total_vol)).astype(int)
                 remain_bld = int(total_hh - np.sum(hh_per_bld))
-                hh_per_bld[np.random.choice(np.arange(total_bld).astype(np.int), remain_bld, replace = False)] += 1    # adjusting the remain buildings
+                hh_per_bld[np.random.choice(np.arange(total_bld).astype(int), remain_bld, replace = False)] += 1    # adjusting the remain buildings
                 bld2hh_array = []
                 for j in range(total_bld):
                     bld2hh_array += int(hh_per_bld[j]) * [bldDataSubmesh[j, 0]]
-                bld2hh_array = np.array(bld2hh_array, dtype = np.int)
+                bld2hh_array = np.array(bld2hh_array, dtype = int)
                 bld2hh_array = np.random.choice(bld2hh_array, size = total_hh, replace = False)
                 HH_DB[ HH_SubMeshLabel == self.mesh4thOrderCode[i], 2 ] = bld2hh_array
             
@@ -288,21 +288,21 @@ class PopulationDisaggregation:
         return
 
 def disaggregationSendai():
-    listCensusFiles = glob.glob("E:\DIM2SEA\PythonCodes\DisaggregationAndAllocation\Output\Census_database\*.csv")
+    listCensusFiles = glob.glob(r"E:\DIM2SEA\PythonCodes\DisaggregationAndAllocation\Output\Census_database\*.csv")
     for cf in listCensusFiles:
         print(os.path.split(cf)[1])
         bldf = os.path.split(cf)[1].replace("Censo", "BldDb")
-        bldf = os.path.join("E:\DIM2SEA\PythonCodes\DisaggregationAndAllocation\Output\Building_database", bldf)
-        outfilePop = os.path.join("E:\DIM2SEA\PythonCodes\DisaggregationAndAllocation\Output\Population_database", os.path.split(cf)[1].replace("Censo", "PopDb"))
-        outfileHH = os.path.join("E:\DIM2SEA\PythonCodes\DisaggregationAndAllocation\Output\Household_database", os.path.split(cf)[1].replace("Censo", "HHDb"))
+        bldf = os.path.join(r"E:\DIM2SEA\PythonCodes\DisaggregationAndAllocation\Output\Building_database", bldf)
+        outfilePop = os.path.join(r"E:\DIM2SEA\PythonCodes\DisaggregationAndAllocation\Output\Population_database", os.path.split(cf)[1].replace("Censo", "PopDb"))
+        outfileHH = os.path.join(r"E:\DIM2SEA\PythonCodes\DisaggregationAndAllocation\Output\Household_database", os.path.split(cf)[1].replace("Censo", "HHDb"))
 #        print(bldf)
 #        print(outfilePop)
 #        print(outfileHH)
 #        print(" ")
         
-        meshDist = PopulationDisaggregation(censoFile)
+        meshDist = PopulationDisaggregation(cf)
         meshDist.IPF()
-        meshDist.createSyntheticPopulation(outfilePop, outfileHH, bldFileDB)
+        meshDist.createSyntheticPopulation(outfilePop, outfileHH, bldf)
 
 def disaggregationKochiPrefecture():
     pathCensus = r"C:\Users\Moya\ReGID Dropbox\Luis Moya\Python_codes\Reinforcement_learning\KochiPrefecture\CensusAndBuildingDatabase\Censo_Code*.csv"

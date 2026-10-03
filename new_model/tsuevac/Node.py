@@ -1,3 +1,7 @@
+import itertools as it
+
+import numpy as np
+
 from tsuevac import Agent
 from tsuevac import setup
 
@@ -8,7 +12,7 @@ class Node(Agent):
 
     def __init__(self, verb=False):
         """Initialize attributes of the parent class."""
-        super().__init__(self, verb)
+        super().__init__(verb)
         self.n_uid = self.count  # unique node id
         self.n_num_evacuees = None  # number of evacuees in node
         self.n_num_edges = self.get_number_of_edges()  # number of edges in node
@@ -19,13 +23,13 @@ class Node(Agent):
         self.n_Action_space = np.linspace(0, self.n_num_edges - 1, self.n_num_edges).astype(np.int64)
         # The possible actions are the directions towards the next node
         # through each connected edge. i.e. [0, 1, 2, ...]
-        self.n_State_space = list(it.combinations_with_replacement(CONGESTION_LEVELS, len(self.n_Action_space)))
+        self.n_State_space = list(it.combinations_with_replacement(setup.CONGESTION_LEVELS, len(self.n_Action_space)))
         # The state space is the combiation of all possible values of congestion
         # at each edge.
         self.n_Action = None
-        self.n_Reward = REWARD
+        self.n_Reward = setup.REWARD
         self.n_Qvalue = None
-        self.n_Qtable = np.empty([len(self.n_State_space), len(self.n_Action_space), NUM_EPISODES])
+        self.n_Qtable = np.empty([len(self.n_State_space), len(self.n_Action_space), setup.NUM_EPISODES])
         self.n_lag_time = None
         # The lag time is the time an agent need to spent in the node to account for interactions at intersections.
         # Can be a fix number or the outcome of a surrogate model.

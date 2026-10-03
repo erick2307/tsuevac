@@ -4,7 +4,7 @@
 
 - Run `preProcess.py` in the case folder
 - Requires `createLinksAndNodes.py`, `getPopulation.py`,`setActionsAndTransitions.py`
-- Run `main.py` in the main folder
+- Run one of the `main_*.py` scripts (e.g. `main_ql.py`) in the main folder (see the [Manual](./Manual.md))
 
 
 ## Tsunami Simulation outputs:  
@@ -61,17 +61,17 @@ https://epsg.org/home.html
 # Preprocess for Population
 
 1. `SetDatabaseBldMeshCodes.py`
-2. `SetpopDB.py`
+2. `SetPopDB.py`
 3. `DisaggregationLibrary.py`
 
 # Kochi data
 
 - Area code polygons (WGS84 - EPSG:4326):  
-- 
+
 > Dropbox/zDATA/PAREA_Town_2018/Shape形式/Shape形式/世界測地系/39/A3924POL.shp
 
 # to Obtain Population within inundation area
-1. Use `getPopulatio.py`>`getPopulationArea` to extract population within the 'aos' --> `areaPop`
+1. Use `getPopulation.py`>`getPopulationArea` to extract population within the 'aos' --> `areaPop`
 2. Use the feature `areaPop` and the raster `inund5` to `Add values to feature`
 3. Select features `>-99`
 Note: This is a bit overestimated since areas near the river or at the edge of the inundation line are also included. A shadow for evacuation.

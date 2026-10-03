@@ -7,10 +7,10 @@ def setMatrices(numcolumns = 12):
     linksdb = np.loadtxt("./data/linksdb.csv", delimiter=',', skiprows=1)
     numNodes = nodesdb.shape[0]
     #numLinks = linksdb.shape[0]
-    actionsdb = np.zeros((numNodes, numcolumns), dtype=np.int)
-    transitionsdb = np.zeros((numNodes, numcolumns), dtype=np.int)
-    #probdb = np.zeros((numNodes, 12), dtype=np.int) 
-    #rewarddb = np.zeros((numNodes, 12), dtype=np.int) 
+    actionsdb = np.zeros((numNodes, numcolumns), dtype=int)
+    transitionsdb = np.zeros((numNodes, numcolumns), dtype=int)
+    #probdb = np.zeros((numNodes, 12), dtype=int) 
+    #rewarddb = np.zeros((numNodes, 12), dtype=int) 
     
     for i in range(numNodes):
         actionsdb[i,0] = nodesdb[i,0]

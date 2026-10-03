@@ -14,10 +14,10 @@ def setMatrices():
     numNodes = nodesdb.shape[0]
     numLinks = linksdb.shape[0]
     
-    actionsdb = np.zeros((numNodes, 12), dtype=np.int)
-    transitionsdb = np.zeros((numNodes, 12), dtype=np.int)
-    probdb = np.zeros((numNodes, 12), dtype=np.int) 
-    rewarddb = np.zeros((numNodes, 12), dtype=np.int) 
+    actionsdb = np.zeros((numNodes, 12), dtype=int)
+    transitionsdb = np.zeros((numNodes, 12), dtype=int)
+    probdb = np.zeros((numNodes, 12), dtype=int) 
+    rewarddb = np.zeros((numNodes, 12), dtype=int) 
     
     for i in range(numNodes):
         actionsdb[i,0] = nodesdb[i,0]

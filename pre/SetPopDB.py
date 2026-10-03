@@ -32,10 +32,10 @@ def setPopDB():
     
     for pfp in popPaths:
         # print(pfp)
-        pDB= np.loadtxt(pfp, delimiter= ",", skiprows= 1, dtype= np.int)
+        pDB= np.loadtxt(pfp, delimiter= ",", skiprows= 1, dtype= int)
         codeArea= pfp.split("_")[-1]
         hfp= os.path.join( "Household_database" , "HH_" + codeArea )
-        hDB= np.loadtxt(hfp, delimiter= ",", skiprows= 1, dtype= np.int)
+        hDB= np.loadtxt(hfp, delimiter= ",", skiprows= 1, dtype= int)
         # print(hDB)
         bfp= os.path.join( "CensusAndBuildingDatabase", "BldDb_" + codeArea )
         bDB= np.loadtxt(bfp, delimiter= ",", skiprows= 1)

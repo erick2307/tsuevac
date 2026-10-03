@@ -38,7 +38,7 @@ class MonteCarlo:
         self.nodesdb = np.loadtxt(nodesdbFile, delimiter=',') 
         # 2020Oct07: An additional column must be added to store the link width
         # Thus, this is the new format: [number, node1, node2, length, width]
-        self.linksdb = np.loadtxt(linksdbFile, delimiter=',', dtype=np.int) 
+        self.linksdb = np.loadtxt(linksdbFile, delimiter=',', dtype=int) 
         self.populationAtLinks = np.zeros((self.linksdb.shape[0], 2)) 
         # number of agents at links [linkNumber, numberOfAgentsAtLink, density]
         self.populationAtLinks[:, 0] = self.linksdb[:, 0]
@@ -55,11 +55,11 @@ class MonteCarlo:
         self.speArrPerLink= np.zeros(( self.linksdb.shape[0] , int(max(self.popAtLink_HistParam[:,1]))+1))
         
         # for p in self.popHistPerLink: print(p)
-        self.transLinkdb = np.loadtxt(transLinkdbFile, delimiter=',', dtype=np.int) # database of actions [currentNode, numberOfNodesTarget, linkConnectingNode1, linkConnectingNode2,...]
-        self.transNodedb = np.loadtxt(transNodedbFile, delimiter=',', dtype=np.int) # database with possible transitions between nodes [currentNode, numberOfNodesTarget, nodeTarget1, nodeTarget2,...]
+        self.transLinkdb = np.loadtxt(transLinkdbFile, delimiter=',', dtype=int) # database of actions [currentNode, numberOfNodesTarget, linkConnectingNode1, linkConnectingNode2,...]
+        self.transNodedb = np.loadtxt(transNodedbFile, delimiter=',', dtype=int) # database with possible transitions between nodes [currentNode, numberOfNodesTarget, nodeTarget1, nodeTarget2,...]
         # identifying evacuation nodes
-        self.evacuationNodes = self.nodesdb[self.nodesdb[:,3] == 1,0].astype(np.int)
-        self.pedProfiles = np.loadtxt(agentsProfileName, delimiter=',', dtype=np.int) # agents profile [age, gender, householdType, householdId, closestNodeNumber]
+        self.evacuationNodes = self.nodesdb[self.nodesdb[:,3] == 1,0].astype(int)
+        self.pedProfiles = np.loadtxt(agentsProfileName, delimiter=',', dtype=int) # agents profile [age, gender, householdType, householdId, closestNodeNumber]
         self.numPedestrian = self.pedProfiles.shape[0]
         self.errorLoc = 2.0   # acceptable error between coordinate of a node and a coordinate of a pedestrian
         self.snapshotNumber = 0
@@ -103,7 +103,7 @@ class MonteCarlo:
         #     self.pedDB[i, 2:4] = self.nodesdb[nodeTgt, 1:3] # coordinates of the next target (next node)
         #     # 2020Aug28: [1 slot for the state code, 1 slot for the agent choice, 1 slot para el tiempo de arrivo]
         #     # 2020Aug28: We reserve three slots now
-        #     firstState = np.zeros(3, dtype = np.int)
+        #     firstState = np.zeros(3, dtype = int)
         #     # we only update the chosen link (first action)
         #     # firstState[0] = None
         #     firstState[1] = int(indxTgt)
@@ -112,7 +112,7 @@ class MonteCarlo:
     
         # setting initial evacuation time for each pedestrian
         scaleRayleigh = meanRayleigh * (2/np.pi)**0.5
-        self.pedDB[:,9] = np.round( np.random.rayleigh(scale = scaleRayleigh, size = self.pedDB.shape[0]) , decimals = 0 ).astype(np.int)
+        self.pedDB[:,9] = np.round( np.random.rayleigh(scale = scaleRayleigh, size = self.pedDB.shape[0]) , decimals = 0 ).astype(int)
         # Updating initial time for simulation. That is, simulation starts with
         # lowest evacuation time of an arbitrary pedestrian
         self.time = min(self.pedDB[:,9])
@@ -413,7 +413,7 @@ class MonteCarlo:
                 self.pedDB[i, 2:4] = self.nodesdb[nodeTgt, 1:3] # coordinates of the next target (next node)
                 # 2020Aug28: [1 slot for the state code, 1 slot for the agent choice, 1 slot for the arrival time]
                 # 2020Aug28: We reserve three slots now
-                firstState = np.zeros(3, dtype = np.int)
+                firstState = np.zeros(3, dtype = int)
                 firstState[1] = int(indxTgt)
                 #-----end-----
                 # Update velocity
@@ -511,7 +511,7 @@ class MonteCarlo:
                 vel_arr = speed * unitDir
             # Save experienced state and action taken in an array:
             # 2020Aug28: We now save also the time
-            expeStatAndVal = np.array([stateIndx, indxTgt, self.time], dtype=np.int)
+            expeStatAndVal = np.array([stateIndx, indxTgt, self.time], dtype=int)
             # Update matrix "pedDB":
             self.pedDB[pedIndx , :9] = np.array( [x0_arr[0], x0_arr[1], xTgt_arr[0], xTgt_arr[1], vel_arr[0], vel_arr[1], link, nodeTgt, node0] )
             # Record state and action experienced by the pedestrian:
@@ -525,7 +525,7 @@ class MonteCarlo:
     ########## functions to use shortest path
     
     def loadShortestPathDB(self, namefile):
-        self.shortestPathDB = np.loadtxt(namefile, delimiter=",", skiprows=1, dtype=np.int)
+        self.shortestPathDB = np.loadtxt(namefile, delimiter=",", skiprows=1, dtype=int)
         return
     
     def updateTargetShortestPath(self, pedIndx):
@@ -696,7 +696,7 @@ class MonteCarlo:
         QFun = np.zeros(( self.stateMat.shape[0] , 10))
         QFun = self.stateMat[:,11:21]
         # Get policy
-        nodeState = self.stateMat[ : , 0 ].astype(np.int)
+        nodeState = self.stateMat[ : , 0 ].astype(int)
         numActions = self.transLinkdb[ nodeState , 1]
         policy = np.zeros( self.stateMat.shape[0] )
         for i in range( self.stateMat.shape[0] ):
@@ -751,7 +751,7 @@ class MonteCarlo:
     
     def makeVideo(self, nameVideo = "Simul.avi"):
         listImagesUS = glob.glob( os.path.join("figures", "*png"))
-        numSS_ar= np.zeros( len(listImagesUS) , dtype= np.int)
+        numSS_ar= np.zeros( len(listImagesUS) , dtype= int)
         for i, li in enumerate(listImagesUS):
             numSS_ar[i]= int( li[-8:-4] ) 
             # print(code)
