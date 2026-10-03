@@ -1,20 +1,26 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Golden regression test for the root Q-learning stack (main_ql_mod.run_ql_mod).
+"""Golden regression tests for the root Q-learning stack (main_ql_mod.run_ql_mod).
 
-Runs three short simulations on the real Kochi road network (kochi/data) with a small
-synthetic population (tests/fixtures/kochi_golden_agents.csv, NOT real Kochi data) and a
-fixed random seed, then compares the survivors and the learned state matrices with the
-recorded values in tests/fixtures/kochi_golden_expected.json.
+Two cases are run with a fixed random seed and compared with recorded results in
+tests/fixtures/<case>_golden_expected.json:
 
-Its purpose is to prove that restructuring the repository (moving files, changing how
+* kochi      real 4,315-node road network + a small SYNTHETIC population
+             (tests/fixtures/kochi_golden_agents.csv, NOT real Kochi data), 3 short simulations
+* new_kochi  real 19,207-node road network + a deterministic 1-in-1000 sample of its real
+             population (new_kochi/data/agentsdb.csv), 2 short simulations
+
+Their purpose is to prove that restructuring the repository (moving files, changing how
 paths are resolved) does not change the results.
 
 Run:        python -m unittest discover tests        (or: pytest tests)
-Regenerate: UPDATE_GOLDEN=1 python tests/test_golden_ql.py
+Strict:     GOLDEN_STRICT=1 python -m unittest discover tests
+            also compares the sha256 of every output file (same NumPy/Python only)
+Regenerate: UPDATE_GOLDEN=1 python tests/test_golden_ql.py [kochi] [new_kochi]
             (only after an INTENTIONAL change of behaviour)
 """
 import contextlib
+import hashlib
 import io
 import json
 import os
@@ -30,72 +36,109 @@ import numpy as np
 
 REPO = Path(__file__).resolve().parents[1]
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
-EXPECTED = FIXTURES / "kochi_golden_expected.json"
 
 # The only places that know where the case data and the code live.
 # Update these (and nothing else) when the repository layout changes.
-CASE_DATA = REPO / "kochi" / "data"
 CODE_DIRS = [REPO]
 
-SEED = 20240101
-RUN = dict(simtime=10, meandeparture=3, numSim0=0, numBlocks=1, simPerBlock=2, name="golden")
+
+def case_data_dir(area):
+    return REPO / area / "data"
+
+
 CASE_FILES = ("nodesdb", "linksdb", "actionsdb", "transitionsdb")
 
+CASES = {
+    "kochi": dict(
+        seed=20240101,
+        run=dict(simtime=10, meandeparture=3, numSim0=0, numBlocks=1, simPerBlock=2, name="golden"),
+        agents=lambda: (FIXTURES / "kochi_golden_agents.csv").read_text(),
+    ),
+    "new_kochi": dict(
+        seed=1,
+        run=dict(simtime=10, meandeparture=3, numSim0=0, numBlocks=1, simPerBlock=1, name="golden"),
+        # header + every 1000th agent of the real population (deterministic)
+        agents=lambda: _sample_lines((case_data_dir("new_kochi") / "agentsdb.csv").read_text(), 1000),
+    ),
+}
 
-def run_golden_case(workdir):
-    """Run the simulations in `workdir` and return a compact, comparable summary."""
+
+def _sample_lines(text, step):
+    lines = text.splitlines()
+    return "\n".join([lines[0]] + lines[1::step]) + "\n"
+
+
+def expected_path(name):
+    return FIXTURES / f"{name}_golden_expected.json"
+
+
+def run_golden_case(name, workdir):
+    """Run case `name` in `workdir` and return a compact, comparable summary."""
+    cfg = CASES[name]
     case = Path(workdir) / "case"
     (case / "data").mkdir(parents=True)
-    for name in CASE_FILES:
-        shutil.copy(CASE_DATA / f"{name}.csv", case / "data" / f"{name}.csv")
-    shutil.copy(FIXTURES / "kochi_golden_agents.csv", case / "data" / "agentsdb.csv")
+    for f in CASE_FILES:
+        shutil.copy(case_data_dir(name) / f"{f}.csv", case / "data" / f"{f}.csv")
+    (case / "data" / "agentsdb.csv").write_text(cfg["agents"]())
 
     for d in CODE_DIRS:
         if str(d) not in sys.path:
             sys.path.insert(0, str(d))
     import main_ql_mod  # noqa: E402  (imported late so CODE_DIRS is honoured)
 
-    np.random.seed(SEED)
+    np.random.seed(cfg["seed"])
     with contextlib.redirect_stdout(io.StringIO()):
-        main_ql_mod.run_ql_mod(area=str(case), **RUN)
+        main_ql_mod.run_ql_mod(area=str(case), **cfg["run"])
 
-    state_dir = case / f"state_{RUN['name']}"
+    run = cfg["run"]
+    state_dir = case / f"state_{run['name']}"
     survivors = np.loadtxt(
-        state_dir / f"survivorsPerSim_{RUN['numBlocks']}x{RUN['simPerBlock']}.csv",
-        delimiter=",", dtype=int,
+        state_dir / f"survivorsPerSim_{run['numBlocks']}x{run['simPerBlock']}.csv",
+        delimiter=",", dtype=int, ndmin=2,
     )
-    summary = {"survivors": survivors.tolist(), "state": {}}
-    for f in sorted(state_dir.glob("sim_*.csv")):
-        m = np.loadtxt(f, delimiter=",")
-        # root stack layout: [node, 10 density codes, 10 action values, 10 visit counts]
-        summary["state"][f.name] = {
-            "shape": list(m.shape),
-            "q_sum": round(float(m[:, 11:21].sum()), 3),
-            "count_sum": int(m[:, 21:31].sum()),
-        }
+    summary = {"survivors": survivors.tolist(), "state": {}, "sha256": {}}
+    for f in sorted(state_dir.iterdir()):
+        summary["sha256"][f.name] = hashlib.sha256(f.read_bytes()).hexdigest()
+        if f.name.startswith("sim_"):
+            m = np.loadtxt(f, delimiter=",")
+            # root stack layout: [node, 10 density codes, 10 action values, 10 visit counts]
+            summary["state"][f.name] = {
+                "shape": list(m.shape),
+                "q_sum": round(float(m[:, 11:21].sum()), 3),
+                "count_sum": int(m[:, 21:31].sum()),
+            }
     return summary
 
 
 class GoldenQLearning(unittest.TestCase):
-    def test_matches_recorded_results(self):
-        expected = json.loads(EXPECTED.read_text())
+    def check(self, name):
+        expected = json.loads(expected_path(name).read_text())
         with tempfile.TemporaryDirectory() as tmp:
-            got = run_golden_case(tmp)
+            got = run_golden_case(name, tmp)
 
         self.assertEqual(got["survivors"], expected["survivors"], "survivors per simulation changed")
         self.assertEqual(sorted(got["state"]), sorted(expected["state"]), "set of state files changed")
-        for name, exp in expected["state"].items():
-            g = got["state"][name]
-            self.assertEqual(g["shape"], exp["shape"], f"{name}: state-matrix shape changed")
-            self.assertEqual(g["count_sum"], exp["count_sum"], f"{name}: visit counts changed")
-            self.assertAlmostEqual(g["q_sum"], exp["q_sum"], places=2, msg=f"{name}: action values changed")
+        for fname, exp in expected["state"].items():
+            g = got["state"][fname]
+            self.assertEqual(g["shape"], exp["shape"], f"{fname}: state-matrix shape changed")
+            self.assertEqual(g["count_sum"], exp["count_sum"], f"{fname}: visit counts changed")
+            self.assertAlmostEqual(g["q_sum"], exp["q_sum"], places=2, msg=f"{fname}: action values changed")
+        if os.environ.get("GOLDEN_STRICT") == "1":
+            self.assertEqual(got["sha256"], expected["sha256"], "output files are not byte-identical")
+
+    def test_kochi(self):
+        self.check("kochi")
+
+    def test_new_kochi(self):
+        self.check("new_kochi")
 
 
 if __name__ == "__main__":
     if os.environ.get("UPDATE_GOLDEN") == "1":
-        with tempfile.TemporaryDirectory() as tmp:
-            result = run_golden_case(tmp)
-        EXPECTED.write_text(json.dumps(result, indent=2) + "\n")
-        print(f"wrote {EXPECTED}")
+        for name in sys.argv[1:] or CASES:
+            with tempfile.TemporaryDirectory() as tmp:
+                result = run_golden_case(name, tmp)
+            expected_path(name).write_text(json.dumps(result, indent=2) + "\n")
+            print(f"wrote {expected_path(name)}")
     else:
         unittest.main()
