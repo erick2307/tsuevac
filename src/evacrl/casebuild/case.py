@@ -39,6 +39,25 @@ def write_tables(data_dir, network, actions, transitions, nextnode=None, agents=
         np.savetxt(path("agents"), agents, delimiter=",", fmt="%d", header="age,gender,hhType,hhId,Node")
 
 
+POPULATION_FILE = "node_population.csv"
+
+
+def write_node_population(path, weights):
+    """The people placed at each node of the cleaned network (`node,people`), to rebuild a proportional population offline."""
+    weights = np.asarray(weights, dtype=float)
+    np.savetxt(path, np.column_stack([np.arange(len(weights)), weights]), delimiter=",", fmt="%d,%.6f", header="node,people")
+
+
+def read_node_population(path, num_nodes=None):
+    """The people per node written by `write_node_population`: an array with one entry per node, `0 .. n-1` in order."""
+    table = load_table(path)
+    if table.ndim != 2 or table.shape[1] != 2 or not np.array_equal(table[:, 0], np.arange(len(table))):
+        raise ValueError(f"{path}: expected the columns node,people for the nodes 0, 1, 2, ... in order")
+    if num_nodes is not None and len(table) != num_nodes:
+        raise ValueError(f"{path} has {len(table)} nodes, the network has {num_nodes}")
+    return table[:, 1]
+
+
 def read_tables(data_dir):
     """The tables of a case as a dict of arrays (`nextnode` and `agents` only if the files exist)."""
     out = {}

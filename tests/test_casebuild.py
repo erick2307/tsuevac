@@ -23,9 +23,9 @@ import numpy as np
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "src"))
 
-from evacrl.casebuild import (NO_PATH, Network, actions_and_transitions, agents_table, apportion, attach_shelters, build_tables,  # noqa: E402
+from evacrl.casebuild import (NO_PATH, POPULATION_FILE, Network, PopulationSpec, build_case, actions_and_transitions, agents_table, apportion, attach_shelters, build_tables,  # noqa: E402
                               candidate_nodes, distance_to_shelter, merge_short_links, network_from_edges, next_nodes,
-                              prune_excess_links, read_raw,
+                              prune_excess_links, read_node_population, read_raw,
                               read_tables, start_nodes, start_nodes_per_node, start_nodes_proportional, validate_case,
                               validate_tables, write_provenance, write_raw, write_tables)
 from evacrl.casebuild import cli  # noqa: E402
@@ -749,6 +749,82 @@ class Validation(unittest.TestCase):
             self.assertTrue(validate_case(tmp).ok)
             (Path(tmp) / "actionsdb.csv").unlink()
             self.assertIn("missing", " ".join(validate_case(tmp).errors))
+
+
+class ProportionalCases(unittest.TestCase):
+    """A population placed by weights (a census) is rebuilt offline from the people stored for each node."""
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.dir = Path(self._tmp.name)
+        self.spec = PopulationSpec(strategy="proportional", total=100, weights=lambda net: np.arange(1, net.num_nodes + 1) * 1.2345678)
+        self.tables, _ = build_case(raw_network(), self.dir / "case", population=self.spec)
+
+    def tearDown(self):
+        self._tmp.cleanup()
+
+    def run_cli(self, *argv):
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            code = cli.main([str(a) for a in argv])
+        return code, out.getvalue()
+
+    def data(self, case):
+        return {p.name: p.read_bytes() for p in (self.dir / case / "data").iterdir()}
+
+    def test_the_people_per_node_are_stored_at_the_precision_they_are_used_at(self):
+        stored = read_node_population(self.dir / "case" / POPULATION_FILE, num_nodes=5)
+        np.testing.assert_array_equal(stored, self.tables["weights"])
+        np.testing.assert_array_equal(stored, np.round(np.arange(1, 6) * 1.2345678, 6))      # 1.234568, 2.469136, ...
+        info = json.loads((self.dir / "case" / "provenance.json").read_text())
+        record = info["population_weights"]
+        self.assertEqual((record["file"], record["people"]), (POPULATION_FILE, round(float(stored.sum()), 3)))
+        import hashlib
+        self.assertEqual(record["sha256"], hashlib.sha256((self.dir / "case" / POPULATION_FILE).read_bytes()).hexdigest())
+
+    def test_other_strategies_leave_no_such_file(self):
+        build_case(raw_network(), self.dir / "u", population=PopulationSpec(strategy="uniform", total=10))
+        self.assertFalse((self.dir / "u" / POPULATION_FILE).exists())
+        self.assertNotIn("population_weights", json.loads((self.dir / "u" / "provenance.json").read_text()))
+
+    def test_a_case_is_rebuilt_from_its_files_alone(self):
+        weights = self.dir / "case" / POPULATION_FILE
+        code, out = self.run_cli("from-raw", self.dir / "case" / "raw", self.dir / "again", "--strategy", "proportional", "--agents", 100,
+                                 "--weights", weights)
+        self.assertEqual(code, 0, out)
+        self.assertIn("100 agents", out)
+        self.assertEqual(self.data("again"), self.data("case"))
+        self.assertEqual((self.dir / "again" / POPULATION_FILE).read_bytes(), weights.read_bytes())
+
+    def test_the_default_number_of_agents_is_the_people_stored(self):
+        code, out = self.run_cli("from-raw", self.dir / "case" / "raw", self.dir / "again", "--strategy", "proportional",
+                                 "--weights", self.dir / "case" / POPULATION_FILE)
+        self.assertEqual(code, 0, out)
+        self.assertIn("19 agents", out)                                   # 1.234568 x (1 + 2 + 3 + 4 + 5) = 18.5 people
+
+    def test_rebuilding_in_place_changes_nothing(self):
+        before = self.data("case")
+        weights = self.dir / "case" / POPULATION_FILE
+        raw_before = (self.dir / "case" / "raw" / "nodes.csv").read_bytes()
+        code, out = self.run_cli("from-raw", self.dir / "case" / "raw", self.dir / "case", "--strategy", "proportional", "--agents", 100,
+                                 "--weights", weights)
+        self.assertEqual(code, 0, out)
+        self.assertEqual(self.data("case"), before)
+        self.assertEqual((self.dir / "case" / "raw" / "nodes.csv").read_bytes(), raw_before)
+
+    def test_the_file_must_fit_the_network_and_be_given(self):
+        with self.assertRaises(SystemExit):                                # from-raw cannot compute it
+            self.run_cli("from-raw", self.dir / "case" / "raw", self.dir / "x", "--strategy", "proportional", "--agents", 10)
+        short = self.dir / "short.csv"
+        short.write_text("# node,people\n0,1\n1,2\n2,3\n")
+        with self.assertRaisesRegex(SystemExit, "another clean-up"):
+            self.run_cli("from-raw", self.dir / "case" / "raw", self.dir / "x", "--strategy", "proportional", "--agents", 10, "--weights", short)
+        for bad, text in (("order", "# node,people\n1,1\n0,2\n2,3\n3,4\n4,5\n"), ("columns", "# node,people,x\n0,1,1\n1,2,2\n")):
+            (self.dir / f"{bad}.csv").write_text(text)
+            with self.assertRaisesRegex(ValueError, "in order"):
+                read_node_population(self.dir / f"{bad}.csv")
+        with self.assertRaisesRegex(ValueError, "has 5 nodes, the network has 6"):
+            read_node_population(self.dir / "case" / POPULATION_FILE, num_nodes=6)
 
 
 class CommandLine(unittest.TestCase):

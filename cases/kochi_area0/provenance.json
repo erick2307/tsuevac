@@ -1,14 +1,14 @@
 {
   "census": {
-    "agents": 2303,
-    "area_total": 2303,
+    "agents": 4196,
+    "area_total": 4195.786268265393,
     "column": "M_TOTPOP_H",
     "file": {
       "kochi-shi_census_crs4326.geojson": "4d9879a8ef3dffdab6e405d7f2be7d2ae895e6c5c388647fe66bd3df52adfacc"
     },
-    "method": "within"
+    "method": "weighted"
   },
-  "command": "python -m evacrl.casebuild from-snapshot Graph kochi_area0 --areas kochi-shi_tsunamievac_areas_crs4326.geojson --index 0 --shelters kochi_tsunami_evacbldg_crs4326.geojson kochi_tsunami_shelters_crs4326.geojson --shelters-as attach --census kochi-shi_census_crs4326.geojson --census-method within --strategy uniform --seed 0",
+  "command": "python -m evacrl.casebuild from-snapshot Graph kochi_area0 --areas kochi-shi_tsunamievac_areas_crs4326.geojson --index 0 --shelters kochi_tsunami_evacbldg_crs4326.geojson kochi_tsunami_shelters_crs4326.geojson --shelters-as attach --census kochi-shi_census_crs4326.geojson --census-method weighted --strategy proportional",
   "merge": {
     "clusters_of_3_or_more": 1,
     "clusters_with_several_shelters": 0,
@@ -23,6 +23,11 @@
     "short_links": 16,
     "threshold": 5.0
   },
+  "population_weights": {
+    "file": "node_population.csv",
+    "people": 4195.786,
+    "sha256": "314d4e983a670b379b966cb276b0fb303ab78a3e72f91d7b1a4e02ee2863018b"
+  },
   "raw_sha256": {
     "links.csv": "55bfec4166c5cf93fdbc3e200f71293e40dfee6f20d24353bd6807e4299c39a1",
     "nodes.csv": "10e0781c606d8757b7fc36887a4928dd6c9f3e4b69c1257397fd11b6c75edba4"
@@ -35,9 +40,9 @@
       "exclude_shelters": true,
       "per_node": 1,
       "seed": 0,
-      "strategy": "uniform",
-      "total": 2303,
-      "weights": null
+      "strategy": "proportional",
+      "total": 4196,
+      "weights": "<lambda>"
     },
     "routing": "nearest",
     "threshold": 5.0
@@ -62,7 +67,7 @@
   },
   "validation": {
     "stats": {
-      "agents": 2303,
+      "agents": 4196,
       "agents_at_shelters_%": 0.0,
       "components": 1,
       "isolated_nodes": 0,

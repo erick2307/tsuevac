@@ -49,7 +49,8 @@ class PopulationSpec:
 
 def build_tables(raw, merge="clusters", threshold=5.0, parallel="min", routing="nearest", population=None, excess="error"):
     """The tables of a case from its raw network: a dict with `network`, `actions`, `transitions`, `nextnode`,
-    `agents` (None without a `population`) and `merge_report`.
+    `agents` (None without a `population`), `weights` (the people per node of a "proportional" population, else None) and
+    `merge_report`.
 
     excess  what to do with a node that has more than 10 links, the most the model can hold: "error" (default) or
             "prune" (remove the longest links there, except those into a shelter; see `prune_excess_links`; how many in
@@ -64,7 +65,7 @@ def build_tables(raw, merge="clusters", threshold=5.0, parallel="min", routing="
         raise ValueError("no node is an evacuation node: no shelter lies in the area, or none was close enough to a node")
     actions, transitions = actions_and_transitions(network)
     nextnode = next_nodes(network, method=routing, parallel=parallel)
-    agents = None
+    agents, weights = None, None
     if population is not None:
         rng = np.random.default_rng(population.seed)
         if population.strategy == "uniform":
@@ -76,13 +77,14 @@ def build_tables(raw, merge="clusters", threshold=5.0, parallel="min", routing="
         elif population.strategy == "proportional":
             if population.weights is None or population.total is None:
                 raise ValueError("strategy 'proportional' needs `weights` and `total`")
-            starts = start_nodes_proportional(network, nextnode, population.weights(network), population.total,
-                                              population.exclude_shelters)
+            # to the precision of node_population.csv, so that the case can be rebuilt from that file
+            weights = np.round(np.asarray(population.weights(network), dtype=float), 6)
+            starts = start_nodes_proportional(network, nextnode, weights, population.total, population.exclude_shelters)
         else:
             raise ValueError("strategy must be 'uniform', 'per_node' or 'proportional'")
         agents = agents_table(starts)
     return dict(network=network, actions=actions, transitions=transitions, nextnode=nextnode, agents=agents,
-                merge_report=report)
+                weights=weights, merge_report=report)
 
 
 def build_case(raw, case_dir, population=None, merge="clusters", threshold=5.0, parallel="min", routing="nearest",
@@ -90,7 +92,8 @@ def build_case(raw, case_dir, population=None, merge="clusters", threshold=5.0, 
     """Make the case `case_dir` (a folder such as `cases/kochi_area2`) from a raw network.
 
     Writes `data/` (the tables the model reads), `raw/` (the network before the clean-up, to rebuild offline) and
-    `provenance.json`. The tables are validated; with `require_valid` an invalid case raises `ValueError` (nothing is
+    `provenance.json` (and `node_population.csv` for a "proportional" population: the people at each node, from which the
+    case is rebuilt offline). The tables are validated; with `require_valid` an invalid case raises `ValueError` (nothing is
     written then). `write_raw=False` leaves `raw/` as it is (rebuilding a case from its own `raw/`). Returns `(tables, report)`.
     """
     tables = build_tables(raw, merge, threshold, parallel, routing, population, excess)
@@ -102,10 +105,15 @@ def build_case(raw, case_dir, population=None, merge="clusters", threshold=5.0, 
                          tables["nextnode"], tables["agents"])
     if write_raw:
         case_io.write_raw(os.path.join(case_dir, "raw"), raw)
+    if tables["weights"] is not None:
+        case_io.write_node_population(os.path.join(case_dir, case_io.POPULATION_FILE), tables["weights"])
     info = dict(settings=dict(merge=merge, threshold=threshold, parallel=parallel, routing=routing, excess=excess,
                               population=None if population is None else population.settings()),
                 merge=tables["merge_report"], validation=dict(stats=report.stats, warnings=report.warnings),
                 raw_sha256={name: _sha256(os.path.join(case_dir, "raw", name)) for name in ("nodes.csv", "links.csv")})
+    if tables["weights"] is not None:
+        info["population_weights"] = dict(file=case_io.POPULATION_FILE, people=round(float(tables["weights"].sum()), 3),
+                                          sha256=_sha256(os.path.join(case_dir, case_io.POPULATION_FILE)))
     info["versions"] = _versions()
     info.update(provenance or {})
     case_io.write_provenance(case_dir, info)

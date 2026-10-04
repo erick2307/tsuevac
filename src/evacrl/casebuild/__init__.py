@@ -19,8 +19,8 @@ except ImportError as exc:  # pragma: no cover - depends on the installation
     raise ImportError('evacrl.casebuild needs SciPy: pip install scipy  (or pip install -e ".[casebuild]")') from exc
 
 from evacrl.casebuild.actions import MAX_ACTIONS, actions_and_transitions, prune_excess_links
-from evacrl.casebuild.case import (Report, read_raw, read_tables, validate_case, validate_tables, write_provenance,
-                                   write_raw, write_tables)
+from evacrl.casebuild.case import (POPULATION_FILE, Report, read_node_population, read_raw, read_tables, validate_case,
+                                   validate_tables, write_node_population, write_provenance, write_raw, write_tables)
 from evacrl.casebuild.network import Network, attach_shelters, merge_short_links, network_from_edges
 from evacrl.casebuild.population import (agents_table, apportion, candidate_nodes, start_nodes, start_nodes_per_node,
                                          start_nodes_proportional)
@@ -28,8 +28,8 @@ from evacrl.casebuild.routing import NO_PATH, distance_to_shelter, next_nodes
 from evacrl.casebuild.pipeline import LEGACY, PopulationSpec, build_case, build_tables
 
 __all__ = [
-    "LEGACY", "MAX_ACTIONS", "NO_PATH", "Network", "PopulationSpec", "Report", "attach_shelters", "build_case", "build_tables", "actions_and_transitions", "agents_table", "apportion",
+    "LEGACY", "MAX_ACTIONS", "NO_PATH", "Network", "POPULATION_FILE", "PopulationSpec", "Report", "attach_shelters", "build_case", "build_tables", "actions_and_transitions", "agents_table", "apportion",
     "candidate_nodes", "distance_to_shelter", "merge_short_links", "network_from_edges", "next_nodes", "prune_excess_links", "read_raw",
-    "read_tables", "start_nodes", "start_nodes_per_node", "start_nodes_proportional", "validate_case",
-    "validate_tables", "write_provenance", "write_raw", "write_tables",
+    "read_node_population", "read_tables", "start_nodes", "start_nodes_per_node", "start_nodes_proportional", "validate_case",
+    "validate_tables", "write_node_population", "write_provenance", "write_raw", "write_tables",
 ]

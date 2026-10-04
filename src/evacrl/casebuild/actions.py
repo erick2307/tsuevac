@@ -60,7 +60,7 @@ def prune_excess_links(network, max_actions=MAX_ACTIONS):
 
     Returns `(network, removed)`, `removed` being the numbers (in the given network) of the links taken out. A removed
     link is gone from both of its ends: the model cannot hold more choices than `max_actions` per node, and a table that
-    silently dropped the extra link at one end only (as `cases/new_kochi` does) would let agents walk it one way. This can
+    silently dropped the extra link at one end only (as `cases/new_kochi` used to) would let agents walk it one way. This can
     cut a part of the network off; `validate_tables` says so. Evacuation nodes ignore their links and are not counted."""
     from evacrl.casebuild.network import Network
     links = network.links

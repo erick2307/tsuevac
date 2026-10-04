@@ -2,6 +2,7 @@
 """Command line: build, rebuild and check cases.
 
     python -m evacrl.casebuild from-raw RAW_DIR CASE_DIR --agents N        rebuild offline from a folder written by an earlier build
+                                       (--strategy proportional --weights CASE_DIR/node_population.csv for a census case)
     python -m evacrl.casebuild from-snapshot GRAPH_DIR CASE_DIR ...        from a stored OSM graph (Gnodes/Gedges.geojson) + shelters + census
     python -m evacrl.casebuild from-osm CASE_DIR --areas F --index I ...   the same, downloading the network of an area first
     python -m evacrl.casebuild validate CASE_DIR                           check the tables of a case
@@ -64,6 +65,8 @@ def main(argv=None):
     raw = sub.add_parser("from-raw", help="rebuild a case from its raw/ folder")
     raw.add_argument("raw_dir")
     raw.add_argument("case_dir")
+    raw.add_argument("--weights", help="node_population.csv of a case (node,people): the people at each node of the cleaned "
+                                       "network, for --strategy proportional")
     _clean_args(raw)
     _population_args(raw)
 
@@ -108,7 +111,14 @@ def main(argv=None):
     write_raw = True
     if args.command == "from-raw":
         raw_network = case_io.read_raw(args.raw_dir)
-        population = _population(args, exclude, total=args.agents, weights=None)
+        weights, total = None, args.agents
+        if args.strategy == "proportional":
+            if not args.weights:
+                raise SystemExit("--strategy proportional needs --weights (node_population.csv of a case) with from-raw")
+            people = case_io.read_node_population(args.weights)
+            weights = lambda network: _same_size(people, network)
+            total = args.agents if args.agents is not None else int(round(float(people.sum())))
+        population = _population(args, exclude, total=total, weights=weights)
         if os.path.abspath(args.raw_dir) == os.path.abspath(os.path.join(args.case_dir, "raw")):
             # rebuilding a case from its own raw/: keep that folder, and the record of where the case came from
             write_raw = False
@@ -160,9 +170,16 @@ def _population(args, exclude, total, weights):
     if args.strategy == "uniform" and total is None:
         raise SystemExit("--agents is needed (or --census, to take the population of the area from it)")
     if args.strategy == "proportional" and weights is None:
-        raise SystemExit("--strategy proportional needs --census")
+        raise SystemExit("--strategy proportional needs --census (or --weights with from-raw)")
     return PopulationSpec(strategy=args.strategy, total=total, per_node=args.per_node, weights=weights,
                           exclude_shelters=exclude, seed=args.seed)
+
+
+def _same_size(people, network):
+    if len(people) != network.num_nodes:
+        raise SystemExit(f"--weights has {len(people)} nodes, the cleaned network has {network.num_nodes}: it belongs to "
+                         "another clean-up (--merge, --threshold, --excess, --shelters...)")
+    return people
 
 
 def _hashes(paths):

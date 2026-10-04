@@ -108,9 +108,12 @@ tests have no shortest-path entry. This is the one place where a default changed
 * The self-loop of an evacuation node has link number −1. `getStateIndexAtNode` passes it to `computeDensityLevel`, and Python reads
   −1 as the *last* link of the network, so the state of a shelter carries the crowding of an unrelated link (read from the code; the
   consequence is a few extra states at shelters, whose values are terminal anyway). Left as it is: changing it moves state codes.
-* `cases/new_kochi` has a node (3106) with 11 links; the model holds 10 choices. Its `actionsdb.csv` keeps the first 10 and drops the
+* `cases/new_kochi` had a node (3106) with 11 links; the model holds 10. Its `actionsdb.csv` kept the first 10 and dropped the
   last link at that end only (the old script: "Not the best solution", Aug 2021), so an agent could walk that link one way. Found when
-  `evacrl.casebuild` was checked against the older cases ([audits/step3](./audits/step3/README.md)); the case is left as it is.
+  `evacrl.casebuild` was checked against the older cases ([audits/step3](./audits/step3/README.md)). **Fixed in Step 3:**
+  `cases/new_kochi/fixExcessLinks.py` removed the longest link at that node (link 4779, 22 m, node 3106 to node 4588) from both
+  ends and rebuilt the tables, and `setActionsAndTransitions.py` now raises instead of dropping. The golden recording of
+  `new_kochi` was regenerated for it: survivors identical, one visit and 0.5 of action value less per simulation (a seeded 2-simulation run).
 * `linksdb` is read as whole meters (the documented format; the Urushibara pipeline writes `int64` lengths and removes
   zero-length links). A link of length 0 is now reported by number instead of failing later with `nan`.
 

@@ -22,7 +22,8 @@ import numpy as np
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "src"))
 
-from evacrl.casebuild import PopulationSpec, build_tables, read_raw, read_tables, validate_case  # noqa: E402
+from evacrl.casebuild import (POPULATION_FILE, PopulationSpec, build_tables, read_node_population, read_raw, read_tables,  # noqa: E402
+                              validate_case)
 
 CASES = sorted(p for p in (REPO / "cases").glob("*/provenance.json"))
 
@@ -53,9 +54,10 @@ class ShippedCases(unittest.TestCase):
                 info = json.loads(provenance.read_text(encoding="utf-8"))
                 s = info["settings"]
                 pop = s["population"]
+                people = read_node_population(case / POPULATION_FILE) if pop["strategy"] == "proportional" else None
                 spec = PopulationSpec(strategy=pop["strategy"], total=pop["total"], per_node=pop["per_node"],
+                                      weights=None if people is None else (lambda network: people),   # the census is not needed offline
                                       exclude_shelters=pop["exclude_shelters"], seed=pop["seed"])
-                self.assertEqual(pop["strategy"], "uniform")   # a census-weighted case also needs the census to be rebuilt
                 built = build_tables(read_raw(case / "raw"), merge=s["merge"], threshold=s["threshold"], parallel=s["parallel"],
                                      routing=s["routing"], population=spec, excess=s["excess"])
                 shipped = read_tables(case / "data")
@@ -68,6 +70,22 @@ class ShippedCases(unittest.TestCase):
                     np.testing.assert_array_equal(built["agents"], shipped["agents"])   # the same draw with the same NumPy
                 else:
                     self.assertEqual(built["agents"].shape, shipped["agents"].shape)
+
+    def test_the_people_file_is_the_one_recorded_and_holds_the_census_total(self):
+        found = 0
+        for provenance in CASES:
+            info = json.loads(provenance.read_text(encoding="utf-8"))
+            if info["settings"]["population"]["strategy"] != "proportional":
+                continue
+            found += 1
+            with self.subTest(case=provenance.parent.name):
+                file = provenance.parent / POPULATION_FILE
+                self.assertEqual(hashlib.sha256(file.read_bytes()).hexdigest(), info["population_weights"]["sha256"])
+                people = read_node_population(file, num_nodes=len(read_tables(provenance.parent / "data")["nodes"]))
+                self.assertAlmostEqual(float(people.sum()), info["census"]["area_total"], delta=0.01)   # nobody lost to a shelter
+                self.assertAlmostEqual(float(people.sum()), info["population_weights"]["people"], delta=0.001)
+                self.assertEqual(info["census"]["method"], "weighted")
+        self.assertGreaterEqual(found, 4)
 
     def test_the_agents_are_as_many_as_the_census_says_and_none_starts_at_a_shelter(self):
         for provenance in CASES:
@@ -117,8 +135,8 @@ class ShippedCases(unittest.TestCase):
             if not t % 10:
                 m.computePedHistDenVelAtLinks()
                 m.updateVelocityAllPedestrians()
-        self.assertEqual(m.numPedestrian, 622)
-        self.assertGreater(m.getNumberEvacuatedPed(), 500)   # about 85% are safe after 30 min; 40 min is enough for most
+        self.assertEqual(m.numPedestrian, 1704)
+        self.assertGreater(m.getNumberEvacuatedPed(), 1400)   # about 84% are safe after 30 min; 40 min is enough for most
 
     def test_the_model_learns_on_a_case(self):
         from evacrl.qlearn import QLearning

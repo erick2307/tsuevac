@@ -87,6 +87,7 @@ python -m evacrl.casebuild from-osm cases/my_area --areas areas.geojson --index 
        --shelters shelters.geojson buildings.geojson --census census.geojson            # downloads the network
 python -m evacrl.casebuild from-snapshot GRAPH_DIR cases/my_area ...                    # the same from a stored download
 python -m evacrl.casebuild from-raw cases/my_area/raw cases/my_area --agents 5000       # offline, from its raw/ folder
+#   a census case: --strategy proportional --weights cases/my_area/node_population.csv
 python -m evacrl.casebuild validate cases/my_area                                       # check any case folder
 ```
 

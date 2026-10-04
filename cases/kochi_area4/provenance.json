@@ -1,14 +1,14 @@
 {
   "census": {
-    "agents": 12288,
-    "area_total": 12288,
+    "agents": 13502,
+    "area_total": 13502.248549422835,
     "column": "M_TOTPOP_H",
     "file": {
       "kochi-shi_census_crs4326.geojson": "4d9879a8ef3dffdab6e405d7f2be7d2ae895e6c5c388647fe66bd3df52adfacc"
     },
-    "method": "within"
+    "method": "weighted"
   },
-  "command": "python -m evacrl.casebuild from-snapshot Graph kochi_area4 --areas kochi-shi_tsunamievac_areas_crs4326.geojson --index 4 --shelters kochi_tsunami_evacbldg_crs4326.geojson kochi_tsunami_shelters_crs4326.geojson --shelters-as attach --census kochi-shi_census_crs4326.geojson --census-method within --strategy uniform --seed 0",
+  "command": "python -m evacrl.casebuild from-snapshot Graph kochi_area4 --areas kochi-shi_tsunamievac_areas_crs4326.geojson --index 4 --shelters kochi_tsunami_evacbldg_crs4326.geojson kochi_tsunami_shelters_crs4326.geojson --shelters-as attach --census kochi-shi_census_crs4326.geojson --census-method weighted --strategy proportional",
   "merge": {
     "clusters_of_3_or_more": 2,
     "clusters_with_several_shelters": 0,
@@ -23,6 +23,11 @@
     "short_links": 39,
     "threshold": 5.0
   },
+  "population_weights": {
+    "file": "node_population.csv",
+    "people": 13502.249,
+    "sha256": "f0c4b66110d6e5b2fa97608b22b5b5c30fab5f06fa96780c4a612d33a4f0ca41"
+  },
   "raw_sha256": {
     "links.csv": "ea518fcb0d5b2c7199fb22406b391095442f7ed310e26af9a3f75599dd4b5822",
     "nodes.csv": "3b46c145a90dbf5f0830d1ea9a3ca211538fb6b76d924b1b345ce901a980498a"
@@ -35,9 +40,9 @@
       "exclude_shelters": true,
       "per_node": 1,
       "seed": 0,
-      "strategy": "uniform",
-      "total": 12288,
-      "weights": null
+      "strategy": "proportional",
+      "total": 13502,
+      "weights": "<lambda>"
     },
     "routing": "nearest",
     "threshold": 5.0
@@ -62,7 +67,7 @@
   },
   "validation": {
     "stats": {
-      "agents": 12288,
+      "agents": 13502,
       "agents_at_shelters_%": 0.0,
       "components": 1,
       "isolated_nodes": 0,

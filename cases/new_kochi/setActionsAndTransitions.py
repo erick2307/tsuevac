@@ -31,16 +31,10 @@ def setMatrices(numcolumns = 12):
         numlinks1 = tmpLinksdb1.shape[0]
         numlinks2 = tmpLinksdb2.shape[0]
         
-        #to avoid over 10 links in a node (Aug 3, 2021) - Not the best solution
+        # the model holds at most 10 links per node. Until Step 3 this cut the extra links from one end of the node only
+        # ("Not the best solution", Aug 2021), which left a link walkable one way: now it is an error (see fixExcessLinks.py)
         if numlinks1 + numlinks2 > 10:
-            dif = (numlinks1+numlinks2) - 10
-            if numlinks1 >= numlinks2:
-                numlinks1 = numlinks1 - dif
-                tmpLinksdb1 = tmpLinksdb1[:-dif,:]
-            else:
-                numlinks2 = numlinks2 - dif
-                tmpLinksdb2 = tmpLinksdb2[:-dif,:]
-        
+            raise ValueError("node %d has %d links, the model holds 10: run fixExcessLinks.py" % (nodesdb[i,0], numlinks1 + numlinks2))
         
         actionsdb[i,1] = numlinks1 + numlinks2
         transitionsdb[i,1] = numlinks1 + numlinks2
