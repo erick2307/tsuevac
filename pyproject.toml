@@ -24,6 +24,12 @@ notebooks = ["scipy", "pandas", "seaborn", "geopandas", "contextily", "jupyter"]
 # plot_graph_folium, which osmnx 2.0 changed or removed (checked offline against osmnx 1.9.4 and 2.1.1).
 # This also selects an older, compatible numpy / pandas / geopandas stack.
 preprocessing = ["scipy", "pandas", "seaborn", "geopandas", "shapely", "osmnx<2", "networkx", "rasterio", "folium", "contextily"]
+# evacrl.casebuild (python -m evacrl.casebuild): building a case from a road network. Its core and the commands `from-raw` and
+# `validate` need only numpy and scipy; downloading a network, snapping shelters and the census need the rest. osmnx < 2 as above.
+casebuild = ["scipy", "osmnx<2", "geopandas", "shapely"]
+
+[project.scripts]
+evacrl-casebuild = "evacrl.casebuild.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

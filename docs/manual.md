@@ -71,6 +71,46 @@ The parameters needed by the classes are:
 * `folderStateNames` .- A name of a folder to store states explored during the learning process.  
 * `options` .- A `ModelOptions` (`src/evacrl/options.py`); default `ModelOptions()`, the recommended settings, see below. Every `run_*` function takes it too.
 
+## Building a case
+
+`evacrl.casebuild` turns a road network and the places that are safe into the six tables the model reads, and checks them.
+
+```
+raw network ──merge short links──> network ──> actionsdb, transitionsdb, nextnode (shortest path), agentsdb ──> cases/<name>/
+ (OSM)          (clusters)                      validated before anything is written
+```
+
+From the shell (`pip install -e ".[casebuild]"`; `from-raw` and `validate` need only NumPy and SciPy):
+
+```
+python -m evacrl.casebuild from-osm cases/my_area --areas areas.geojson --index 0 \
+       --shelters shelters.geojson buildings.geojson --census census.geojson            # downloads the network
+python -m evacrl.casebuild from-snapshot GRAPH_DIR cases/my_area ...                    # the same from a stored download
+python -m evacrl.casebuild from-raw cases/my_area/raw cases/my_area --agents 5000       # offline, from its raw/ folder
+python -m evacrl.casebuild validate cases/my_area                                       # check any case folder
+```
+
+Each case gets `data/` (what the model reads), `raw/` (the network before the clean-up, with its OSM ids) and `provenance.json`
+(settings, counts, input checksums, versions). From Python the same steps are `evacrl.casebuild.build_case(raw, case_dir,
+population=PopulationSpec(...))`, and each stage is a function (`merge_short_links`, `actions_and_transitions`, `next_nodes`,
+`start_nodes`, `validate_tables`) that can be used alone.
+
+| Setting | Default | Alternatives |
+|---------|---------|--------------|
+| `--merge` | `clusters`: nodes joined by links under `--threshold` (5 m) become one node | `legacy`: the 2024 study's pairwise merge (orphan nodes, broken chains) |
+| `--strategy` | `uniform`: `--agents` at random start nodes | `per_node`: `--per-node` at every start node; `proportional`: `--agents` placed by the census (`--census`) |
+| `--census-method` | `within`: cells entirely inside the area (the 2024 study; undercounts) | `weighted`: every cell touching the area, by the part inside |
+| `--include-shelters` | off: agents do not start at a shelter | on: they may (the 2024 study; they count as evacuated at time 0) |
+| `--max-snap-distance` | none: a shelter is snapped to the nearest node however far | metres: leave out shelters farther than this from every node |
+| `--excess` | `error`: a node with more than 10 links stops the build | `prune`: remove the longest links at such nodes |
+| `--legacy` | | the 2024 study's merge, parallel-link rule and agents at shelters, for reproducing its tables |
+
+`validate` checks that the numbers run 0, 1, 2, ... in order; that links join existing nodes and have a length in whole metres;
+that there is a shelter; that the actions and transitions are those of the links (each evacuation node has the single choice "stay");
+that every next node is a neighbour and following them always ends at a shelter (it is a warning if a step is not on a shortest
+walk); and that agents start at real nodes with a way out. Errors stop a build; warnings (isolated nodes, agents at a shelter, next nodes off the shortest walk) are
+recorded in `provenance.json`. [audits/step3](./audits/step3/README.md) shows what it finds in the tables of the 2024 study.
+
 ## Model options
 
 `evacrl.options.ModelOptions` collects the behaviours that differ between the 2021 code and the 2024 Kochi study

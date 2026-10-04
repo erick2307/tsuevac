@@ -1,0 +1,82 @@
+{
+  "census": {
+    "agents": 1078,
+    "area_total": 1078,
+    "column": "M_TOTPOP_H",
+    "file": {
+      "kochi-shi_census_crs4326.geojson": "4d9879a8ef3dffdab6e405d7f2be7d2ae895e6c5c388647fe66bd3df52adfacc"
+    },
+    "method": "within"
+  },
+  "command": "python -m evacrl.casebuild from-snapshot Graph kochi_area1 --areas kochi-shi_tsunamievac_areas_crs4326.geojson --index 1 --shelters kochi_tsunami_evacbldg_crs4326.geojson kochi_tsunami_shelters_crs4326.geojson --census kochi-shi_census_crs4326.geojson --census-method within --strategy uniform --seed 0",
+  "merge": {
+    "clusters_of_3_or_more": 2,
+    "clusters_with_several_shelters": 0,
+    "links_after": 661,
+    "links_before": 681,
+    "links_dropped_as_loops": 0,
+    "method": "clusters",
+    "nodes_after": 419,
+    "nodes_before": 439,
+    "shelters_after": 3,
+    "shelters_before": 3,
+    "short_links": 20,
+    "threshold": 5.0
+  },
+  "raw_sha256": {
+    "links.csv": "f1c6beeb31f8b45684b76833878d692a2a62fd017fa1454a244ae39136b764a0",
+    "nodes.csv": "86dbff31ff8fce69abb5cf4c95ea78bb713d70262327eebf62d83ffac77332dc"
+  },
+  "settings": {
+    "excess": "error",
+    "merge": "clusters",
+    "parallel": "min",
+    "population": {
+      "exclude_shelters": true,
+      "per_node": 1,
+      "seed": 0,
+      "strategy": "uniform",
+      "total": 1078,
+      "weights": null
+    },
+    "routing": "nearest",
+    "threshold": 5.0
+  },
+  "shelters": {
+    "files": {
+      "kochi_tsunami_evacbldg_crs4326.geojson": "d7fd5eeb270bc0b1bc73b7a6d67120b1db7a606f15ff273d8710735fa70c64b0",
+      "kochi_tsunami_shelters_crs4326.geojson": "2b6c8abaf2a95121ab73110e38ea09d114e5420e3f3f74e42c0866f52f8cb30b"
+    },
+    "max_distance": null,
+    "points": 392,
+    "points_used": 4,
+    "shelter_nodes": 3,
+    "snap_distance_max": 360.4,
+    "snap_distance_median": 189.4,
+    "snapped_over_100_m": 2,
+    "within": "bbox"
+  },
+  "validation": {
+    "stats": {
+      "agents": 1078,
+      "agents_at_shelters_%": 0.0,
+      "components": 1,
+      "isolated_nodes": 0,
+      "links": 661,
+      "next_nodes_off_the_shortest_walk": 0,
+      "nodes": 419,
+      "nodes_without_a_way_out": 0,
+      "shelters": 3
+    },
+    "warnings": []
+  },
+  "versions": {
+    "evacrl": "source tree",
+    "geopandas": "0.14.4",
+    "numpy": "2.4.6",
+    "osmnx": "1.9.4",
+    "python": "3.11.15",
+    "scipy": "1.17.1",
+    "shapely": "2.0.7"
+  }
+}

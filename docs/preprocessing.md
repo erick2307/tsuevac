@@ -1,5 +1,10 @@
 # Tsunami Evacuation Guidance System
 
+> **Building a case is now `evacrl.casebuild`** (`python -m evacrl.casebuild`, see the [Manual](./manual.md#building-a-case)): network
+> download or stored snapshot, shelters, census population, clean-up, actions/transitions, shortest-path table and validation, in
+> one tested package. The notes below describe the 2021 scripts (`cases/new_kochi/preProcess.py` and friends) and the data
+> they use.
+
 ## PreProcess Manual (2021.Aug2)
 
 - Run `preProcess.py` in the case folder (`cases/new_kochi/`)
