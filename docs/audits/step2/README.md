@@ -57,6 +57,6 @@ the TD methods have always used the per-decision one.
 
 ## Decision for you
 
-`discounting="decision"` for all three methods as the default (Monte Carlo changes; SARSA and Q-learning do not). The default stays
-`"method"` (each method as before) until you confirm. `ModelOptions.legacy()` keeps `"method"`, so the 2021 Monte Carlo
-remains reproducible.
+`discounting="decision"` for all three methods as the default (Monte Carlo changes; SARSA and Q-learning do not).
+**Confirmed and applied** at the start of Step 3: only the default-option Monte Carlo golden recording changed.
+`ModelOptions.legacy()` keeps `"method"`, so the 2021 Monte Carlo remains reproducible.

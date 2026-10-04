@@ -98,7 +98,7 @@ class Options(Base):
     def test_defaults_are_the_recommended_settings(self):
         m = self.model()
         self.assertEqual(m.options, ModelOptions(surviveReward=100000, densityLevel="link", entrySpeed="position",
-                                                 segmentSizing="ceil", segmentIndex="clamped", discounting="method"))
+                                                 segmentSizing="ceil", segmentIndex="clamped", discounting="decision"))
         self.assertEqual(m.surviveReward, 100000)
 
     def test_legacy_and_kochi2024_do_not_follow_the_defaults(self):

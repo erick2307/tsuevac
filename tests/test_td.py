@@ -167,10 +167,13 @@ class UpdateRule(Base):
 
 class Discounting(Base):
     def test_factor_by_method_and_option(self):
+        expected = {"decision": GAMMA, "second": GAMMA ** 100}
         for cls, by_method in ((SARSA, "decision"), (QLearning, "decision"), (MonteCarlo, "second")):
-            m = self.model(cls)
-            expected = {"decision": GAMMA, "second": GAMMA ** 100}
+            # the default is "decision" for every method; "method" gives each its own, as in 2021
+            self.assertEqual(self.model(cls).discountFactor(100), expected["decision"], cls.__name__)
+            m = self.model(cls, options=ModelOptions(discounting="method"))
             self.assertEqual(m.discountFactor(100), expected[by_method], cls.__name__)
+            self.assertEqual(self.model(cls, options=ModelOptions.legacy()).discountFactor(100), expected[by_method])
             for mode in ("decision", "second"):
                 m = self.model(cls, options=ModelOptions(discounting=mode))
                 self.assertEqual(m.discountFactor(100), expected[mode], f"{cls.__name__} {mode}")

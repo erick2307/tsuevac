@@ -35,11 +35,12 @@ class ModelOptions:
     discounting
         What the discount factor `discount` is applied to, in the return that the learning methods estimate.
         "decision" once per choice of a next node, whatever the time it takes (the temporal-difference methods, SARSA
-                   and Q-learning, did this in 2021 and 2024).
+                   and Q-learning, did this in 2021 and 2024). Default.
         "second"   once per second: `discount ** seconds` (Monte Carlo did this in 2021). With discount = 0.9 a
                    reward 100 s ahead is weighted by 3e-5.
-        "method"   each method keeps what it did before: "decision" for SARSA and Q-learning, "second" for Monte Carlo.
-                   Default, until the choice is made (docs/audits/step2).
+        "method"   each method keeps what it did before: "decision" for SARSA and Q-learning, "second" for Monte Carlo
+                   (the 2021 and 2024 behaviour). With discount = 0.9 per second, Monte Carlo learns nothing useful
+                   (docs/audits/step2), which is why it is not the default.
     segmentSizing
         Number of segments (about 2 m each) a link is divided into for the density and speed histograms.
         "ceil"  ceil(length / 2) (2021, default).
@@ -59,7 +60,7 @@ class ModelOptions:
     entrySpeed: str = "position"
     segmentSizing: str = "ceil"
     segmentIndex: str = "clamped"
-    discounting: str = "method"
+    discounting: str = "decision"
 
     def __post_init__(self):
         if self.densityLevel not in DENSITY_LEVELS:
