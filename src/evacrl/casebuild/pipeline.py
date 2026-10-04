@@ -52,7 +52,8 @@ def build_tables(raw, merge="clusters", threshold=5.0, parallel="min", routing="
     `agents` (None without a `population`) and `merge_report`.
 
     excess  what to do with a node that has more than 10 links, the most the model can hold: "error" (default) or
-            "prune" (remove the longest links there, see `prune_excess_links`; their numbers are in `merge_report`)."""
+            "prune" (remove the longest links there, except those into a shelter; see `prune_excess_links`; how many in
+            `merge_report`)."""
     network, report = merge_short_links(raw, threshold=threshold, method=merge)
     if excess == "prune":
         network, removed = prune_excess_links(network)

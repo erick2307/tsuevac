@@ -27,7 +27,8 @@ WORK = tempfile.mkdtemp(prefix="step3_effect_")
 GRAPH = f"{RESULTS}/kochi2/Graph"
 COMMON = ["--areas", f"{DATA}/kochi-shi_tsunamievac_areas_crs4326.geojson", "--index", "2", "--shelters",
           f"{DATA}/kochi_tsunami_evacbldg_crs4326.geojson", f"{DATA}/kochi_tsunami_shelters_crs4326.geojson",
-          "--census", f"{DATA}/kochi-shi_census_crs4326.geojson"]
+          "--census", f"{DATA}/kochi-shi_census_crs4326.geojson",
+          "--shelters-as", "snap"]   # as the 2024 study did; `attach` (the default since S2) is measured in shelter_access.py
 
 
 def build(name, *extra):

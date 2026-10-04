@@ -25,7 +25,7 @@ for c in AREAS:
     nodes0, edges0 = load_table(f"{d}/nodes0.csv"), load_table(f"{d}/edges0.csv")
     committed = pd.read_csv(f"{d}/original_nodes.csv", index_col=0)["0"].astype(np.int64).values
     graph = geo.graph_from_snapshot(f"{d}/Graph")
-    raw, info = geo.raw_network(graph, points, within="bbox")
+    raw, info = geo.raw_network(graph, points, within="bbox", shelters="snap")   # snapping is what the 2024 study did
     pos = {int(o): i for i, o in enumerate(raw.osmid)}
     same_nodes = set(pos) == set(int(o) for o in committed)
     order = np.array([pos[int(o)] for o in committed])

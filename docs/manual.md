@@ -101,9 +101,26 @@ population=PopulationSpec(...))`, and each stage is a function (`merge_short_lin
 | `--strategy` | `uniform`: `--agents` at random start nodes | `per_node`: `--per-node` at every start node; `proportional`: `--agents` placed by the census (`--census`) |
 | `--census-method` | `within`: cells entirely inside the area (the 2024 study; undercounts) | `weighted`: every cell touching the area, by the part inside |
 | `--include-shelters` | off: agents do not start at a shelter | on: they may (the 2024 study; they count as evacuated at time 0) |
-| `--max-snap-distance` | none: a shelter is snapped to the nearest node however far | metres: leave out shelters farther than this from every node |
-| `--excess` | `error`: a node with more than 10 links stops the build | `prune`: remove the longest links at such nodes |
-| `--legacy` | | the 2024 study's merge, parallel-link rule and agents at shelters, for reproducing its tables |
+| `--shelters-as` | `attach`: a node at each shelter, joined to the nearest street node by a link as long as the distance between them (the walk counts, no shelter is moved); shelter points within 5 m of each other are one shelter | `snap`: the shelter *is* the nearest node (the 2024 study) |
+| `--max-snap-distance` | none: every shelter inside the box of the network is used, however far from a node | metres: leave out shelters farther than this from every node (with `attach`: the longest access link) |
+| `--excess` | `error`: a node with more than 10 links stops the build | `prune`: remove the longest links at such nodes (never a link into a shelter) |
+| `--legacy` | | the 2024 study's merge, parallel-link rule, snapped shelters and agents at shelters, for reproducing its tables |
+
+**Population layers.** `--census` takes any polygon layer with a numeric column, `--census-column` names it, and `--census-method weighted`
+counts every cell that touches the area by the part inside. The Kochi census file is the standard 500 m mesh (about 460 × 580 m
+there; 9-digit code in `MESH4_ID`) and has many columns besides `M_TOTPOP_H`; `--census-column M_DPOP_H22`, which by its name is a
+daytime population (not checked against a data dictionary), gives 1,844 people for area 2 against 1,704 for `M_TOTPOP_H`. A layer
+that is a table of mesh codes (as hourly mobile-phone population statistics usually are) has to be joined to polygons first, for
+instance by `MESH4_ID`, and one hour chosen. Each cell's people are shared equally by the nodes inside it, and a cell without a node
+goes to the node nearest its centre, so a coarse mesh gives a coarse distribution: a 500 m cell holds many nodes.
+
+**Shelters.** A shelter point is rarely on a street node: in Kochi the median distance to the nearest node is 50–190 m, the
+farthest 360 m. `snap` puts the shelter on the node, so the walk from there to the building is not part of the evacuation, and
+the node, which becomes a dead end for everybody (a shelter has no way out), may be one that other people pass through. `attach`
+keeps the street node an ordinary node and adds a node at the shelter with one link to it, as long as the straight-line distance
+(whole metres, like every link). Its limits: the length is the *straight-line* distance to the nearest *node* (not the nearest
+point of the nearest street, and not a walking distance), so it is a lower bound of the walk; the link has the default width of
+3 m; shelters closer than 1 m to a node are that node. Measurements: [audits/step3](./audits/step3/README.md#the-shelters-a3-and-s2).
 
 `validate` checks that the numbers run 0, 1, 2, ... in order; that links join existing nodes and have a length in whole metres;
 that there is a shelter; that the actions and transitions are those of the links (each evacuation node has the single choice "stay");

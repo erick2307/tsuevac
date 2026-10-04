@@ -13,6 +13,7 @@ python legacy_exactness.py        # A1  core only
 python validate_committed.py      # A6  core only
 python geo_checks.py              # A2-A4  needs the casebuild extra, works offline
 python effect_on_results.py 30    # A5  about 6 min on 4 cores
+python shelter_access.py 20       # A7  snapped against attached shelters, four areas, about 25 min on 4 cores
 ```
 
 **What could not be tested here.** The sandbox cannot reach OpenStreetMap, so `download_network` (one call to
@@ -31,6 +32,7 @@ from stored graphs: the study's own `Graph/Gnodes.geojson` and `Gedges.geojson` 
 | A3 | shelter points → nearest node, inside the network's box | the study's shelter nodes | **identical**, 6 of 6 |
 | A4 | census population of an area, cells entirely inside | the totals printed by the study's notebook (2303, 1078, 622, 240, 12288) | **identical**, 5 of 5 |
 | A6 | the validator on the study's tables | | finds the defects below |
+| A7 | shelters attached by an access link, against snapped (the shipped cases use attach) | the same inputs built both ways | access links of 0–360 m; the walk to the nearest shelter grows by 22–57 m on average and the last evacuee is 25–56 s later (table below) |
 
 The numbering of the nodes in a stored graph differs from the study's (the saved graph's node order is not the one the tables
 were made from), so A2 compares the networks as graphs by OSM id; the shipped cases keep the numbering of their own `raw/`.
@@ -60,7 +62,7 @@ were made from), so A2 compares the networks as graphs by OSM id; the shipped ca
 
 ## The population (A4)
 
-The study sums the census cells lying *entirely inside* an area. Cells on the boundary are lost, and the cells are 250 m wide:
+The study sums the census cells lying *entirely inside* an area. Cells on the boundary are lost, and the cells are large: the standard 500 m mesh (`MESH4_ID`, 9-digit code), about 460 m by 580 m at Kochi (an earlier version of this report said 250 m; that was wrong):
 
 | Area | Study (`within`) | Boundary cells by area (`weighted`) | More |
 |---|---:|---:|---:|
@@ -72,13 +74,43 @@ The study sums the census cells lying *entirely inside* an area. Cells on the bo
 
 (area-weighting assumes the people are spread evenly over a cell.) The smaller the area, the larger the error.
 
-## The shelters (A3)
+## The shelters (A3 and S2)
 
-Shelter points (53 shelters and 339 evacuation buildings) are snapped to the nearest node of the area's network, however far it is
-(the study took every point inside the *box* of the network). Distances to the node: median 50–190 m. In area 1 two of the four points
-are more than 300 m from any node (360 m at most), in area 4 six of 17 are more than 100 m: the model puts such a shelter on the
-edge of the area, so the walk from there to the building is not part of the evacuation. Area 3 has no shelter inside its box at all.
-`--max-snap-distance 100` leaves the far ones out (area 1: 2 of 3 shelters kept; area 4: 11 of 15).
+Shelter points (53 shelters and 339 evacuation buildings) are matched to the network of an area. The study snapped each one to the
+nearest node, however far it is (it took every point inside the *box* of the network): **A3** reproduces that exactly
+(`shelters="snap"`). Distances to the node: median 50–190 m. In area 1 two of the four points are more than 300 m from any node
+(360 m at most), in area 4 six of 17 are more than 100 m: the model puts such a shelter on the edge of the area, so the walk from
+there to the building is not part of the evacuation, and the street node that received it stops being a place people can pass
+through (a shelter has no way out). Area 3 has no shelter inside its box at all.
+
+**S2, built after your confirmation: attach.** `shelters="attach"` (the default now; `--shelters-as attach`) puts a node at the
+shelter and joins it to the nearest street node by one link as long as the distance (whole metres, width 3 m). Points within 5 m of
+each other are one shelter (in area 4 three points sit at the same place), a point closer than 1 m to a node is that node, and a shelter is never
+attached to another shelter. The street node stays an ordinary node. Nothing is left out and nothing is moved. A7 compares the two
+ways on the same inputs, with one agent at every start node (so that both variants have the same people on the same street
+nodes, up to the few nodes the snapping turned into shelters), shortest path, 20 departure-time seeds, 120 min simulated:
+
+| Area | Mode | Nodes | Shelters | Access link, m: median / max (over 100 m) | Walk to the nearest shelter, m: mean / max | Agents | Last evacuee, s | Safe at 30 min |
+|---|---|---:|---:|---|---|---:|---:|---:|
+| 0 | snap | 531 | 6 | 54 / 71 (snapped; 0) | 693 / 1,392 | 525 | 1,819 ± 93 | 99.8 % |
+| 0 | attach | 537 | 6 | 54 / 70 (0) | 723 / 1,438 | 531 | 1,875 ± 94 | 99.8 % |
+| 1 | snap | 419 | 3 | 189 / 360 (snapped; 2) | 471 / 1,477 | 416 | 1,805 ± 71 | 99.9 % |
+| 1 | attach | 423 | 4 | 189 / 360 (2) | 528 / 1,513 | 419 | 1,861 ± 142 | 99.8 % |
+| 2 | snap | 293 | 4 | 50 / 79 (snapped; 0) | 1,002 / 2,418 | 289 | 2,503 ± 97 | 84.9 % |
+| 2 | attach | 297 | 4 | 49 / 78 (0) | 1,033 / 2,469 | 293 | 2,549 ± 83 | 83.4 % |
+| 4 | snap | 1,095 | 15 | 60 / 221 (snapped; 6 of 17 points) | 1,361 / 4,558 | 1,080 | 4,171 ± 112 | 70.1 % |
+| 4 | attach | 1,110 | 15 | 59 / 221 (4 of 15 shelters) | 1,383 / 4,586 | 1,095 | 4,196 ± 120 | 70.0 % |
+
+(`shelter_access.py`; the "over 100 m" counts are of snapped *points* for snap and of *shelters* after merging for attach.) What it
+shows: the walk to the nearest shelter grows by 22–57 m on average (the length of the access links of the shelters people go to) and
+the last evacuee is 25–56 s later (0.6–3 %), 0.2–0.8 of a run-to-run standard deviation, and the share safe after 30 min moves by
+0–1.5 percentage points. The effect is small on these networks and for this metric because a node pays only the access link of the
+shelter it goes to, and that is short next to walks of 0.5–1.4 km on average (4.6 km at most). These are means over 20
+seeds, not tested for significance; the two variants differ in a few agents (the street nodes that snapping turned into shelters).
+Where it will matter is a shelter far from the network with many people near it, and a learned policy that has to choose between
+shelters. Limits: the length is the straight line to the nearest *node*, not a walk (it can cross a river or a block), and it is
+not the nearest point of the nearest street (that would split the street and is not done). `--max-snap-distance` still
+removes shelters beyond a distance (in area 1, 100 m keeps 2 of the 4 points; in area 4, 11 of 17 points).
 
 ## Does it matter for a result? (A5)
 
@@ -109,6 +141,6 @@ crowding does bind, and for the learned policy, whose state contains the density
 | | Decision | Recommendation |
 |---|---|---|
 | S1 | Population of the shipped `kochi_area*`: the study's (`within`, uniform) or the census total by area-weighting, placed by the census (`weighted`, `proportional`) | the second is closer to the people there; the first allows comparison with the study. Both are one command (see `cases/README.md`); I shipped the first |
-| S2 | Shelters far from the network: keep snapping (study), leave out beyond a distance, or attach each shelter by a link whose length is the distance | attach by a link: nothing is lost and the walk counts. Not implemented yet; `--max-snap-distance` exists meanwhile |
-| S3 | The licence and terms of the OSM-derived network and of the shelter and census layers (`cases/README.md`) | yours to confirm before the cases are public |
+| S2 | Shelters far from the network: keep snapping (study), leave out beyond a distance, or attach each shelter by a link whose length is the distance | **built and applied** (A7): the four shipped cases were rebuilt with it; `--shelters-as snap` and `--legacy` give the study's version |
+| S3 | The licence and terms of the OSM-derived network and of the shelter and census layers (`cases/README.md`) | the shelter and census layers are from the Kochi Prefectural Office and public domain, **as stated by you** (recorded in `cases/README.md`, not verified against the Office's own terms); still open: the ODbL notice for the OpenStreetMap network and the origin of the area polygons |
 | S4 | `new_kochi`: rebuild its tables without the 11th-link inconsistency | later, with the experiment layer |

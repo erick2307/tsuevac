@@ -23,7 +23,7 @@ import numpy as np
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "src"))
 
-from evacrl.casebuild import (NO_PATH, Network, actions_and_transitions, agents_table, apportion, build_tables,  # noqa: E402
+from evacrl.casebuild import (NO_PATH, Network, actions_and_transitions, agents_table, apportion, attach_shelters, build_tables,  # noqa: E402
                               candidate_nodes, distance_to_shelter, merge_short_links, network_from_edges, next_nodes,
                               prune_excess_links, read_raw,
                               read_tables, start_nodes, start_nodes_per_node, start_nodes_proportional, validate_case,
@@ -143,6 +143,131 @@ class MergeShortLinks(unittest.TestCase):
             merge_short_links(raw_network(), method="x")
 
 
+class AttachShelters(unittest.TestCase):
+    """A shelter is a node of its own, joined to the nearest street node by a link as long as the distance (metres)."""
+
+    def streets(self, shelters=()):
+        return raw_network(shelters=shelters)
+
+    def test_one_shelter_by_hand(self):
+        net = self.streets()
+        out, info = attach_shelters(net, [(100, -40)])
+        # nearest node is 1 at (100, 0), 40 m away
+        self.assertEqual((out.num_nodes, out.num_links), (7, 8))
+        np.testing.assert_array_equal(out.nodes[6], [6, 100, -40, 1, 1000])
+        np.testing.assert_array_equal(out.links[7], [7, 1, 6, 40, 3])
+        np.testing.assert_array_equal(out.nodes[:6], net.nodes)
+        np.testing.assert_array_equal(out.links[:7], net.links)
+        self.assertEqual(out.shelters.tolist(), [6])
+        self.assertEqual(out.osmid.tolist(), OSMID + [-1])
+        self.assertEqual(out.crs, net.crs)
+        self.assertEqual((net.num_nodes, net.num_links, net.shelters.size), (6, 7, 0))   # the given network is untouched
+        self.assertEqual(info, dict(points=1, shelters=1, merged_points=0, on_a_node=0, new_nodes=1,
+                                    access_length_median=40.0, access_length_max=40, access_over_100_m=0))
+
+    def test_the_length_is_floored_or_rounded_like_the_other_links(self):
+        net = self.streets()
+        self.assertEqual(attach_shelters(net, [(100, -40.7)])[0].links[7, 3], 40)
+        self.assertEqual(attach_shelters(net, [(100, -40.7)], length_rounding="round")[0].links[7, 3], 41)
+        self.assertEqual(attach_shelters(net, [(100, -40.7)], width=5)[0].links[7, 4], 5)
+
+    def test_locations_within_the_radius_are_one_shelter_at_their_mean(self):
+        net = self.streets()
+        out, info = attach_shelters(net, [(100, -40), (103, -43)])           # 4.2 m apart
+        self.assertEqual((out.num_nodes, info["shelters"], info["merged_points"]), (7, 1, 1))
+        np.testing.assert_allclose(out.nodes[6, 1:3], [101.5, -41.5])
+        self.assertEqual(out.links[7, 3], 41)                                 # 41.5 m from node 1, floored
+        out, info = attach_shelters(net, [(100, -40), (106, -40)])           # 6 m apart: two shelters
+        self.assertEqual((out.num_nodes, info["shelters"], info["merged_points"]), (8, 2, 0))
+        out, info = attach_shelters(net, [(100, -40), (106, -40)], merge_radius=6)   # the radius is inclusive
+        self.assertEqual((out.num_nodes, info["shelters"]), (7, 1))
+
+    def test_a_chain_of_close_locations_is_one_shelter(self):
+        out, info = attach_shelters(self.streets(), [(100, -40), (104, -40), (108, -40)])   # the ends are 8 m apart
+        self.assertEqual((out.num_nodes, info["shelters"], info["merged_points"]), (7, 1, 2))
+        np.testing.assert_allclose(out.nodes[6, 1:3], [104, -40])
+
+    def test_a_shelter_is_never_attached_to_another_shelter(self):
+        # shelter at node 4 (303, 0). The point (303, -10) is 10 m from it but nothing can pass through a shelter:
+        # the nearest street node is 3 at (203, 0), 100.5 m away
+        out, info = attach_shelters(self.streets(shelters=(14,)), [(303, -10)])
+        np.testing.assert_array_equal(out.links[7, 1:4], [3, 6, 100])
+        self.assertEqual(sorted(out.shelters.tolist()), [4, 6])
+
+    def test_a_shelter_closer_than_a_metre_to_a_node_is_that_node(self):
+        net = self.streets()
+        out, info = attach_shelters(net, [(100.5, 0.2), (100.2, -0.3), (200, 0.9)])   # two on node 1, one 0.9 m from node 2
+        self.assertEqual((out.num_nodes, out.num_links), (6, 7))
+        self.assertEqual(out.shelters.tolist(), [1, 2])
+        np.testing.assert_array_equal(out.nodes[1], [1, 100, 0, 1, 1000])            # the node keeps its own position
+        self.assertEqual((info["on_a_node"], info["new_nodes"], info["shelters"], info["merged_points"]), (2, 0, 2, 1))
+        self.assertNotIn("access_length_max", info)
+        out, info = attach_shelters(net, [(100, 1.0)])                                # exactly 1 m: a link of 1 m
+        self.assertEqual((out.num_nodes, out.links[7].tolist()), (7, [7, 1, 6, 1, 3]))
+
+    def test_several_shelters_on_one_street_node_and_the_numbering(self):
+        out, info = attach_shelters(self.streets(), [(100, -40), (100, 60), (303, 50)])
+        # nearest nodes: node 1 (40 m); node 5 at (100, 100), 40 m from (100, 60) and 60 m from node 1; node 4, 50 m
+        np.testing.assert_array_equal(out.links[7:, :4], [[7, 1, 6, 40], [8, 5, 7, 40], [9, 4, 8, 50]])
+        np.testing.assert_array_equal(out.nodes[6:, 0], [6, 7, 8])
+        self.assertEqual(out.osmid.tolist(), OSMID + [-1, -2, -3])
+        self.assertEqual((info["access_length_median"], info["access_length_max"]), (40.0, 50))
+
+    def test_no_location_is_no_change_and_the_input_is_checked(self):
+        net = self.streets()
+        out, info = attach_shelters(net, np.zeros((0, 2)))
+        np.testing.assert_array_equal(out.nodes, net.nodes)
+        self.assertEqual(info["points"], 0)
+        with self.assertRaises(ValueError):
+            attach_shelters(net, [(0, 0)], length_rounding="ceil")
+        with self.assertRaises(ValueError):
+            attach_shelters(net, [(0, 0)], merge_radius=-1)
+        with self.assertRaises(ValueError):
+            attach_shelters(self.streets(shelters=OSMID), [(0, 10)])
+
+    def test_new_ids_start_below_any_that_exist(self):
+        once, _ = attach_shelters(self.streets(), [(100, -40)])
+        twice, _ = attach_shelters(once, [(100, 60)])
+        self.assertEqual(twice.osmid.tolist(), OSMID + [-1, -2])
+        bare = self.streets()
+        bare.osmid = None
+        self.assertIsNone(attach_shelters(bare, [(100, -40)])[0].osmid)
+
+    def test_close_shelters_are_merged_by_the_clean_up_and_the_street_node_becomes_the_shelter(self):
+        raw, _ = attach_shelters(self.streets(), [(100, -3)])                 # 3 m from node 1: a short link
+        net, report = merge_short_links(raw)
+        self.assertEqual(report["short_links"], 2)                            # 2-3 and the access link
+        self.assertEqual(net.shelters.size, 1)
+        self.assertEqual(net.num_nodes, 5)                                    # 7 nodes, two merges
+
+    def test_the_walk_to_the_shelter_counts_and_the_street_node_stays_ordinary(self):
+        raw, _ = attach_shelters(self.streets(), [(100, -40)])
+        tables = build_tables(raw)
+        net = tables["network"]
+        shelter = int(net.shelters[0])
+        self.assertEqual(net.shelters.size, 1)
+        dist = distance_to_shelter(net)
+        by_osm = {int(o): d for o, d in zip(net.osmid, dist)}
+        self.assertEqual(by_osm[11], 40.0)                                    # node 1: the access link
+        self.assertEqual(by_osm[10], 140.0)                                   # node 0: 100 + 40
+        self.assertEqual(tables["actions"][1, 1], 5)                          # node 1 keeps its four street links (two of them parallel) and the access link
+        self.assertEqual(tables["actions"][shelter, 1], 1)
+        self.assertEqual(tables["nextnode"][1, 1], shelter)
+        self.assertTrue(validate_tables(net.nodes, net.links, tables["actions"], tables["transitions"], tables["nextnode"]).ok)
+        # snapped onto node 1, the same shelter would be a dead end for everybody else who passes through node 1
+        snapped, _ = merge_short_links(network_from_edges(OSMID, XY, EDGES, evacuation_osmids=(11,), crs="EPSG:32653"))
+        self.assertEqual(actions_and_transitions(snapped)[0][1, 1], 1)
+
+    def test_a_raw_folder_keeps_the_new_nodes(self):
+        raw, _ = attach_shelters(self.streets(), [(100, -40), (100, 60)])
+        with tempfile.TemporaryDirectory() as tmp:
+            write_raw(tmp, raw)
+            back = read_raw(tmp)
+        np.testing.assert_allclose(back.nodes, raw.nodes)
+        np.testing.assert_array_equal(back.links, raw.links)
+        np.testing.assert_array_equal(back.osmid, raw.osmid)
+
+
 class ActionsAndTransitions(unittest.TestCase):
     def test_rows_by_hand(self):
         net = cleaned()   # nodes 0..4 = osm 10, 11, 12+13, 14 (shelter), 15; links in order of EDGES minus the short one
@@ -191,6 +316,30 @@ class ExcessLinks(unittest.TestCase):
         self.assertEqual(sorted(removed), [10, 11, 12])                      # links 0-11, 0-12, 0-13 (lengths 21, 22, 23)
         self.assertEqual(net.links[:, 0].tolist(), list(range(net.num_links)))   # renumbered, no gap
         self.assertEqual(net.num_links, 26 - 3)
+
+    def test_a_link_to_a_shelter_is_never_the_one_removed(self):
+        # node 13 is a shelter at the end of the longest link of the hub (0-13, length 23): the next longest go instead
+        net, removed = prune_excess_links(self.star(13, shelter=13))
+        self.assertEqual(sorted(removed), [9, 10, 11])                       # links 0-10, 0-11, 0-12 (lengths 20, 21, 22)
+        self.assertIn((0, 13), {(int(a), int(b)) for a, b in net.links[:, 1:3]})
+        # whichever way the link is written
+        turned = self.star(13, shelter=13)
+        turned.links[:13, 1:3] = turned.links[:13, 2:0:-1]
+        net, removed = prune_excess_links(turned)
+        self.assertEqual(sorted(removed), [9, 10, 11])
+        self.assertIn((13, 0), {(int(a), int(b)) for a, b in net.links[:, 1:3]})
+        # the same through the access link that attach_shelters adds
+        raw, _ = attach_shelters(self.star(12), [(0, 500)])                  # 12 + 1 links at the hub: it is the nearest node
+        self.assertEqual(raw.links[-1, 3], 500)                               # the longest link of the hub by far
+        net, removed = prune_excess_links(raw)
+        self.assertEqual(len(removed), 3)
+        self.assertEqual(int((net.links[:, 3] == 500).sum()), 1)
+
+    def test_too_many_links_to_shelters_cannot_be_pruned(self):
+        net = self.star(12)
+        net.nodes[1:12, 3] = 1                                               # 11 of the 12 neighbours are shelters
+        with self.assertRaisesRegex(ValueError, "lead to shelters"):
+            prune_excess_links(net)
 
     def test_a_network_within_the_limit_is_returned_as_it_is(self):
         net = self.star(8)

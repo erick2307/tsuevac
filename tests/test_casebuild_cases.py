@@ -77,6 +77,31 @@ class ShippedCases(unittest.TestCase):
                 self.assertEqual(len(t["agents"]), info["census"]["agents"])
                 self.assertEqual(float(np.mean(t["nodes"][t["agents"][:, 4], 3] == 1)), 0.0)
 
+    def test_attached_shelters_are_leaves_with_the_access_link_of_the_recorded_length(self):
+        checked = 0
+        for provenance in CASES:
+            info = json.loads(provenance.read_text(encoding="utf-8"))
+            if info.get("shelters", {}).get("mode") != "attach":
+                continue
+            t = read_tables(provenance.parent / "data")
+            nodes, links = t["nodes"], t["links"]
+            shelters = np.where(nodes[:, 3] == 1)[0]
+            lengths = []
+            with self.subTest(case=provenance.parent.name):
+                self.assertEqual(len(shelters), info["shelters"]["shelter_nodes"])
+                for shelter in shelters:
+                    own = links[(links[:, 1] == shelter) | (links[:, 2] == shelter)]
+                    self.assertEqual(len(own), 1, f"shelter node {shelter} is not at the end of exactly one link")
+                    lengths.append(own[0, 3])
+                    # the link is as long as the straight-line distance between its ends (whole metres, floored), up to the
+                    # shift of a street node by the clean-up (which moves a merged node to the mean of its members)
+                    a, b = (nodes[int(own[0, 1]), 1:3], nodes[int(own[0, 2]), 1:3])
+                    self.assertAlmostEqual(own[0, 3], np.hypot(*(a - b)), delta=6)
+                if len(lengths) and "access_length_max" in info["shelters"]:
+                    self.assertLessEqual(max(lengths), info["shelters"]["access_length_max"] + 6)
+                checked += 1
+        self.assertGreaterEqual(checked, 4)
+
     def test_the_model_runs_on_a_case_with_its_shortest_path_table(self):
         from evacrl.sarsa import SARSA
         case = REPO / "cases" / "kochi_area2" / "data"

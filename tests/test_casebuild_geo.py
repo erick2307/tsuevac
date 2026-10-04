@@ -150,13 +150,57 @@ class Shelters(unittest.TestCase):
 
     def test_the_raw_network_uses_the_shelters_inside_the_box_unless_told_otherwise(self):
         pts = self.points([(3.0, 0.2), (-11, 0)])      # near node 4; far outside the network, on the side of node 0
-        net, info = geo.raw_network(make_graph(), pts)
-        self.assertEqual((info["points_used"], info["shelter_nodes"], info["within"]), (1, 1, "bbox"))
+        net, info = geo.raw_network(make_graph(), pts, shelters="snap")
+        self.assertEqual((info["points_used"], info["shelter_nodes"], info["within"], info["mode"]), (1, 1, "bbox", "snap"))
         self.assertEqual(len(net.shelters), 1)
-        net, info = geo.raw_network(make_graph(), pts, within=None)
+        net, info = geo.raw_network(make_graph(), pts, within=None, shelters="snap")
         self.assertEqual((info["points_used"], info["shelter_nodes"]), (2, 2))   # the far one lands on the nearest node (0), 1.1 km away
         self.assertGreater(info["snap_distance_max"], 1000)
         self.assertEqual(info["snapped_over_100_m"], 1)
+
+    def test_attached_shelters_are_nodes_of_their_own_with_a_link_as_long_as_the_distance(self):
+        pts = self.points([(3.0, 0.2), (-11, 0)])
+        net, info = geo.raw_network(make_graph(), pts)                           # attach is the default
+        self.assertEqual((info["mode"], info["points_used"], info["shelter_nodes"], info["new_nodes"]), ("attach", 1, 1, 1))
+        self.assertEqual((net.num_nodes, net.num_links), (6, 5))                 # five street nodes, four streets, + one each
+        shelter = int(net.shelters[0])
+        self.assertLess(net.osmid[shelter], 0)
+        street = int(net.links[-1, 1])
+        self.assertEqual(int(net.osmid[street]), 104)                            # attached to node 4, the nearest
+        x, y = net.nodes[shelter, 1:3]
+        self.assertAlmostEqual(np.hypot(x - net.nodes[street, 1], y - net.nodes[street, 2]), 0.2 * DLAT * 111000, delta=1.0)
+        self.assertAlmostEqual(net.links[-1, 3], np.hypot(x - net.nodes[street, 1], y - net.nodes[street, 2]), delta=1.0)
+        self.assertEqual(info["access_length_max"], int(net.links[-1, 3]))
+        # a far shelter is not moved: its walk is the length of the link (the point is 1.1 km from node 0)
+        net, info = geo.raw_network(make_graph(), pts, within=None)
+        self.assertEqual((info["points_used"], info["shelter_nodes"]), (2, 2))
+        self.assertGreater(info["access_length_max"], 1000)
+        self.assertEqual(info["access_over_100_m"], 1)
+        self.assertAlmostEqual(net.links[-1, 3], 1100, delta=60)
+        self.assertEqual(int(net.links[-1, 1]), 0)
+
+    def test_attached_lengths_are_floored_or_rounded_like_the_streets(self):
+        pts = self.points([(3.0, 0.2)])
+        _, dist, _ = geo.snap_to_nodes(self.net, pts)
+        self.assertGreater(dist[0] % 1, 0.5)                                     # so that the two rules differ
+        floor, _ = geo.raw_network(make_graph(), pts)
+        near, _ = geo.raw_network(make_graph(), pts, length_rounding="round")
+        self.assertEqual((floor.links[-1, 3], near.links[-1, 3]), (int(dist[0]), int(dist[0]) + 1))
+
+    def test_two_points_of_one_building_are_one_shelter(self):
+        pts = self.points([(3.0, 0.2), (2.98, 0.2)])                              # 2 m apart, both inside the box
+        net, info = geo.raw_network(make_graph(), pts)
+        self.assertEqual((info["points_used"], info["shelter_nodes"], info["merged_points"], info["new_nodes"]), (2, 1, 1, 1))
+        self.assertEqual(len(net.shelters), 1)
+
+    def test_attached_shelters_obey_the_box_and_the_distance_limit(self):
+        pts = self.points([(3.0, 0.2), (1.5, 0.5)])                               # 20 m from node 4; 71 m from nodes 1, 2 and 3
+        _, info = geo.raw_network(make_graph(), pts, max_distance=50)
+        self.assertEqual((info["points_used"], info["new_nodes"]), (1, 1))
+        _, info = geo.raw_network(make_graph(), pts)
+        self.assertEqual((info["points_used"], info["new_nodes"]), (2, 2))
+        with self.assertRaises(ValueError):
+            geo.raw_network(make_graph(), pts, shelters="both")
 
     def test_marking_shelters(self):
         marked = geo.mark_shelters(self.net, [self.number[104], self.number[104], self.number[100]])
@@ -196,8 +240,24 @@ class CommandLine(unittest.TestCase):
         self.assertEqual(info["shelters"]["shelter_nodes"], 1)
         self.assertEqual(info["shelters"]["within"], "bbox")
         self.assertEqual(list(info["shelters"]["files"]), ["shelters.geojson"])
-        self.assertLess(info["shelters"]["snap_distance_max"], 30)
+        self.assertEqual(info["shelters"]["mode"], "attach")                       # the default
+        self.assertEqual(info["shelters"]["new_nodes"], 1)
+        self.assertLess(info["shelters"]["access_length_max"], 30)
+        self.assertEqual(info["merge"]["nodes_after"], 6)                           # five street nodes and the shelter
         self.assertEqual(len((self.dir / "case" / "data" / "agentsdb.csv").read_text().splitlines()), 26)   # header + 25
+
+    def test_shelters_can_be_snapped_instead(self):
+        code, out = self.run_cli("--agents", 5, "--shelters-as", "snap")
+        self.assertEqual(code, 0, out)
+        info = json.loads((self.dir / "case" / "provenance.json").read_text())
+        self.assertEqual(info["shelters"]["mode"], "snap")
+        self.assertLess(info["shelters"]["snap_distance_max"], 30)
+        self.assertEqual(info["merge"]["nodes_after"], 5)
+
+    def test_legacy_means_snapping(self):
+        code, out = self.run_cli("--agents", 5, "--legacy")
+        self.assertEqual(code, 0, out)
+        self.assertEqual(json.loads((self.dir / "case" / "provenance.json").read_text())["shelters"]["mode"], "snap")
 
     def test_the_census_gives_the_number_of_agents(self):
         code, out = self.run_cli("--areas", self.dir / "areas.geojson", "--census", self.dir / "census.geojson", "--census-method", "within")

@@ -37,7 +37,7 @@ def _clean_args(p):
     g.add_argument("--threshold", type=float, default=5.0, help="links shorter than this (m) are merged away")
     g.add_argument("--excess", choices=("error", "prune"), default="error",
                    help="a node with more than 10 links: stop (default) or remove the longest links there")
-    g.add_argument("--legacy", action="store_true", help="the 2024 study's choices throughout (merge, parallel links, agents at shelters)")
+    g.add_argument("--legacy", action="store_true", help="the 2024 study's choices throughout (merge, parallel links, snapped shelters, agents at shelters)")
 
 
 def _geo_args(p):
@@ -45,8 +45,12 @@ def _geo_args(p):
     g.add_argument("--areas", help="GeoJSON of the areas (needed to download, and for the census)")
     g.add_argument("--index", type=int, default=0, help="which area of --areas")
     g.add_argument("--shelters", nargs="+", required=True, help="GeoJSON point files of shelters / evacuation buildings")
+    g.add_argument("--shelters-as", choices=("attach", "snap"), default="attach", dest="shelters_as",
+                   help="attach (default): a node at each shelter, joined to the nearest street node by a link as long as the "
+                        "distance; snap: the shelter is the nearest node (the 2024 study)")
     g.add_argument("--no-bbox", action="store_true", help="use shelters outside the box of the network too")
-    g.add_argument("--max-snap-distance", type=float, help="metres: leave out shelters farther than this from every node")
+    g.add_argument("--max-snap-distance", type=float,
+                   help="metres: leave out shelters farther than this from every node (the longest access link, with attach)")
     g.add_argument("--census", help="GeoJSON of the census mesh")
     g.add_argument("--census-column", default="M_TOTPOP_H")
     g.add_argument("--census-method", choices=("within", "weighted"), default="within",
@@ -91,6 +95,8 @@ def main(argv=None):
     if args.legacy:
         options.update(LEGACY)
         exclude = False
+        if hasattr(args, "shelters_as"):
+            args.shelters_as = "snap"
     given = argv if argv is not None else sys.argv[1:]
     # file names without the folders they happened to be in, so that the record does not depend on the machine
     shown = [os.path.basename(a.rstrip("/")) if os.sep in a else a for a in given]
@@ -121,7 +127,8 @@ def main(argv=None):
                 parser.error("from-osm needs --areas")
             graph = geo.download_network(area)
         points = geo.read_points(args.shelters)
-        raw_network, snap = geo.raw_network(graph, points, within=None if args.no_bbox else "bbox", max_distance=args.max_snap_distance)
+        raw_network, snap = geo.raw_network(graph, points, within=None if args.no_bbox else "bbox",
+                                            max_distance=args.max_snap_distance, shelters=args.shelters_as)
         provenance["shelters"] = dict(files=_hashes(args.shelters), **snap)
         weights, total = None, args.agents
         if args.census:

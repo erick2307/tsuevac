@@ -35,7 +35,8 @@ def actions_and_transitions(network, max_actions=MAX_ACTIONS):
     too_many = np.where(degree > max_actions)[0]
     if len(too_many):
         raise ValueError(f"{len(too_many)} nodes have more than {max_actions} links, the most the model can hold "
-                         f"(first: node {int(too_many[0])} with {int(degree[too_many[0]])})")
+                         f"(first: node {int(too_many[0])} with {int(degree[too_many[0]])}). Many shelters attached to the "
+                         "same node can cause this: keep far-away shelters out (the default box filter, --max-snap-distance)")
     first = np.concatenate([[0], np.cumsum(degree)[:-1]])
     position = np.arange(len(node_of)) - first[node_of]
 
@@ -54,6 +55,8 @@ def actions_and_transitions(network, max_actions=MAX_ACTIONS):
 
 def prune_excess_links(network, max_actions=MAX_ACTIONS):
     """Remove links until no node has more than `max_actions`: at the node with the most links, the longest one goes first.
+    A link that ends at a shelter is never removed (an access link, or the street into a shelter: it is what makes the
+    shelter reachable); if a node has too many of those alone, `ValueError`.
 
     Returns `(network, removed)`, `removed` being the numbers (in the given network) of the links taken out. A removed
     link is gone from both of its ends: the model cannot hold more choices than `max_actions` per node, and a table that
@@ -64,6 +67,7 @@ def prune_excess_links(network, max_actions=MAX_ACTIONS):
     shelter = network.nodes[:, 3] == 1
     alive = np.ones(len(links), dtype=bool)
     ends = links[:, 1:3].astype(int)
+    to_a_shelter = shelter[ends[:, 0]] | shelter[ends[:, 1]]
     removed = []
     while True:
         degree = np.zeros(network.num_nodes, dtype=int)
@@ -73,7 +77,10 @@ def prune_excess_links(network, max_actions=MAX_ACTIONS):
         worst = int(np.argmax(degree))
         if degree[worst] <= max_actions:
             break
-        mine = np.where(alive & ((ends[:, 0] == worst) | (ends[:, 1] == worst)))[0]
+        mine = np.where(alive & ~to_a_shelter & ((ends[:, 0] == worst) | (ends[:, 1] == worst)))[0]
+        if mine.size == 0:
+            raise ValueError(f"node {worst} has {int(degree[worst])} links, {max_actions} at most are possible, and the rest "
+                             "lead to shelters, which are not removed")
         longest = mine[np.argmax(links[mine, 3])]          # the first of the longest
         alive[longest] = False
         removed.append(int(longest))

@@ -11,7 +11,7 @@ import os
 
 import numpy as np
 
-from evacrl.casebuild.network import Network, network_from_edges
+from evacrl.casebuild.network import Network, attach_shelters, network_from_edges
 
 _HINT = 'pip install -e ".[casebuild]"'
 
@@ -212,17 +212,32 @@ def read_points(paths):
     return gpd.GeoDataFrame(pd.concat(layers, ignore_index=True), crs="EPSG:4326")
 
 
-def raw_network(graph, shelter_points, within="bbox", max_distance=None, length_rounding="floor"):
+def raw_network(graph, shelter_points, within="bbox", max_distance=None, length_rounding="floor", shelters="attach"):
     """The raw `Network` of a downloaded (directed, WGS84) graph with its shelters: `(network, info)`.
 
-    The shelters are the points of `shelter_points`, each snapped to its nearest node (see `snap_to_nodes`). `info`
-    says how far the snapping moved them, since a shelter far from every node is placed on the edge of the network."""
+    The points of `shelter_points` that lie inside the box of the network (`within`) and not farther than `max_distance`
+    from a node become shelters in one of two ways (`shelters`):
+
+    "attach"  each shelter is a node of its own, at the point, joined to the nearest street node by a link as long as
+              the distance between them (see `attach_shelters`): the walk to the shelter counts, and no shelter is
+              moved onto the edge of the network
+    "snap"    each shelter is its nearest node (what the 2024 study did): a shelter far from every node is placed
+              on the edge of the network, and the walk from there to the building is not part of the evacuation
+
+    `info` says what was done, in particular how far the shelters are from the network."""
+    if shelters not in ("attach", "snap"):
+        raise ValueError("shelters must be 'attach' or 'snap'")
     net = network_from_graph(project_undirected(graph), [], length_rounding=length_rounding)
     node, dist, kept = snap_to_nodes(net, shelter_points, within=within, max_distance=max_distance)
-    info = dict(points=len(shelter_points), points_used=len(kept), shelter_nodes=len(set(node.tolist())), within=within,
-                max_distance=max_distance)
-    if len(dist):
-        info.update(snap_distance_median=round(float(np.median(dist)), 1), snap_distance_max=round(float(dist.max()), 1),
-                    snapped_over_100_m=int((dist > 100).sum()))
-    return mark_shelters(net, node), info
-
+    info = dict(mode=shelters, points=len(shelter_points), points_used=len(kept), within=within, max_distance=max_distance)
+    if shelters == "snap":
+        info["shelter_nodes"] = len(set(node.tolist()))
+        if len(dist):
+            info.update(snap_distance_median=round(float(np.median(dist)), 1), snap_distance_max=round(float(dist.max()), 1),
+                        snapped_over_100_m=int((dist > 100).sum()))
+        return mark_shelters(net, node), info
+    xy = shelter_points.iloc[kept].to_crs(net.crs).geometry
+    attached, counts = attach_shelters(net, np.column_stack([xy.x.values, xy.y.values]), length_rounding=length_rounding)
+    counts.pop("points")
+    info.update(shelter_nodes=counts.pop("shelters"), **counts)
+    return attached, info

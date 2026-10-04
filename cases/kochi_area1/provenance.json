@@ -8,24 +8,24 @@
     },
     "method": "within"
   },
-  "command": "python -m evacrl.casebuild from-snapshot Graph kochi_area1 --areas kochi-shi_tsunamievac_areas_crs4326.geojson --index 1 --shelters kochi_tsunami_evacbldg_crs4326.geojson kochi_tsunami_shelters_crs4326.geojson --census kochi-shi_census_crs4326.geojson --census-method within --strategy uniform --seed 0",
+  "command": "python -m evacrl.casebuild from-snapshot Graph kochi_area1 --areas kochi-shi_tsunamievac_areas_crs4326.geojson --index 1 --shelters kochi_tsunami_evacbldg_crs4326.geojson kochi_tsunami_shelters_crs4326.geojson --shelters-as attach --census kochi-shi_census_crs4326.geojson --census-method within --strategy uniform --seed 0",
   "merge": {
     "clusters_of_3_or_more": 2,
     "clusters_with_several_shelters": 0,
-    "links_after": 661,
-    "links_before": 681,
+    "links_after": 665,
+    "links_before": 685,
     "links_dropped_as_loops": 0,
     "method": "clusters",
-    "nodes_after": 419,
-    "nodes_before": 439,
-    "shelters_after": 3,
-    "shelters_before": 3,
+    "nodes_after": 423,
+    "nodes_before": 443,
+    "shelters_after": 4,
+    "shelters_before": 4,
     "short_links": 20,
     "threshold": 5.0
   },
   "raw_sha256": {
-    "links.csv": "f1c6beeb31f8b45684b76833878d692a2a62fd017fa1454a244ae39136b764a0",
-    "nodes.csv": "86dbff31ff8fce69abb5cf4c95ea78bb713d70262327eebf62d83ffac77332dc"
+    "links.csv": "ea34520112f43eefbfe75a73ec780ee540fc857af6d5accf0611d4db70aa7aed",
+    "nodes.csv": "40415a5923ad22f67f47e26d6244dd441d1169b00967d590177dde977643ed81"
   },
   "settings": {
     "excess": "error",
@@ -43,17 +43,21 @@
     "threshold": 5.0
   },
   "shelters": {
+    "access_length_max": 360,
+    "access_length_median": 189.0,
+    "access_over_100_m": 2,
     "files": {
       "kochi_tsunami_evacbldg_crs4326.geojson": "d7fd5eeb270bc0b1bc73b7a6d67120b1db7a606f15ff273d8710735fa70c64b0",
       "kochi_tsunami_shelters_crs4326.geojson": "2b6c8abaf2a95121ab73110e38ea09d114e5420e3f3f74e42c0866f52f8cb30b"
     },
     "max_distance": null,
+    "merged_points": 0,
+    "mode": "attach",
+    "new_nodes": 4,
+    "on_a_node": 0,
     "points": 392,
     "points_used": 4,
-    "shelter_nodes": 3,
-    "snap_distance_max": 360.4,
-    "snap_distance_median": 189.4,
-    "snapped_over_100_m": 2,
+    "shelter_nodes": 4,
     "within": "bbox"
   },
   "validation": {
@@ -62,11 +66,11 @@
       "agents_at_shelters_%": 0.0,
       "components": 1,
       "isolated_nodes": 0,
-      "links": 661,
+      "links": 665,
       "next_nodes_off_the_shortest_walk": 0,
-      "nodes": 419,
+      "nodes": 423,
       "nodes_without_a_way_out": 0,
-      "shelters": 3
+      "shelters": 4
     },
     "warnings": []
   },

@@ -95,6 +95,84 @@ def network_from_edges(osmid, xy, edges, evacuation_osmids=(), width=DEFAULT_WID
     return Network(nodes, links, osmid=osmid, crs=crs)
 
 
+def attach_shelters(network, xy, merge_radius=5.0, length_rounding="floor", width=DEFAULT_WIDTH):
+    """Add a shelter at each location of `xy`, joined to the nearest street node by an access link: `(network, info)`.
+
+    network   a `Network`; the coordinates of `xy` are in its CRS (metres)
+    xy        (k, 2) locations of the shelters
+    merge_radius   locations that lie within this many metres of each other (directly, or through a chain of such
+              locations) are one shelter, at their mean position: the same building listed twice is one shelter
+
+    The new node sits where the shelter is, and its only link goes to the nearest node that is not itself a shelter
+    (nothing can pass through a shelter, so a shelter attached to another one would be out of reach). The link's length
+    is the distance between the two, in whole metres (`length_rounding` as in `network_from_edges`), its width
+    `width`. So the walk from the street to the shelter counts, however far the shelter is from the network; and the
+    street node stays an ordinary node, which a shelter snapped *onto* it would not.
+
+    A shelter closer than 1 m to a node is that node: it is marked, and nothing is added. The links to the new
+    nodes are numbered after the existing ones, the nodes likewise; the new nodes have a negative `osmid` (-1, -2, ...
+    below any that exist), as OpenStreetMap ids are positive. `info` counts what was done.
+    """
+    from scipy.spatial import cKDTree
+    if length_rounding not in ("floor", "round"):
+        raise ValueError("length_rounding must be 'floor' or 'round'")
+    if merge_radius < 0:
+        raise ValueError("merge_radius must not be negative")
+    xy = np.asarray(xy, dtype=float).reshape(-1, 2)
+    k = len(xy)
+    out = network.copy()
+    info = dict(points=k, shelters=0, merged_points=0, on_a_node=0, new_nodes=0)
+    if k == 0:
+        return out, info
+    street = np.where(network.nodes[:, 3] != 1)[0]
+    if street.size == 0:
+        raise ValueError("every node is already a shelter: there is nothing to attach the shelters to")
+
+    # the locations that are one shelter
+    pairs = cKDTree(xy).query_pairs(merge_radius, output_type="ndarray")
+    graph = coo_matrix((np.ones(len(pairs)), (pairs[:, 0], pairs[:, 1])), shape=(k, k))
+    ngroups, label = connected_components(graph, directed=False)
+    smallest = np.full(ngroups, k)
+    np.minimum.at(smallest, label, np.arange(k))
+    rank = np.empty(ngroups, dtype=int)
+    rank[np.argsort(smallest)] = np.arange(ngroups)   # groups in the order of their first location
+    group = rank[label]
+    size = np.bincount(group, minlength=ngroups)
+    where = np.column_stack([np.bincount(group, weights=xy[:, 0], minlength=ngroups) / size,
+                             np.bincount(group, weights=xy[:, 1], minlength=ngroups) / size])
+
+    distance, nearest = cKDTree(network.nodes[street, 1:3]).query(where)
+    nearest = street[nearest]
+    on_a_node = distance < 1.0
+    for node in np.unique(nearest[on_a_node]):
+        out.nodes[int(node), 3] = 1
+        out.nodes[int(node), 4] = SHELTER_REWARD
+    added = np.where(~on_a_node)[0]
+    n, m = network.num_nodes, network.num_links
+    nodes = np.zeros((len(added), 5))
+    nodes[:, 0] = n + np.arange(len(added))
+    nodes[:, 1:3] = where[added]
+    nodes[:, 3] = 1
+    nodes[:, 4] = SHELTER_REWARD
+    lengths = np.floor(distance[added]) if length_rounding == "floor" else np.round(distance[added])
+    links = np.zeros((len(added), 5))
+    links[:, 0] = m + np.arange(len(added))
+    links[:, 1] = nearest[added]
+    links[:, 2] = nodes[:, 0]
+    links[:, 3] = lengths
+    links[:, 4] = width
+    out.nodes = np.vstack([out.nodes, nodes])
+    out.links = np.vstack([out.links, links])
+    if network.osmid is not None:
+        first = min(int(network.osmid.min()), 0) - 1
+        out.osmid = np.concatenate([network.osmid, first - np.arange(len(added))])
+    info.update(shelters=int(ngroups), merged_points=int(k - ngroups), on_a_node=int(on_a_node.sum()), new_nodes=len(added))
+    if len(added):
+        info.update(access_length_median=round(float(np.median(lengths)), 1), access_length_max=int(lengths.max()),
+                    access_over_100_m=int((lengths > 100).sum()))
+    return out, info
+
+
 def merge_short_links(network, threshold=5.0, method="clusters"):
     """Remove the links shorter than `threshold` metres and merge the nodes they join.
 
