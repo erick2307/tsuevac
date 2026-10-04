@@ -30,6 +30,7 @@ casebuild = ["scipy", "osmnx<2", "geopandas", "shapely"]
 
 [project.scripts]
 evacrl-casebuild = "evacrl.casebuild.cli:main"
+evacrl-experiment = "evacrl.experiment.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

@@ -68,4 +68,6 @@ python -m evacrl.casebuild from-snapshot GRAPH_DIR cases/kochi_area2 --areas ARE
 
 `GRAPH_DIR` holds `Gnodes.geojson` and `Gedges.geojson` (a stored OSM download); the GeoJSON files are those of the 2024 study
 (`EVACMODEL3_FocalPoints/kochi_data`). Run a case from Python, for instance
-`run_ql_mod(area="kochi_area2", simtime=30, meandeparture=5, numBlocks=1, simPerBlock=100, name="a")` from `scripts/main_ql_mod.py`.
+`run_ql_mod(area="kochi_area2", simtime=30, meandeparture=5, numBlocks=1, simPerBlock=100, name="a")` from `scripts/main_ql_mod.py`, or
+with the experiment layer, for instance `python -m evacrl.experiment sp kochi_area2 --until-converged --workers 4 --out runs/sp`
+([manual](../docs/manual.md#experiments)).

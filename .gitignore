@@ -40,3 +40,5 @@ dist/
 /docs/audits/*/kochi2_int/
 /docs/audits/*/*.json
 /docs/audits/*/*.log
+/docs/audits/step4/state_*.csv
+/docs/audits/step4/runs/

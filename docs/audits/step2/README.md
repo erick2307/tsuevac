@@ -41,7 +41,7 @@ this experiment; what this experiment shows is that choosing Q-learning over SAR
 Per decision − per second: +340.7 survivors, p = 1.4·10⁻⁴ (per-seed means, 3 seeds each). With `0.9 ** seconds` a shelter 100 s away is weighted by 3·10⁻⁵, so
 the shelter's reward is invisible and the step penalty alone steers the agents: the greedy policy is **worse than walking at
 random** (about 78 survivors in the first, nearly random, simulations). This is a statement about 0.9 per second, not about discounting by
-time as such: a factor close to 1 per second (for instance 0.999) was not tried. The two rules are not interchangeable, and
+time as such: a factor close to 1 per second (0.999) was tried in Step 4 and works well for Q-learning. The two rules are not interchangeable, and
 the TD methods have always used the per-decision one.
 
 ## What this does not show
@@ -49,10 +49,11 @@ the TD methods have always used the per-decision one.
 * Three seeds, one case (`kochi2`, little crowding), 100 and 50 simulations. The training curves were still rising, though the
   greedy result did not improve between 50 simulations (Step 1: 436.3 for SARSA with the same dynamics) and 100 (428.4): the
   difference is inside the noise, and says plateau, not trend.
-* **Both TD methods stop at about 81 % of the shortest path** at 30 min. The cause was not investigated here. It matters for Step 4
-  (calibration and the RL-vs-shortest-path comparison): the number of training simulations, the first random step of every agent
-  (shortest path has it too), and the state being, on this case, one state per node (the density code of a link almost never
-  leaves level 0 at 622 agents) are the candidates to look at.
+* **Both TD methods stop at about 81 % of the shortest path** at 30 min. Explained in [Step 4](../step4/README.md): it is not the
+  training and not the algorithm but the target. With the discount 0.9 applied once per decision, one node more or less on the way
+  to a shelter is worth about as much as 1,200 s of walking, so the best policy of that target minimises the number of nodes, not the
+  distance; solved exactly, that target gives 80.7 % of the shortest path, which is what was learned. With 0.999 per *second*
+  Q-learning reaches 99 % of the shortest path. (The reward 1e5 and the density code, the other candidates named here, are not what limits it.)
 * A policy learned by Monte Carlo is not compared with TD ones beyond this: it had 50 simulations, the TD methods 100.
 
 ## Decision for you

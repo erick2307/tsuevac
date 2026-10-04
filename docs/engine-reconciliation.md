@@ -91,12 +91,15 @@ tests have no shortest-path entry. This is the one place where a default changed
    weights a shelter 100 s away by 0.9^100 ≈ 3·10⁻⁵. The methods are not comparable until this is settled. Step 2 made it an
    option (`ModelOptions.discounting`) and measured it: [audits/step2](./audits/step2/README.md).
 3. **The calibration in `EVACMODEL3_FocalPoints/calibration.py` ends at 50 % exploration** (`1 / (s / N + 1)`), and the survivors it
-   reports are those of the exploring runs. A greedy evaluation is the right measure of the learned policy (Step 4).
+   reports are those of the exploring runs. A greedy evaluation is the right measure of the learned policy: `evacrl.experiment`
+   (Step 4) evaluates checkpoints greedily on fixed seeds and keeps the best of those.
 4. **`QLearning` was `SARSA`** in `src/evacrl/qlearn.py`. Resolved in Step 2: it now has its own off-policy update
    (see [manual](./manual.md#the-three-methods-share-one-engine)).
 5. After 50 training simulations the greedy policy reaches 435 survivors at 30 min on `kochi2`, against 529 for shortest path, and
-   the training curve was still rising. This audit says nothing about the policy quality after the 1,000–15,000 simulations of the
-   Kochi study.
+   the training curve was still rising. **Explained in [Step 4](./audits/step4/README.md):** the gap is the discount (0.9 per decision
+   makes the target a minimum-nodes target, whose exact optimum is 427 survivors); longer training does not close it (300 simulations:
+   431), a discount of 0.999 per second does (526). This audit still says nothing about crowded areas, where learning may beat the
+   shortest path.
 
 ## Known and deferred
 

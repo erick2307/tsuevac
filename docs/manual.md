@@ -59,6 +59,13 @@ Q-learning's; both are gone now that the update is real. The results of every en
 Carlo). On `kochi2`, Monte Carlo with 0.9 per second learns nothing useful (a greedy policy worse than random), with 0.9 per
 decision it does; see [audits/step2](./audits/step2/README.md).
 
+**The discount also decides what is learned** ([audits/step4](./audits/step4/README.md)). With 0.9 once per *decision* and a reward of
+1e5 on arrival, a shelter 20 nodes away is worth 1e5 * 0.9^20 = 12,158 and one node more or less changes that by about 1,200, as much
+as 1,200 s of walking: the target prefers fewer nodes to a shorter walk. On `kochi2` its exact optimum walks 27 % farther than the
+shortest path and gets 81 % of its survivors at 30 min, which is where SARSA and Q-learning stop however long they train. A discount
+close to 1 per *second* (`--set discounting=second --discount 0.999`) makes the target the evacuation time, and Q-learning then reaches
+99 % of the shortest path. The default is still the old one until the change is confirmed.
+
 The parameters of the `run_*` functions are:  
 * `area` .- The study area, i.e. the folder with the input data (`kochi`, `arahama`, `new_kochi`).  
 * `simtime` .- Simulated time in minutes.  
@@ -130,6 +137,57 @@ that there is a shelter; that the actions and transitions are those of the links
 that every next node is a neighbour and following them always ends at a shelter (it is a warning if a step is not on a shortest
 walk); and that agents start at real nodes with a way out. Errors stop a build; warnings (isolated nodes, agents at a shelter, next nodes off the shortest walk) are
 recorded in `provenance.json`. [audits/step3](./audits/step3/README.md) shows what it finds in the tables of the 2024 study.
+
+## Experiments
+
+`evacrl.experiment` runs the comparisons the Kochi study did by hand: many shortest-path runs for the baseline, training a policy,
+and drawing the two against each other. It needs only NumPy and Matplotlib. A *case* is a folder of `cases/` (`kochi_area2`) or any
+path to a case folder (`data/` with the tables, as in `cases/`, or the files of the 2024 study side by side).
+
+```
+python -m evacrl.experiment sp        kochi_area2 --runs 100 --workers 4 --out runs/sp          # the baseline: 100 shortest-path runs
+python -m evacrl.experiment sp        kochi_area2 --until-converged --out runs/sp                # ... or as many as the rule asks for
+python -m evacrl.experiment calibrate kochi_area2 --method qlearning --sims 500 --eval-every 25 --out runs/ql --sp runs/sp
+python -m evacrl.experiment evaluate  kochi_area2 --state runs/ql/best_state.csv --runs 50 --out runs/ql_eval
+python -m evacrl.experiment compare   --sp runs/sp --rl runs/ql_eval --out runs/compare.png
+python -m evacrl.experiment policy    kochi_area2 --state runs/ql/best_state.csv --out runs/policy.png   # its walks against the shortest path
+```
+
+Model options come from `--preset default|legacy|kochi2024`, changed with `--set KEY=VALUE` (for instance `--set discounting=second`),
+and `--discount`. Times are minutes: `--time` simulated (shortest path 120, training 30), `--departure` mean departure (5).
+
+* **Seeds.** `--seed` is the base seed; the seed of every run is derived from it and from the run's index (`evacrl.experiment.derive_seeds`),
+  with separate streams for the shortest-path runs, the training episodes, the evaluation episodes and the runs of a stored policy.
+  The same seed gives the same results for any `--workers`, and the first *n* runs of a longer experiment are the *n* runs of a shorter one.
+* **Shortest-path runs and the convergence rule.** `--until-converged` adds batches of runs (`--batch`, at least `--min-runs`, at most
+  `--max-runs`) until, for both the evacuation time (the second the last agent arrived) and the number safe at `--horizon`, the
+  relative standard error of the mean (CV / sqrt(n)) and the relative change of the running mean over the last batch are below `--tol`
+  (1 % by default). The decision is taken after whole batches in seed order, so it does not depend on the workers. `convergence.csv`
+  holds the running mean, sd, CV and standard error after every batch.
+* **Calibration.** Training episodes continue from the state the previous one left, with a random-choice rate that falls as
+  `1 / (s / N + 1)` (`--schedule calibration`, the 2024 study's), or `quadratic`, or `constant`. Every `--eval-every` simulations the
+  policy so far is run *greedily* (no random choices) and *frozen* (nothing is learned during the run; `--eval-keep-learning` lets the
+  agents go on learning on a copy, which is what the 2024 calibration and the audits up to Step 4 did) on the same `--eval-runs` seeds,
+  and the checkpoint with the most agents safe is kept as `best_state.csv`. The 2024 `calibration.py` kept the simulation with the most survivors *among the exploring runs*, which
+  were choosing at random 50-100 % of the time; the best of those is the luckiest, not the best policy. `--restart-from-best`: after a checkpoint that
+  is not better than the best so far, the next training episode starts from the best checkpoint instead of the latest state. `calibration.csv` has the exploring and the greedy results per checkpoint
+  and `learning.png` draws them (with the shortest-path mean if `--sp` is given). A training run cannot be resumed yet.
+* **Policy.** `policy` follows the greedy choice of a stored policy from the start node of every agent and reports how much longer its
+  walks are than the shortest path's, how many nodes it passes, how often its first choice is the shortest path's and how many agents
+  never arrive (a loop); `--out` draws an arrow at every node, orange where it differs. It reads the empty-network state of each node
+  (the first row of the state matrix of the node): the choice of an agent when no link around is crowded. This is the quickest way to see
+  *what* a policy learned; the evacuation curves say how well it works.
+* **Evaluating a stored policy.** `evaluate` runs it frozen by default (`--keep-learning` for an agent that adapts as it goes) and records the
+  SHA-256 of the state file in its manifest. Policies of another case (a state matrix whose first rows are not the nodes of the case) are refused.
+* **Times.** `--time`, `--horizon` and `--departure` are minutes, converted to whole seconds by rounding. A run records the number safe at each
+  simulated second `t` after that second has been simulated, as the 2024 study's `time, safe` rows do. The *evacuation time* is the second `t` at
+  which the final count is first recorded (the study's definition); "safe at 30 min" is the count after 1,800 s of simulation (recorded at
+  `t = 1799`). Agents that start at a shelter count when they depart, as in the engine. `--horizon` cannot be later than `--time`.
+* **Results.** `runs.csv` (one row per run), `curves.npz` (the whole safe-against-time curves), the figures, and `manifest.json`: the case
+  and the SHA-256 of every input file, the model options, every parameter, the seeds, the results, the code version (git commit and
+  whether the tree was modified), Python and NumPy versions and the command.
+
+From Python: `from evacrl.experiment import Case, repeat_shortest_path, calibrate, evaluate_policy`; see the docstrings.
 
 ## Model options
 
