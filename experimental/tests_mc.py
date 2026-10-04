@@ -80,6 +80,47 @@ def ArahamaMTRL_20191220_SeqSim():
     QFun, VFun, policy  = arahama.computeAction_Value_Policy()  #computeAction_Value_Policy
     return
 
+def testAramaha2020August28():
+    t0 = time.time()
+    simulTime = 67*60   #T*60 sec of tsunami arrival time
+    agentsProfileName = "IPF_AgentsCoordV2.csv"
+    folderStateNames = "Arahama_20191220"
+    numMaxSim = 2 #20
+    optimalChoiceRate = 0.9
+    randomChoiceRate = 1.0 - optimalChoiceRate
+    survivedAgentsPerSimName = "survivedAgents_Arahama20191220.csv"
+    meanRayleighTest = 20*60
+    
+    survivedAgents = np.zeros(numMaxSim)
+    arahama = MonteCarlo(agentsProfileName = agentsProfileName, meanRayleigh = meanRayleighTest)
+    
+    print(arahama.evacuationNodes)
+    
+    for p in arahama.expeStat:
+        print(p, len(p))
+    
+    
+    
+    # numSim= 0
+    
+    # for t in range( int(min(arahama.pedDB[:,9])) , int(min(max(arahama.pedDB[:,9]) , simulTime))  ):
+    #     arahama.initEvacuationAtTime()
+    #     arahama.stepForward()
+    #     arahama.checkTarget()
+    # arahama.updateValueFunctionDB()
+    
+    # for i in arahama.expeStat[0]:
+    #     print(i)
+    
+    # survivedAgents[0] = np.sum( np.isin(arahama.pedDB[:,8], arahama.evacuationNodes) )
+    # outfile = "%s\sim_%04d.csv" % (folderStateNames, numSim )
+    # outfilepedDB = "%s\%04d.csv" % (folderStateNames, numSim )
+    # arahama.exportStateMatrix(outnamefile = outfile)
+    # arahama.exportAgentDBatTimet(outnamefile = outfilepedDB)
+    arahama = None 
+    
+    return
+
 def ArahamaMTRL_20191220_Video(): 
     folderStateNames = "Arahama_20191220"
     stateSimFile = "sim_0498.csv"

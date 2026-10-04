@@ -34,6 +34,20 @@ Removed (all remain in git history):
 * `app/qlearn.py`: identical to `app/bin/qlearn.py`.
 * `app/ql_arahama_sim_*.avi` (generated videos), `profile.stats`, `.DS_Store`, `__pycache__/`, `.ipynb_checkpoints/`.
 
+Code that moved between the modules (the imports `from evacrl.qlearn import QLearning`, `from evacrl.sarsa import SARSA` and
+`from evacrl.mc import MonteCarlo` still work, and the simulations give byte-identical results):
+
+* `qlearn.py`, `sarsa.py` and `mc.py` shared about 2,650 lines, 99% and 72% identical. The common code is now
+  `src/evacrl/core.py` (`EvacuationModel`); the three classes are subclasses of it. `SARSA` holds the update rule (`tdControl`),
+  `QLearning` is a subclass of `SARSA` with no code of its own, and `MonteCarlo` adds nothing.
+* `MonteCarlo.updateVelocity(pedIndx, codeLink)` is gone: nothing called it. Every class now has `updateVelocityV1(pedIndx)` (also uncalled),
+  which is the same computation but reads the link from the agent's row instead of taking it as an argument.
+* `QLearning.loadShortestPathDB` no longer prints the size of the array it loads (a leftover debug line the other two classes never had).
+* `simulationShortestPath`, `ArahamaMTRL_20191220_SeqSim`, `testAramaha2020August28`, `ArahamaMTRL_20191220_Video` and
+  `SurvivedAgentsPerEvacuationNode` were module-level functions at the end of `mc.py` (with its `__main__` block). They are now only in
+  `experimental/tests_mc.py`, which already had the same code for all of them except `testAramaha2020August28` (a debugging
+  sketch, moved there as it was); the old `ArahamaMTRL_20191220_Video` also had an unused `t0 = time.time()`.
+
 Find an old file with `git log --follow -- <new path>`, or read it as it was with
 `git show 251bdb1:<old path>` (`251bdb1` is the last commit before the reorganisation).
 

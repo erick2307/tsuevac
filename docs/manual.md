@@ -18,14 +18,35 @@ where, $T$ is the transition matrix between nodes, and $n_i ... n_m$ are the nod
 
 ## Entry points (`main_*.py`)
 
-Each method has its own entry point in the root directory, importing its class from the matching module:
+Each method has its own entry point in `scripts/`, importing its class from the matching module:
 
 | Script | Class (module) | Method |
 |--------|----------------|--------|
-| `scripts/main_ql.py`, `scripts/main_ql_mod.py` | `QLearning` (`src/evacrl/qlearn.py`) | Q-learning |
+| `scripts/main_ql.py`, `scripts/main_ql_mod.py` | `QLearning` (`src/evacrl/qlearn.py`) | Q-learning (see below: with greedy choices) |
 | `scripts/main_sarsa.py` | `SARSA` (`src/evacrl/sarsa.py`) | SARSA |
 | `scripts/main_mc.py` | `MonteCarlo` (`src/evacrl/mc.py`) | Monte Carlo |
 | `scripts/main_ShortPath.py` | `QLearning`, `MonteCarlo` | Shortest-path baseline (no learning) |
+
+### The three methods share one engine
+
+`src/evacrl/core.py` defines `EvacuationModel`: the road network and agents, the pedestrian dynamics, the state matrix
+(`[node, 10 density codes, 10 action values, 10 visit counts]`), the choice of the next node, the shortest-path baseline and
+the plots and videos. The methods differ only in **when and how the action values are updated**, which is one hook,
+`tdControl(pedIndx)`, called every time an agent chooses its next node:
+
+| Class | `tdControl` | Learns |
+|-------|-------------|--------|
+| `MonteCarlo` | not overridden (does nothing) | once per simulation, in `updateValueFunctionDB` |
+| `SARSA` | `Q(S0,A0) += alpha*(stepReward*dt + discount*Q(S,A) - Q(S0,A0))`, plus `surviveReward` on arrival | during the simulation |
+| `QLearning` | the same as `SARSA`'s (it is a subclass with no code of its own) | during the simulation |
+
+So `QLearning` and `SARSA` are the same update; the scripts make the difference through how agents choose their next node.
+`main_sarsa.py` and `main_ql_mod.py` explore with a decaying rate (`randomChoiceRate` is 0.99 in the first simulation, then
+`1 - (s/eoe)^2` for the first 80% of the simulations of a block, then 0), which is SARSA. `main_ql.py` overrides that
+schedule with `randomChoiceRate = 0` (the line is marked "added to check if this is Q-Learning"): agents always take the best-valued
+action, so `Q(S,A)` is the maximum over the actions, which is Q-learning's target. A genuinely off-policy update (target: the maximum over
+the actions at `S`) would be one overridden `tdControl` in `QLearning`, leaving `SARSA` and `MonteCarlo` untouched. The results of all
+four entry points are protected by the golden tests in `tests/`.
 
 Run a script from any directory (e.g. `python scripts/main_ql_mod.py`); the case to run is the first argument (`python scripts/main_ql_mod.py kochi`; one of the `kochi_*`, `arahama_*`, `new_kochi_*` helpers of the script) and is looked up in `cases/<area>/` (see `src/evacrl/paths.py`). Without an argument the script runs its default case.
 The newer workflow in `variants/app_2022/` has its own `main.py`, run from inside that folder.
