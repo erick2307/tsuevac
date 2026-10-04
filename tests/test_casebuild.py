@@ -225,6 +225,25 @@ class AttachShelters(unittest.TestCase):
         with self.assertRaises(ValueError):
             attach_shelters(self.streets(shelters=OSMID), [(0, 10)])
 
+    def test_a_shelter_is_not_attached_to_a_node_without_a_street(self):
+        net = Network([[0, 0, 0, 0, 1], [1, 100, 0, 0, 1], [2, 200, 0, 0, 1], [3, 100, 60, 0, 1]],
+                      [[0, 0, 1, 100, 3], [1, 1, 2, 100, 3]], crs="EPSG:32653")      # node 3 stands alone, 10 m from the point
+        out, _ = attach_shelters(net, [(100, 70)])
+        self.assertEqual(out.links[-1, 1:4].tolist(), [1, 4, 70])                  # to node 1, not to the isolated node
+        with self.assertRaisesRegex(ValueError, "has a link"):
+            attach_shelters(Network([[0, 0, 0, 0, 1], [1, 5, 0, 0, 1]], np.zeros((0, 5))), [(0, 10)])
+
+    def test_the_locations_need_one_x_and_one_y_each(self):
+        net = self.streets()
+        for bad in ([[100, 40, 0], [100, 60, 0]], [100, 40, 7], np.zeros((2, 2, 2))):
+            with self.subTest(shape=np.shape(bad)), self.assertRaisesRegex(ValueError, "one row"):
+                attach_shelters(net, bad)
+
+    def test_two_locations_on_one_node_are_one_shelter_node(self):
+        out, info = attach_shelters(self.streets(), [(100.3, 0.2), (100.1, -0.4)], merge_radius=0)   # two groups, both on node 1
+        self.assertEqual((out.num_nodes, out.shelters.tolist()), (6, [1]))
+        self.assertEqual((info["shelters"], info["on_a_node"], info["merged_points"]), (1, 1, 0))
+
     def test_new_ids_start_below_any_that_exist(self):
         once, _ = attach_shelters(self.streets(), [(100, -40)])
         twice, _ = attach_shelters(once, [(100, 60)])
@@ -233,12 +252,33 @@ class AttachShelters(unittest.TestCase):
         bare.osmid = None
         self.assertIsNone(attach_shelters(bare, [(100, -40)])[0].osmid)
 
-    def test_close_shelters_are_merged_by_the_clean_up_and_the_street_node_becomes_the_shelter(self):
-        raw, _ = attach_shelters(self.streets(), [(100, -3)])                 # 3 m from node 1: a short link
+    def test_a_close_shelter_stays_a_leaf_through_the_clean_up(self):
+        raw, _ = attach_shelters(self.streets(), [(100, -3)])                 # 3 m from node 1: a link below the 5 m threshold
         net, report = merge_short_links(raw)
-        self.assertEqual(report["short_links"], 2)                            # 2-3 and the access link
-        self.assertEqual(net.shelters.size, 1)
-        self.assertEqual(net.num_nodes, 5)                                    # 7 nodes, two merges
+        self.assertEqual(report["short_links"], 1)                            # only 2-3: the access link is not merged
+        self.assertEqual(net.num_nodes, 6)                                    # 7 nodes, one merge
+        shelter = int(net.shelters[0])
+        own = net.links[(net.links[:, 1] == shelter) | (net.links[:, 2] == shelter)]
+        self.assertEqual(own[:, 3].tolist(), [3])                             # one link, as long as the distance
+        street = int(own[0, 1])
+        self.assertEqual((int(net.osmid[street]), net.nodes[street, 3]), (11, 0))      # node 1 is still a street node ...
+        np.testing.assert_array_equal(net.nodes[street, 1:3], [100, 0])                # ... where it was
+        tables = build_tables(raw)
+        self.assertEqual(tables["actions"][street, 1], 5)                     # and it keeps its streets
+
+    def test_only_a_link_into_a_shelter_without_other_links_is_protected_from_the_clean_up(self):
+        def path(second_link):
+            nodes = [[0, 0, 0, 0, 1], [1, 100, 0, 0, 1], [2, 103, 0, 1, 1000]]
+            links = [[0, 0, 1, 100, 3], [1, 1, 2, 3, 3]] + ([[2, 2, 0, 200, 3]] if second_link else [])
+            return Network(nodes, links)
+        net, report = merge_short_links(path(second_link=False))               # shelter at the end of a 3 m link: kept
+        self.assertEqual((net.num_nodes, net.num_links, report["short_links"]), (3, 2, 0))
+        turned = path(second_link=False)                                       # the same, the link written the other way round
+        turned.links[1, 1:3] = [2, 1]
+        net, report = merge_short_links(turned)
+        self.assertEqual((net.num_nodes, net.num_links, report["short_links"]), (3, 2, 0))
+        net, report = merge_short_links(path(second_link=True))                # the shelter is also on a street: merged as before
+        self.assertEqual((net.num_nodes, report["short_links"], net.shelters.size), (2, 1, 1))
 
     def test_the_walk_to_the_shelter_counts_and_the_street_node_stays_ordinary(self):
         raw, _ = attach_shelters(self.streets(), [(100, -40)])
@@ -254,9 +294,13 @@ class AttachShelters(unittest.TestCase):
         self.assertEqual(tables["actions"][shelter, 1], 1)
         self.assertEqual(tables["nextnode"][1, 1], shelter)
         self.assertTrue(validate_tables(net.nodes, net.links, tables["actions"], tables["transitions"], tables["nextnode"]).ok)
-        # snapped onto node 1, the same shelter would be a dead end for everybody else who passes through node 1
+        by_osm_node = {int(o): i for i, o in enumerate(net.osmid)}
+        self.assertEqual(sorted(tables["transitions"][1, 2:7].tolist()), sorted([by_osm_node[10], by_osm_node[12], by_osm_node[12],
+                                                                                by_osm_node[15], shelter]))   # node 1 leads on to every neighbour
+        # snapped onto node 1 instead, reaching it ends the walk: its only choice is to stay
         snapped, _ = merge_short_links(network_from_edges(OSMID, XY, EDGES, evacuation_osmids=(11,), crs="EPSG:32653"))
-        self.assertEqual(actions_and_transitions(snapped)[0][1, 1], 1)
+        row = actions_and_transitions(snapped)[0][list(snapped.osmid).index(11)]
+        self.assertEqual(row[1:3].tolist(), [1, -1])
 
     def test_a_raw_folder_keeps_the_new_nodes(self):
         raw, _ = attach_shelters(self.streets(), [(100, -40), (100, 60)])

@@ -254,6 +254,29 @@ class CommandLine(unittest.TestCase):
         self.assertLess(info["shelters"]["snap_distance_max"], 30)
         self.assertEqual(info["merge"]["nodes_after"], 5)
 
+    def test_a_census_population_keeps_agents_off_the_shelters_unless_asked(self):
+        from evacrl.casebuild import read_tables
+        census = ("--areas", self.dir / "areas.geojson", "--census", self.dir / "census.geojson", "--census-method", "within",
+                  "--strategy", "proportional")
+        code, out = self.run_cli(*census)                                            # attached shelter, in the cell of node 4
+        self.assertEqual(code, 0, out)
+        t = read_tables(self.dir / "case" / "data")
+        self.assertEqual(len(t["agents"]), 60)
+        self.assertEqual(float((t["nodes"][t["agents"][:, 4], 3] == 1).sum()), 0)
+        shutil.rmtree(self.dir / "case")
+        code, out = self.run_cli(*census, "--shelters-as", "snap", "--include-shelters")   # the shelter is node 4, alone in its cell
+        self.assertEqual(code, 0, out)
+        t = read_tables(self.dir / "case" / "data")
+        self.assertEqual(int((t["nodes"][t["agents"][:, 4], 3] == 1).sum()), 30)    # its cell's 30 of the 60 people
+
+    def test_the_2024_merge_is_refused_with_attached_shelters(self):
+        import contextlib, io
+        with contextlib.redirect_stderr(io.StringIO()) as err, self.assertRaises(SystemExit):
+            self.run_cli("--agents", 5, "--merge", "legacy")
+        self.assertIn("--shelters-as snap", err.getvalue())
+        code, out = self.run_cli("--agents", 5, "--merge", "legacy", "--shelters-as", "snap")
+        self.assertEqual(code, 0, out)
+
     def test_legacy_means_snapping(self):
         code, out = self.run_cli("--agents", 5, "--legacy")
         self.assertEqual(code, 0, out)
@@ -330,6 +353,28 @@ class Census(unittest.TestCase):
         self.assertEqual(by_osm, {1: 50.0, 2: 50.0, 3: 300.0, 4: 0.0})       # cell (0,0): 100 over nodes 1, 2; (0,1): 300 on node 3
         self.assertEqual(info["people"], 400)
         self.assertEqual(w.sum(), 400)
+
+    def test_shelters_get_no_share_of_the_people(self):
+        net = self.network()
+        order = {int(o): i for i, o in enumerate(net.osmid)}
+        net.nodes[order[2], 3] = 1                       # a shelter in cell (0,0), which has the nodes 1 and 2
+        net.nodes[order[3], 3] = 1                       # the only node of cell (0,1) is a shelter (an attached one would be)
+        w, info = geo.node_weights(net, self.mesh, self.area, method="within")
+        by_osm = {int(net.osmid[i]): w[i] for i in range(net.num_nodes)}
+        # cell (0,0): 100 people, all on node 1 (node 2 is a shelter). Cell (0,1): 300 people, and its only node is a shelter,
+        # so they go to the nearest node that is not one: node 4 (1.29 km from the centre of the cell; node 1 is 1.47 km)
+        self.assertEqual(by_osm, {1: 100.0, 2: 0.0, 3: 0.0, 4: 300.0})
+        self.assertEqual(w.sum(), 400)
+        self.assertEqual(info["cells_without_a_node"], 1)
+        w, _ = geo.node_weights(net, self.mesh, self.area, method="within", exclude_shelters=False)
+        by_osm = {int(net.osmid[i]): w[i] for i in range(net.num_nodes)}
+        self.assertEqual(by_osm, {1: 50.0, 2: 50.0, 3: 300.0, 4: 0.0})              # as without the rule
+
+    def test_without_any_other_node_nobody_is_placed(self):
+        net = self.network()
+        net.nodes[:, 3] = 1
+        w, info = geo.node_weights(net, self.mesh, self.area, method="within")
+        self.assertEqual((w.sum(), info["people"]), (0, 0.0))
 
     def test_weighted_adds_the_boundary_cell_and_a_cell_without_nodes_goes_to_the_nearest(self):
         net = self.network()

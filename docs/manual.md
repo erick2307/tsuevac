@@ -115,12 +115,14 @@ instance by `MESH4_ID`, and one hour chosen. Each cell's people are shared equal
 goes to the node nearest its centre, so a coarse mesh gives a coarse distribution: a 500 m cell holds many nodes.
 
 **Shelters.** A shelter point is rarely on a street node: in Kochi the median distance to the nearest node is 50–190 m, the
-farthest 360 m. `snap` puts the shelter on the node, so the walk from there to the building is not part of the evacuation, and
-the node, which becomes a dead end for everybody (a shelter has no way out), may be one that other people pass through. `attach`
-keeps the street node an ordinary node and adds a node at the shelter with one link to it, as long as the straight-line distance
-(whole metres, like every link). Its limits: the length is the *straight-line* distance to the nearest *node* (not the nearest
-point of the nearest street, and not a walking distance), so it is a lower bound of the walk; the link has the default width of
-3 m; shelters closer than 1 m to a node are that node. Measurements: [audits/step3](./audits/step3/README.md#the-shelters-a3-and-s2).
+farthest 360 m. `snap` makes the shelter *be* the node, so reaching the node ends the walk of everybody who gets there, however
+far the building really is. `attach` keeps the street node an ordinary node and adds a node at the shelter with one link to
+it, as long as the straight-line distance (whole metres, like every link), so the walk counts. Details: the clean-up never
+merges such a link, however short; a shelter closer than 1 m to a node is that node; shelter points within 5 m of each other are
+one shelter; a shelter is not attached to another shelter or to a node without a street; the link has the default width of 3 m.
+Limits: the length is the straight line to the nearest *node* (not the nearest point of the nearest street, and not a walking
+distance), so it is a lower bound of the walk. `--merge legacy` (the 2024 clean-up, which cannot keep such a link) goes only with
+`--shelters-as snap`. Measurements: [audits/step3](./audits/step3/README.md#the-shelters-a3-and-s2).
 
 `validate` checks that the numbers run 0, 1, 2, ... in order; that links join existing nodes and have a length in whole metres;
 that there is a shelter; that the actions and transitions are those of the links (each evacuation node has the single choice "stay");

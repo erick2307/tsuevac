@@ -112,6 +112,14 @@ shelters. Limits: the length is the straight line to the nearest *node*, not a w
 not the nearest point of the nearest street (that would split the street and is not done). `--max-snap-distance` still
 removes shelters beyond a distance (in area 1, 100 m keeps 2 of the 4 points; in area 4, 11 of 17 points).
 
+**Found by an independent review of the attach code, and fixed.** (1) The default clean-up merged an access link shorter than 5 m, which
+turned the street node into the shelter and moved it (a shelter 1–4 m from a junction is common in a town; none of the shipped cases
+has one): such links are now never merged. (2) The 2024 pairwise merge loses a shelter attached by a link under the threshold: the
+CLI refuses `--merge legacy` with `attach`. (3) `node_weights` shared a cell's people with the shelter nodes in it, and
+`proportional` then dropped them (a cell holding only an attached shelter lost all its people): shelters get no share now, snapping
+had a milder form of the same loss. (4) A shelter could be attached to a node that has no street. (5) A coordinate array of the wrong
+shape was silently reshaped. The shipped cases did not change.
+
 ## Does it matter for a result? (A5)
 
 Shortest-path evacuation of area 2 with the default `ModelOptions`, 30 departure-time seeds, 120 min simulated:
@@ -121,10 +129,12 @@ Shortest-path evacuation of area 2 with the default `ModelOptions`, 30 departure
 | 1  the 2024 tables and population file | 622 | 2,645 ± 104 | 529.2 (85.1 %) |
 | 2  rebuilt, same recipe (clusters; none at a shelter) | 622 | 2,609 ± 112 | 527.9 (84.9 %) |
 | 3  rebuilt, area-weighted census total, uniform | 1,704 | 2,684 ± 66 | 1,426.6 (83.7 %) |
-| 4  rebuilt, area-weighted census total, placed by the census | 1,704 | 2,638 ± 83 | 1,428.8 (83.8 %) |
+| 4  rebuilt, area-weighted census total, placed by the census | 1,704 | 2,672 ± 104 | 1,440.5 (84.5 %) |
 
 For the shortest-path baseline on this area the differences are small: the rebuilt tables change the last evacuee by 36 s (1.4 %,
-inside the run-to-run spread), and 2.7 times as many agents by 75 s (3 %): the streets of area 2 do not saturate. These are
+inside the run-to-run spread), and 2.7 times as many agents by 75 s (3 %): the streets of area 2 do not saturate. (Variant 4 read
+2,638 ± 83 and 83.8 % before the review fix that keeps shelter nodes out of the census weights moved a few people; variants 1–3 did
+not change when the table was measured again.) These are
 errors of *data quality* rather than of this metric. They matter for the absolute numbers (622 people against 1,704), for areas where
 crowding does bind, and for the learned policy, whose state contains the density of the links; none of that was measured here.
 

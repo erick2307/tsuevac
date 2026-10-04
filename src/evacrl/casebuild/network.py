@@ -103,11 +103,13 @@ def attach_shelters(network, xy, merge_radius=5.0, length_rounding="floor", widt
     merge_radius   locations that lie within this many metres of each other (directly, or through a chain of such
               locations) are one shelter, at their mean position: the same building listed twice is one shelter
 
-    The new node sits where the shelter is, and its only link goes to the nearest node that is not itself a shelter
-    (nothing can pass through a shelter, so a shelter attached to another one would be out of reach). The link's length
-    is the distance between the two, in whole metres (`length_rounding` as in `network_from_edges`), its width
-    `width`. So the walk from the street to the shelter counts, however far the shelter is from the network; and the
-    street node stays an ordinary node, which a shelter snapped *onto* it would not.
+    The new node sits where the shelter is, and its only link goes to the nearest node that is not itself a shelter and
+    has a link (nothing can pass through a shelter, so a shelter attached to another one would be out of reach, and one
+    attached to an isolated node would be out of reach of everybody). The link's length is the distance between the
+    two, in whole metres (`length_rounding` as in `network_from_edges`), its width `width`. So the walk from the street to
+    the shelter counts, however far the shelter is from the network; and the street node stays an ordinary node, where a
+    shelter snapped *onto* it would end the walk of everybody who reaches it. The clean-up (`merge_short_links`) leaves
+    such a link alone however short it is.
 
     A shelter closer than 1 m to a node is that node: it is marked, and nothing is added. The links to the new
     nodes are numbered after the existing ones, the nodes likewise; the new nodes have a negative `osmid` (-1, -2, ...
@@ -118,15 +120,21 @@ def attach_shelters(network, xy, merge_radius=5.0, length_rounding="floor", widt
         raise ValueError("length_rounding must be 'floor' or 'round'")
     if merge_radius < 0:
         raise ValueError("merge_radius must not be negative")
-    xy = np.asarray(xy, dtype=float).reshape(-1, 2)
+    xy = np.asarray(xy, dtype=float)
+    if xy.size == 0:
+        xy = xy.reshape(0, 2)
+    if xy.ndim != 2 or xy.shape[1] != 2:
+        raise ValueError(f"xy must have one row (x, y) per shelter, got an array of shape {xy.shape}")
     k = len(xy)
     out = network.copy()
     info = dict(points=k, shelters=0, merged_points=0, on_a_node=0, new_nodes=0)
     if k == 0:
         return out, info
-    street = np.where(network.nodes[:, 3] != 1)[0]
+    has_link = np.zeros(network.num_nodes, dtype=bool)
+    has_link[network.links[:, 1:3].astype(int).ravel()] = True
+    street = np.where((network.nodes[:, 3] != 1) & has_link)[0]
     if street.size == 0:
-        raise ValueError("every node is already a shelter: there is nothing to attach the shelters to")
+        raise ValueError("no node that is not a shelter has a link: there is nothing to attach the shelters to")
 
     # the locations that are one shelter
     pairs = cKDTree(xy).query_pairs(merge_radius, output_type="ndarray")
@@ -144,7 +152,8 @@ def attach_shelters(network, xy, merge_radius=5.0, length_rounding="floor", widt
     distance, nearest = cKDTree(network.nodes[street, 1:3]).query(where)
     nearest = street[nearest]
     on_a_node = distance < 1.0
-    for node in np.unique(nearest[on_a_node]):
+    marked = np.unique(nearest[on_a_node])
+    for node in marked:
         out.nodes[int(node), 3] = 1
         out.nodes[int(node), 4] = SHELTER_REWARD
     added = np.where(~on_a_node)[0]
@@ -166,7 +175,7 @@ def attach_shelters(network, xy, merge_radius=5.0, length_rounding="floor", widt
     if network.osmid is not None:
         first = min(int(network.osmid.min()), 0) - 1
         out.osmid = np.concatenate([network.osmid, first - np.arange(len(added))])
-    info.update(shelters=int(ngroups), merged_points=int(k - ngroups), on_a_node=int(on_a_node.sum()), new_nodes=len(added))
+    info.update(shelters=len(added) + len(marked), merged_points=int(k - ngroups), on_a_node=len(marked), new_nodes=len(added))
     if len(added):
         info.update(access_length_median=round(float(np.median(lengths)), 1), access_length_max=int(lengths.max()),
                     access_over_100_m=int((lengths > 100).sum()))
@@ -180,11 +189,13 @@ def merge_short_links(network, threshold=5.0, method="clusters"):
 
     method="clusters" (default): the nodes joined by a chain of short links form a cluster; the cluster becomes one
         node at the mean position of its members, a shelter if any member is one; the other links are re-attached to
-        it, a link that would join the cluster to itself is dropped, and the nodes are renumbered 0, 1, 2, ...
+        it, a link that would join the cluster to itself is dropped, and the nodes are renumbered 0, 1, 2, ... A link
+        into a shelter that has no other link (an access link, see `attach_shelters`) is never merged, however short.
     method="legacy": what `EVACMODEL3_FocalPoints/preprocess.py` of the 2024 study did, reproduced exactly. It
         handles only a pair of nodes at a time: it leaves one orphan row (no links, the merged position, which no
         link uses) per short link, merges chains of short links wrongly (the nodes of a chain end up in different
-        places), and keeps the position of the first node. Kept to reproduce that study's tables.
+        places), and keeps the position of the first node. Kept to reproduce that study's tables: it knows only shelters that are
+        street nodes (`snap`), and loses a shelter attached by a link under `threshold`.
     """
     if method == "legacy":
         return _merge_legacy(network, threshold)
@@ -192,7 +203,11 @@ def merge_short_links(network, threshold=5.0, method="clusters"):
         raise ValueError("method must be 'clusters' or 'legacy'")
     n = network.num_nodes
     links = network.links
-    short = links[:, 3] < threshold
+    # a link into a shelter that has no other link is an access link: merging it would turn the street node into the shelter
+    degree = np.bincount(links[:, 1:3].astype(int).ravel(), minlength=n)
+    leaf_shelter = (network.nodes[:, 3] == 1) & (degree == 1)
+    into_a_leaf_shelter = leaf_shelter[links[:, 1].astype(int)] | leaf_shelter[links[:, 2].astype(int)]
+    short = (links[:, 3] < threshold) & ~into_a_leaf_shelter
     a = links[short, 1].astype(int)
     b = links[short, 2].astype(int)
     graph = coo_matrix((np.ones(len(a)), (a, b)), shape=(n, n))

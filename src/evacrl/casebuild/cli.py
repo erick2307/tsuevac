@@ -97,6 +97,9 @@ def main(argv=None):
         exclude = False
         if hasattr(args, "shelters_as"):
             args.shelters_as = "snap"
+    if options["merge"] == "legacy" and getattr(args, "shelters_as", "snap") == "attach":
+        parser.error("--merge legacy reproduces the 2024 clean-up, which loses a shelter attached by a link under the threshold: "
+                     "use it with --shelters-as snap (or --legacy)")
     given = argv if argv is not None else sys.argv[1:]
     # file names without the folders they happened to be in, so that the record does not depend on the machine
     shown = [os.path.basename(a.rstrip("/")) if os.sep in a else a for a in given]
@@ -140,7 +143,8 @@ def main(argv=None):
             provenance["census"] = dict(file=_hashes([args.census]), column=args.census_column, method=args.census_method,
                                         area_total=census_total, agents=total)
             if args.strategy == "proportional":
-                weights = lambda network: geo.node_weights(network, mesh, area, args.census_column, args.census_method)[0]
+                weights = lambda network: geo.node_weights(network, mesh, area, args.census_column, args.census_method,
+                                                           exclude_shelters=exclude)[0]
         population = _population(args, exclude, total=total, weights=weights)
 
     tables, report = build_case(raw_network, args.case_dir, population=population, provenance=provenance,

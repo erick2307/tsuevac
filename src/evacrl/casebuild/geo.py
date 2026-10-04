@@ -161,12 +161,17 @@ def area_population(mesh, area, column="M_TOTPOP_H", method="within"):
     return float((touching[column].values * share).sum())
 
 
-def node_weights(network, mesh, area, column="M_TOTPOP_H", method="within"):
+def node_weights(network, mesh, area, column="M_TOTPOP_H", method="within", exclude_shelters=True):
     """The census population of the area (a polygon in the CRS of `mesh`) spread over the nodes of `network`: `(weights, info)`.
 
     Each cell's people are shared equally by the nodes inside it (a cell on the boundary: inside the part within the
     area, and `method="weighted"` counts only that part of its people). A cell with people but no node goes to the
     node nearest its centre. `weights.sum()` is the number of people placed.
+
+    exclude_shelters   shelters are not places where people start (the default of `PopulationSpec`), so they get no
+                       share: a cell's people go to its other nodes, and to the nearest one that is not a shelter if
+                       it has none. Without this, the people of a cell would be lost to the shelter nodes in it (and a
+                       cell holding only an attached shelter would lose them all).
     """
     gpd, _, _ = _require()
     from scipy.spatial import cKDTree
@@ -185,9 +190,12 @@ def node_weights(network, mesh, area, column="M_TOTPOP_H", method="within"):
         people = cells[column].values.astype(float) * (clipped.area / cells.geometry.area).values
     else:
         raise ValueError("method must be 'within' or 'weighted'")
-    xy = network.nodes[:, 1:3]
-    tree = cKDTree(xy)
+    usable = np.where(network.nodes[:, 3] != 1)[0] if exclude_shelters else np.arange(network.num_nodes)
     weights = np.zeros(network.num_nodes)
+    if len(usable) == 0:
+        return weights, dict(method=method, cells=int((people > 0).sum()), cells_without_a_node=0, people=0.0)
+    xy = network.nodes[usable, 1:3]
+    tree = cKDTree(xy)
     empty = 0
     points = gpd.GeoSeries([Point(p) for p in xy])
     index = points.sindex
@@ -196,9 +204,9 @@ def node_weights(network, mesh, area, column="M_TOTPOP_H", method="within"):
             continue
         inside = index.query(geometry, predicate="intersects")
         if len(inside):
-            weights[inside] += n / len(inside)
+            weights[usable[inside]] += n / len(inside)
         else:
-            weights[tree.query([geometry.centroid.x, geometry.centroid.y])[1]] += n
+            weights[usable[tree.query([geometry.centroid.x, geometry.centroid.y])[1]]] += n
             empty += 1
     return weights, dict(method=method, cells=int((people > 0).sum()), cells_without_a_node=empty,
                          people=float(people.sum()))
