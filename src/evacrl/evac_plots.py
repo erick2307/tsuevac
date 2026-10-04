@@ -50,7 +50,7 @@ def survivorsVsTime(numfiles,startfile=0,simtime=30,pop=35930,meandeparture=15,
     np.savetxt(folder, sM, delimiter=",", fmt= "%d")
     return
 
-def plotSurvivors(numfiles,simtime=30,pop=35930,meandeparture=15,allfiles=True,blocks=250,casealias="case1",cls='b--'):    
+def plotSurvivors(numfiles,simtime=30,pop=35930,meandeparture=15,allfiles=True,blocks=250,casealias="case1",cls='b--',startfile=0):    
     if allfiles:
         simNum=np.arange(startfile,startfile+numfiles)            
     else:
@@ -61,7 +61,7 @@ def plotSurvivors(numfiles,simtime=30,pop=35930,meandeparture=15,allfiles=True,b
     db= np.loadtxt(folder, delimiter=",")
     #maxCase=np.argmax(db[-1,1:])
     maxCase=pd.DataFrame(db[:,1:]).idxmax(axis=1).mode().item()
-    maxEvac=db[-1,maxCase]
+    maxEvac=db[-1,maxCase+1]  # column 0 of db is the time, so case k is in column k+1
     print(f"The max number of evacuees was {maxEvac} in Case {maxCase}.")    
 
     plt.figure(num="survivors")
