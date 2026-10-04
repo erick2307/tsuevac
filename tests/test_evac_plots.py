@@ -22,7 +22,10 @@ import numpy as np
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "src"))  # the only place that knows where the code lives
 
-from evacrl import evac_plots  # noqa: E402
+try:
+    from evacrl import evac_plots  # noqa: E402  (needs scipy and pandas)
+except ImportError as exc:
+    raise unittest.SkipTest(f"evacrl.evac_plots needs the 'plots' extra ({exc}); pip install -e \".[plots]\"")
 
 
 class PlotSurvivors(unittest.TestCase):

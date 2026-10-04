@@ -1,26 +1,31 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Golden regression tests for the root Q-learning stack (main_ql_mod.run_ql_mod).
+"""Golden regression tests for the root stack: Q-learning (main_ql, main_ql_mod), SARSA and Monte Carlo.
 
-Two cases are run with a fixed random seed and compared with recorded results in
-tests/fixtures/<case>_golden_expected.json:
+Each entry of CASES runs one entry point with a fixed random seed on a short simulation and compares
+the survivors and the learned state matrices with recorded results in
+tests/fixtures/<entry>_golden_expected.json:
 
-* kochi      real 4,315-node road network + a small SYNTHETIC population
-             (tests/fixtures/kochi_golden_agents.csv, NOT real Kochi data), 3 short simulations
+* kochi, kochi_ql, kochi_sarsa, kochi_mc   real 4,315-node road network + a small SYNTHETIC population
+             (tests/fixtures/kochi_golden_agents.csv, NOT real Kochi data), 3 short simulations;
+             run_ql_mod, run_ql, run_sarsa and run_mc respectively
 * new_kochi  real 19,207-node road network + a deterministic 1-in-1000 sample of its real
-             population (cases/new_kochi/data/agentsdb.csv), 2 short simulations
+             population (cases/new_kochi/data/agentsdb.csv), 2 short simulations; run_ql_mod
 
-Their purpose is to prove that restructuring the repository (moving files, changing how
-paths are resolved) does not change the results.
+The recorded results were checked to be byte-identical to what the ORIGINAL code (before the
+repository was reorganised, run with NumPy 1.23) produces with the same seeds and inputs.
+Their purpose is to prove that restructuring the repository (moving files, changing how paths
+are resolved) or merging the algorithm modules does not change the results.
 
 Run:        python -m unittest discover tests        (or: pytest tests)
 Strict:     GOLDEN_STRICT=1 python -m unittest discover tests
             also compares the sha256 of every output file (same NumPy/Python only)
-Regenerate: UPDATE_GOLDEN=1 python tests/test_golden_ql.py [kochi] [new_kochi]
+Regenerate: UPDATE_GOLDEN=1 python tests/test_golden.py [entry ...]   (e.g. kochi_sarsa)
             (only after an INTENTIONAL change of behaviour)
 """
 import contextlib
 import hashlib
+import importlib
 import io
 import json
 import os
@@ -48,18 +53,38 @@ def case_data_dir(area):
 
 CASE_FILES = ("nodesdb", "linksdb", "actionsdb", "transitionsdb")
 
-CASES = {
-    "kochi": dict(
+# entry point of each method: (module in scripts/, function)
+METHODS = {
+    "ql_mod": ("main_ql_mod", "run_ql_mod"),
+    "ql": ("main_ql", "run_ql"),
+    "sarsa": ("main_sarsa", "run_sarsa"),
+    "mc": ("main_mc", "run_mc"),
+}
+
+
+def _kochi(method):
+    return dict(
+        method=method,
+        network="kochi",
         seed=20240101,
         run=dict(simtime=10, meandeparture=3, numSim0=0, numBlocks=1, simPerBlock=2, name="golden"),
         agents=lambda: (FIXTURES / "kochi_golden_agents.csv").read_text(),
-    ),
+    )
+
+
+CASES = {
+    "kochi": _kochi("ql_mod"),  # the names of the first two entries are kept: they name their fixture files
     "new_kochi": dict(
+        method="ql_mod",
+        network="new_kochi",
         seed=1,
         run=dict(simtime=10, meandeparture=3, numSim0=0, numBlocks=1, simPerBlock=1, name="golden"),
         # header + every 1000th agent of the real population (deterministic)
         agents=lambda: _sample_lines((case_data_dir("new_kochi") / "agentsdb.csv").read_text(), 1000),
     ),
+    "kochi_ql": _kochi("ql"),
+    "kochi_sarsa": _kochi("sarsa"),
+    "kochi_mc": _kochi("mc"),
 }
 
 
@@ -73,18 +98,19 @@ def expected_path(name):
 
 
 def run_golden_case(name, workdir):
-    """Run case `name` in `workdir` and return a compact, comparable summary."""
+    """Run entry `name` in `workdir` and return a compact, comparable summary."""
     cfg = CASES[name]
     case = Path(workdir) / "case"
     (case / "data").mkdir(parents=True)
     for f in CASE_FILES:
-        shutil.copy(case_data_dir(name) / f"{f}.csv", case / "data" / f"{f}.csv")
+        shutil.copy(case_data_dir(cfg["network"]) / f"{f}.csv", case / "data" / f"{f}.csv")
     (case / "data" / "agentsdb.csv").write_text(cfg["agents"]())
 
     for d in CODE_DIRS:
         if str(d) not in sys.path:
             sys.path.insert(0, str(d))
-    import main_ql_mod  # noqa: E402  (imported late so CODE_DIRS is honoured)
+    module, function = METHODS[cfg["method"]]
+    run_method = getattr(importlib.import_module(module), function)  # imported late so CODE_DIRS is honoured
     from evacrl import paths  # noqa: E402
 
     # Resolve the case by NAME through paths.CASES_DIR, exactly as real runs do (area="kochi").
@@ -92,7 +118,7 @@ def run_golden_case(name, workdir):
     try:
         np.random.seed(cfg["seed"])
         with contextlib.redirect_stdout(io.StringIO()):
-            main_ql_mod.run_ql_mod(area="case", **cfg["run"])
+            run_method(area="case", **cfg["run"])
     finally:
         paths.CASES_DIR = saved_cases_dir
 
@@ -107,7 +133,7 @@ def run_golden_case(name, workdir):
         summary["sha256"][f.name] = hashlib.sha256(f.read_bytes()).hexdigest()
         if f.name.startswith("sim_"):
             m = np.loadtxt(f, delimiter=",")
-            # root stack layout: [node, 10 density codes, 10 action values, 10 visit counts]
+            # root stack layout (Q-learning, SARSA and Monte Carlo): [node, 10 density codes, 10 action values, 10 visit counts]
             summary["state"][f.name] = {
                 "shape": list(m.shape),
                 "q_sum": round(float(m[:, 11:21].sum()), 3),
@@ -116,7 +142,7 @@ def run_golden_case(name, workdir):
     return summary
 
 
-class GoldenQLearning(unittest.TestCase):
+class Golden(unittest.TestCase):
     def check(self, name):
         expected = json.loads(expected_path(name).read_text())
         with tempfile.TemporaryDirectory() as tmp:
@@ -137,6 +163,15 @@ class GoldenQLearning(unittest.TestCase):
 
     def test_new_kochi(self):
         self.check("new_kochi")
+
+    def test_kochi_ql(self):
+        self.check("kochi_ql")
+
+    def test_kochi_sarsa(self):
+        self.check("kochi_sarsa")
+
+    def test_kochi_mc(self):
+        self.check("kochi_mc")
 
 
 if __name__ == "__main__":

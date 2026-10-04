@@ -1,0 +1,51 @@
+{
+  "survivors": [
+    [
+      0,
+      3
+    ],
+    [
+      1,
+      1
+    ],
+    [
+      2,
+      6
+    ]
+  ],
+  "state": {
+    "sim_000000000.csv": {
+      "shape": [
+        4315,
+        31
+      ],
+      "q_sum": 13487.341,
+      "count_sum": 13212
+    },
+    "sim_000000001.csv": {
+      "shape": [
+        4315,
+        31
+      ],
+      "q_sum": 10847.739,
+      "count_sum": 14367
+    },
+    "sim_000000002.csv": {
+      "shape": [
+        4315,
+        31
+      ],
+      "q_sum": 34306.371,
+      "count_sum": 15695
+    }
+  },
+  "sha256": {
+    "ped_000000000.csv": "88435c1e2c275db518c3af147b07812c4c4d994c62ab0b8525ba045745af7a8b",
+    "ped_000000001.csv": "c833acff9cce2356f2bc00a7edefbb608ca097e5af53f10ab5d9647124980ca4",
+    "ped_000000002.csv": "a88773696a637b337994b75456253ad32ffb18b68577b9b2a2856fa4efbe6b46",
+    "sim_000000000.csv": "51fbf36e9f196b71d3f542c51e41c0456fab5f192ff9e41834dbd12c23608a6d",
+    "sim_000000001.csv": "a0c876ef08127b5ae1f1102f4b968a1a1ce630aa391661c8d0d5b350bc59e896",
+    "sim_000000002.csv": "bfa78aea11bc546809676974335b790cccdf708be4d32e84acafaa05a9ff8fcd",
+    "survivorsPerSim_1x2.csv": "fdc3614004ffd57e797b164f5980f7008caf82e94395d08238ed5a2182898cda"
+  }
+}
