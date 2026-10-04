@@ -36,7 +36,7 @@ def _row(node, items):
     return [node, len(items)] + items + [0] * (10 - len(items))
 
 
-def write_case(folder, agents_at, style="2021", links=None):
+def write_case(folder, agents_at, style="2021", links=None, actions=None, transitions=None):
     """style '2021': '#' headers, integers as integers. style '2024': plain header lines, integers as floats."""
     folder = Path(folder)
     float_ints = style == "2024"
@@ -53,8 +53,8 @@ def write_case(folder, agents_at, style="2021", links=None):
     table("nodes.csv", f"{hash_}number,coord_x,coord_y,evacuation,reward", NODES)
     table("links.csv", f"{hash_}number,node1,node2,length,width", links or LINKS)
     table("agents.csv", f"{hash_}age,gender,hhType,hhId,Node", [(0, 0, 0, i, n) for i, n in enumerate(agents_at)])
-    table("actions.csv", None, [_row(n, ACTIONS[n]) for n in range(5)])
-    table("transitions.csv", None, [_row(n, TRANSITIONS[n]) for n in range(5)])
+    table("actions.csv", None, [_row(n, (actions or ACTIONS)[n]) for n in range(5)])
+    table("transitions.csv", None, [_row(n, (transitions or TRANSITIONS)[n]) for n in range(5)])
     nextnode = [f"{hash_}node,next"] if style == "2024" else []
     (folder / "nextnode.csv").write_text("\n".join(nextnode + [f"{a},{b}" for a, b in NEXTNODE]) + "\n")
     return folder
@@ -95,16 +95,26 @@ class FileFormats(Base):
 
 
 class Options(Base):
-    def test_defaults_are_the_2021_behaviour(self):
+    def test_defaults_are_the_recommended_settings(self):
         m = self.model()
-        self.assertEqual(m.options, ModelOptions.legacy())
+        self.assertEqual(m.options, ModelOptions(surviveReward=100000, densityLevel="link", entrySpeed="position",
+                                                 segmentSizing="ceil", segmentIndex="clamped", discounting="method"))
         self.assertEqual(m.surviveReward, 100000)
+
+    def test_legacy_and_kochi2024_do_not_follow_the_defaults(self):
+        self.assertEqual(ModelOptions.legacy(), ModelOptions(surviveReward=100000, densityLevel="link",
+                                                             entrySpeed="first_segment", segmentSizing="ceil",
+                                                             segmentIndex="raw", discounting="method"))
+        self.assertEqual(ModelOptions.kochi2024(), ModelOptions(surviveReward=10000000, densityLevel="segment",
+                                                                entrySpeed="position", segmentSizing="round",
+                                                                segmentIndex="raw", discounting="method"))
 
     def test_survive_reward_comes_from_the_options(self):
         self.assertEqual(self.model(options=ModelOptions.kochi2024()).surviveReward, 10000000)
 
     def test_invalid_option_values_are_rejected(self):
-        for bad in (dict(densityLevel="x"), dict(entrySpeed="x"), dict(segmentSizing="x"), dict(segmentIndex="x")):
+        for bad in (dict(densityLevel="x"), dict(entrySpeed="x"), dict(segmentSizing="x"), dict(segmentIndex="x"),
+                    dict(discounting="x")):
             with self.assertRaises(ValueError):
                 ModelOptions(**bad)
 
@@ -167,7 +177,7 @@ class FarEndOfLink(Base):
         return m
 
     def test_raw_index_reads_the_padding_and_stops_the_agent(self):
-        m = self.agent_at_far_end(ModelOptions())
+        m = self.agent_at_far_end(ModelOptions.legacy())
         m.updateVelocityV2(0)
         self.assertLess(np.linalg.norm(m.pedDB[0, 4:6]), 0.02)
 
@@ -196,7 +206,7 @@ class EntrySpeed(Base):
         return m
 
     def test_first_segment_speed_is_the_2021_behaviour(self):
-        m = self.agent_choosing_link0(ModelOptions())
+        m = self.agent_choosing_link0(ModelOptions.legacy())
         self.assertEqual(int(m.pedDB[0, 6]), 0)
         self.assertAlmostEqual(np.linalg.norm(m.pedDB[0, 4:6]), 0.5, places=6)
 

@@ -24,9 +24,9 @@ VARIANTS = {
     "uru": None,                                                            # the Urushibara engine itself
     "k24": ModelOptions.kochi2024(),                                        # its behaviour, in evacrl
     "k24_ceil": ModelOptions.kochi2024().replace(segmentSizing="ceil"),
-    "legacy": ModelOptions(),                                               # evacrl as of 2021
-    "legacy_round": ModelOptions(segmentSizing="round"),
-    "legacy_clamp": ModelOptions(segmentIndex="clamped"),                   # + the far-end fix
+    "legacy": ModelOptions.legacy(),                                        # evacrl as of 2021
+    "legacy_round": ModelOptions.legacy().replace(segmentSizing="round"),
+    "legacy_clamp": ModelOptions.legacy().replace(segmentIndex="clamped"),  # + the far-end fix
     "k24_clamp": ModelOptions.kochi2024().replace(segmentIndex="clamped"),
     "k24_ceil_clamp": ModelOptions.kochi2024().replace(segmentSizing="ceil", segmentIndex="clamped"),
 }
@@ -65,11 +65,11 @@ def sp(nseeds, variants, out_json):
 
 # ---------- learning ----------
 CONFIGS = {
-    "legacy_raw": ModelOptions(),                                                    # the 2021 code as it is today
-    "base": ModelOptions(segmentIndex="clamped"),                                    # 2021 + the far-end fix
-    "reward1e7": ModelOptions(surviveReward=10000000, segmentIndex="clamped"),
-    "density_segment": ModelOptions(densityLevel="segment", segmentIndex="clamped"),
-    "entry_position": ModelOptions(entrySpeed="position", segmentIndex="clamped"),
+    "legacy_raw": ModelOptions.legacy(),                                             # the 2021 code
+    "base": ModelOptions.legacy().replace(segmentIndex="clamped"),                      # 2021 + the far-end fix
+    "reward1e7": ModelOptions.legacy().replace(surviveReward=10000000, segmentIndex="clamped"),
+    "density_segment": ModelOptions.legacy().replace(densityLevel="segment", segmentIndex="clamped"),
+    "entry_position": ModelOptions.legacy().replace(entrySpeed="position", segmentIndex="clamped"),
     "all2024": ModelOptions.kochi2024().replace(segmentIndex="clamped"),             # the 2024 choices + the fix
 }
 

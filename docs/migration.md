@@ -39,7 +39,7 @@ Code that moved between the modules (the imports `from evacrl.qlearn import QLea
 
 * `qlearn.py`, `sarsa.py` and `mc.py` shared about 2,650 lines, 99% and 72% identical. The common code is now
   `src/evacrl/core.py` (`EvacuationModel`); the three classes are subclasses of it. `SARSA` holds the update rule (`tdControl`),
-  `QLearning` is a subclass of `SARSA` with no code of its own, and `MonteCarlo` adds nothing.
+  `QLearning` is a subclass of `SARSA` with no code of its own, and `MonteCarlo` adds nothing. (Since then the update rule has moved to `evacrl/td.py` and `QLearning` has its own, off-policy, `bootstrapValue`; it is no longer a subclass of `SARSA`.)
 * `MonteCarlo.updateVelocity(pedIndx, codeLink)` is gone: nothing called it. Every class now has `updateVelocityV1(pedIndx)` (also uncalled),
   which is the same computation but reads the link from the agent's row instead of taking it as an argument.
 * `QLearning.loadShortestPathDB` no longer prints the size of the array it loads (a leftover debug line the other two classes never had).

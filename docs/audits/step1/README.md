@@ -16,9 +16,10 @@ python battery.py sp 30 sp.json  uru k24 k24_ceil legacy legacy_round legacy_cla
 python head_sp.py 30                               # the engine before Step 1: what main_ShortPath.py reports
 python analyze_sp.py sp.json                           # the table of the document
 python battery.py learn 50 3                       # SARSA training ablation (about 25 min on 4 cores)
+python analyze_learn.py learn_50.json              # its table (tests on per-seed means)
 ```
 
 The variant names: `uru` is the Urushibara engine; `k24` is `ModelOptions.kochi2024()` (it sizes the link segments with
 `round`, as `SARSA2024.py` does; `k24_ceil` uses `ceil` instead); `clamp` adds `segmentIndex="clamped"`; `legacy` is
-`ModelOptions()`.
+`ModelOptions.legacy()` (the defaults of `ModelOptions()` changed after Step 1).
 A seed fixes the departure times, so the runs of different variants with the same seed are paired.

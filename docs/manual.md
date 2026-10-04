@@ -22,7 +22,7 @@ Each method has its own entry point in `scripts/`, importing its class from the 
 
 | Script | Class (module) | Method |
 |--------|----------------|--------|
-| `scripts/main_ql.py`, `scripts/main_ql_mod.py` | `QLearning` (`src/evacrl/qlearn.py`) | Q-learning (see below: with greedy choices) |
+| `scripts/main_ql.py`, `scripts/main_ql_mod.py` | `QLearning` (`src/evacrl/qlearn.py`) | Q-learning (off-policy) |
 | `scripts/main_sarsa.py` | `SARSA` (`src/evacrl/sarsa.py`) | SARSA |
 | `scripts/main_mc.py` | `MonteCarlo` (`src/evacrl/mc.py`) | Monte Carlo |
 | `scripts/main_ShortPath.py` | `QLearning`, `MonteCarlo` | Shortest-path baseline (no learning) |
@@ -37,26 +37,27 @@ the plots and videos. The methods differ only in **when and how the action value
 | Class | `tdControl` | Learns |
 |-------|-------------|--------|
 | `MonteCarlo` | not overridden (does nothing) | once per simulation, in `updateValueFunctionDB` |
-| `SARSA` | `Q(S0,A0) += alpha*(stepReward*dt + discount*Q(S,A) - Q(S0,A0))`, plus `surviveReward` on arrival | during the simulation |
-| `QLearning` | the same as `SARSA`'s (it is a subclass with no code of its own) | during the simulation |
+| `SARSA` | `Q(S0,A0) += alpha*(stepReward*dt + discount*Q(S,A) - Q(S0,A0))`, plus `surviveReward` on arrival | during the simulation (on-policy) |
+| `QLearning` | `Q(S0,A0) += alpha*(stepReward*dt + discount*max_a Q(S,a) - Q(S0,A0))`, plus `surviveReward` on arrival | during the simulation (off-policy) |
 
-So `QLearning` and `SARSA` are the same update; the scripts make the difference through how agents choose their next node.
-`main_sarsa.py` and `main_ql_mod.py` explore with a decaying rate (`randomChoiceRate` is 0.99 in the first simulation, then
-`1 - (s/eoe)^2` for the first 80% of the simulations of a block, then 0), which is SARSA. `main_ql.py` overrides that
-schedule with `randomChoiceRate = 0` (the line is marked "added to check if this is Q-Learning"): agents always take the best-valued
-action, so `Q(S,A)` is the maximum over the actions, which is Q-learning's target. A genuinely off-policy update (target: the maximum over
-the actions at `S`) would be one overridden `tdControl` in `QLearning`, leaving `SARSA` and `MonteCarlo` untouched. The results of all
-four entry points are protected by the golden tests in `tests/`.
+`SARSA` and `QLearning` share the bookkeeping (`src/evacrl/td.py`, class `TemporalDifference`) and differ in one method,
+`bootstrapValue(S, A)`: SARSA returns `Q(S,A)` of the action the agent actually chose, exploration included; Q-learning returns the
+maximum of `Q(S,.)` over the actions that exist at that node (`transLinkdb[node, 1]` of the 10 slots: the unused ones hold 0
+and would beat every negative value). Reaching an evacuation node ends the episode: `Q(S,A)` is moved towards `surviveReward`
+and nothing is bootstrapped from beyond it. When agents always choose the best action (no exploration) the two updates are
+identical to the last digit, which `tests/test_td.py` checks; with exploration they differ.
 
-Run a script from any directory (e.g. `python scripts/main_ql_mod.py`); the case to run is the first argument (`python scripts/main_ql_mod.py kochi`; one of the `kochi_*`, `arahama_*`, `new_kochi_*` helpers of the script) and is looked up in `cases/<area>/` (see `src/evacrl/paths.py`). Without an argument the script runs its default case.
-The newer workflow in `variants/app_2022/` has its own `main.py`, run from inside that folder.
+All four entry points explore with a decaying rate (`randomChoiceRate` is 0.99 in the first simulation, then `1 - (s/eoe)^2` for
+the first 80% of the simulations of a block, then 0). Before the off-policy update was added, `QLearning` was `SARSA` with no code of its own, and `main_ql.py`
+forced `randomChoiceRate = 0` (marked "added to check if this is Q-Learning") so that its greedy choices made SARSA's target
+Q-learning's; both are gone now that the update is real. The results of every entry point are protected by the golden tests in
+`tests/`; the SARSA and Monte Carlo runs are also pinned with `ModelOptions.legacy()` to the recordings of the original code.
 
-The files required as input, for an `<area>`, are in `cases/<area>/data/` (their format is described in the [README](../README.md)):   
-* `agentsdb.csv`  
-* `nodesdb.csv`  
-* `linksdb.csv`  
-* `actionsdb.csv`  
-* `transitionsdb.csv`
+**Discounting.** `discount` (0.9) is applied per *decision* in SARSA and Q-learning and per *second* in Monte Carlo
+(`0.9 ** seconds`), which is not the same model. `ModelOptions.discounting` makes it explicit: `"method"` (default) keeps
+what each method always did, `"decision"` and `"second"` apply one rule to all. On `kochi2`, Monte Carlo with 0.9 per second
+learns nothing useful (a greedy policy worse than random), with 0.9 per decision it does; see
+[audits/step2](./audits/step2/README.md).
 
 The parameters of the `run_*` functions are:  
 * `area` .- The study area, i.e. the folder with the input data (`kochi`, `arahama`, `new_kochi`).  
@@ -68,32 +69,36 @@ The parameters of the `run_*` functions are:
 The parameters needed by the classes are:  
 * `meanRayleigh` .- This is the mean value of a Rayleigh distribution for the evacuation departure time decision (in seconds).  
 * `folderStateNames` .- A name of a folder to store states explored during the learning process.  
-* `options` .- A `ModelOptions` (`src/evacrl/options.py`); default `ModelOptions()`, the 2021 behaviour, see below.
+* `options` .- A `ModelOptions` (`src/evacrl/options.py`); default `ModelOptions()`, the recommended settings, see below. Every `run_*` function takes it too.
 
 ## Model options
 
-`evacrl.options.ModelOptions` collects the behaviours that differ between the 2021 code (the default, which the golden tests pin)
-and the 2024 Kochi study (`erick2307/2024_urushibara`). Pass it as `options=` to any of the classes:
+`evacrl.options.ModelOptions` collects the behaviours that differ between the 2021 code and the 2024 Kochi study
+(`erick2307/2024_urushibara`). `ModelOptions()` holds the recommended settings; `ModelOptions.legacy()` and
+`ModelOptions.kochi2024()` are the two older behaviours, fully explicit so that they do not move when the defaults do.
+Pass it as `options=` to any of the classes or `run_*` functions:
 
 ```python
 from evacrl.options import ModelOptions
-from evacrl.sarsa import SARSA
+from evacrl.qlearn import QLearning
 
-SARSA(..., options=ModelOptions())                                  # 2021, exactly as before
-SARSA(..., options=ModelOptions(segmentIndex="clamped"))            # 2021 + the far-end fix (see below)
-SARSA(..., options=ModelOptions.kochi2024())                        # reproduces EVACMODEL3_FocalPoints/SARSA2024.py bit for bit
+QLearning(..., options=ModelOptions())                     # the defaults
+QLearning(..., options=ModelOptions.legacy())              # the 2021 behaviour, including its far-end defect
+QLearning(..., options=ModelOptions.kochi2024())           # EVACMODEL3_FocalPoints/SARSA2024.py, bit for bit (for SARSA)
+QLearning(..., options=ModelOptions(surviveReward=10**7))  # a default with one change
 ```
 
-| Option | 2021 (default) | 2024 | What it changes |
-|--------|----------------|------|-----------------|
-| `surviveReward` | `100000` | `10000000` | reward on reaching an evacuation node |
-| `densityLevel` | `"link"` | `"segment"` | density code of a link in the state: whole link, fixed 2 m width / worst segment, real width |
-| `entrySpeed` | `"first_segment"` | `"position"` | speed when entering a link: first segment / segment where the agent is |
-| `segmentSizing` | `"ceil"` | `"round"` | segments of about 2 m per link |
-| `segmentIndex` | `"raw"` | `"raw"` | `"clamped"` fixes agents freezing at the far end of a link (present in both codes) |
+| Option | Default | 2021 (`legacy()`) | 2024 (`kochi2024()`) | What it changes |
+|--------|---------|------|------|-----------------|
+| `surviveReward` | `100000` | `100000` | `10000000` | reward on reaching an evacuation node |
+| `densityLevel` | `"link"` | `"link"` | `"segment"` | density code of a link in the state: whole link, fixed 2 m width / worst segment, real width |
+| `entrySpeed` | `"position"` | `"first_segment"` | `"position"` | speed when entering a link: segment where the agent is / first segment |
+| `segmentSizing` | `"ceil"` | `"ceil"` | `"round"` | segments of about 2 m per link |
+| `segmentIndex` | `"clamped"` | `"raw"` | `"raw"` | `"clamped"` fixes agents freezing at the far end of a link (present in both older codes) |
+| `discounting` | `"method"` | `"method"` | `"method"` | `"decision"`, `"second"` or each method's own: see Discounting above |
 
 [engine-reconciliation.md](./engine-reconciliation.md) says what each does to the results and which setting is recommended.
-Results produced with `segmentIndex="raw"` can contain agents that stop at the end of a link and never evacuate.
+Results produced with `segmentIndex="raw"` (every result produced before the fix existed) can contain agents that stop at the end of a link and never evacuate.
 
 ### Shortest-path baseline
 

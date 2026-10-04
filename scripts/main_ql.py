@@ -14,7 +14,7 @@ import time
 
 
 def run_ql(area="kochi",simtime=30,meandeparture=15,numSim0=0,
-              numBlocks=5,simPerBlock=1000,name='r'):
+              numBlocks=5,simPerBlock=1000,name='r',options=None):
     t0 = time.time()
     agentsProfileName = paths.case_path(area, "data", "agentsdb.csv")
     nodesdbFile = paths.case_path(area, "data", "nodesdb.csv")
@@ -29,7 +29,7 @@ def run_ql(area="kochi",simtime=30,meandeparture=15,numSim0=0,
     survivorsPerSim = []
     
     if numSim0 == 0:
-        randomChoiceRate = 0. #0.99
+        randomChoiceRate = 0.99
         optimalChoiceRate = 1.0 - randomChoiceRate
         case = QLearning(agentsProfileName = agentsProfileName,
                       nodesdbFile = nodesdbFile,
@@ -38,7 +38,8 @@ def run_ql(area="kochi",simtime=30,meandeparture=15,numSim0=0,
                       transNodedbFile = transNodedbFile,
                       meanRayleigh = meanRayleighTest,
                       discount =0.9,
-                      folderStateNames = folderStateNames)
+                      folderStateNames = folderStateNames,
+                      options = options)
 
         totalagents = np.sum(case.pedDB.shape[0])
 
@@ -76,7 +77,6 @@ def run_ql(area="kochi",simtime=30,meandeparture=15,numSim0=0,
             else:
                 randomChoiceRate = 0.
             # randomChoiceRate = (simPerBlock - s - 1.0)/(simPerBlock - s + 1.0) #1.0/(0.015*s + 1.0)
-            randomChoiceRate = 0. #added to check if this is Q-Learning 2021.08.03
             optimalChoiceRate = 1.0 - randomChoiceRate
             case = QLearning(agentsProfileName = agentsProfileName , 
                           nodesdbFile= nodesdbFile,
@@ -84,7 +84,8 @@ def run_ql(area="kochi",simtime=30,meandeparture=15,numSim0=0,
                           transLinkdbFile= transLinkdbFile, 
                           transNodedbFile= transNodedbFile,
                           meanRayleigh = meanRayleighTest,
-                          folderStateNames = folderStateNames)
+                          folderStateNames = folderStateNames,
+                          options = options)
             
             namefile = os.path.join(folderStateNames , "sim_%09d.csv" % (numSim-1) )
             case.loadStateMatrixFromFile(namefile = namefile)

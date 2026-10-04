@@ -11,7 +11,8 @@ import pickle
 
 
 def createVideo(filename, foldername, method='ql',area="kochi",
-                simtime=30, meandeparture=15):
+                simtime=30, meandeparture=15, options=None):
+    """`options`: the ModelOptions the state matrix was trained with (default: the current defaults)."""
     # setup
     t0 = time.time()
     fn = paths.case_path(area, foldername, filename)
@@ -45,7 +46,8 @@ def createVideo(filename, foldername, method='ql',area="kochi",
                     transNodedbFile=transNodedbFile,
                     meanRayleigh=meanRayleighTest,
                     discount=0.9,
-                    folderStateNames=foldername)
+                    folderStateNames=foldername,
+                    options=options)
 
     if method == 'ql':
         case = QLearning(agentsProfileName=agentsProfileName,
@@ -55,7 +57,8 @@ def createVideo(filename, foldername, method='ql',area="kochi",
             transNodedbFile=transNodedbFile,
             meanRayleigh=meanRayleighTest,
             discount=0.9,
-            folderStateNames=foldername)
+            folderStateNames=foldername,
+            options=options)
 
     # input policy
     case.loadStateMatrixFromFile(namefile=fn)

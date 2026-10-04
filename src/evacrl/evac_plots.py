@@ -10,7 +10,7 @@ from scipy.stats import rayleigh
 import time
 
 def survivorsVsTime(numfiles,startfile=0,simtime=30,pop=35930,meandeparture=15,
-                    allfiles=True,blocks=250,casealias='case1',statefolder = "case_u30min"):
+                    allfiles=True,blocks=250,casealias='case1',statefolder = "case_u30min",options=None):
     if allfiles:
         simNum=np.arange(startfile,startfile+numfiles)            
     else:
@@ -31,7 +31,7 @@ def survivorsVsTime(numfiles,startfile=0,simtime=30,pop=35930,meandeparture=15,
         print(fileName)
         
         case = SARSA(agentsProfileName = agentsProfileName , 
-                     meanRayleigh = meanRayleighTest, folderStateNames=statefolder)
+                     meanRayleigh = meanRayleighTest, folderStateNames=statefolder, options=options)
         case.loadStateMatrixFromFile(namefile = fileName)
         
         for t in range( int(min(case.pedDB[:,9])) , simulTime  ):

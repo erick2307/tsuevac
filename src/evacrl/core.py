@@ -10,8 +10,9 @@ values are updated*, so that is the single hook a subclass overrides:
 
 * `tdControl(pedIndx)`   called every time an agent chooses its next node; the default does nothing
   (Monte Carlo learns at the end of the simulation, in `updateValueFunctionDB`)
-* `sarsa.SARSA`          overrides it with the on-policy temporal-difference update
-* `qlearn.QLearning`     see its docstring
+* `td.TemporalDifference` implements it once, with the value to bootstrap from as the only open question:
+  `sarsa.SARSA` bootstraps from the action that was chosen (on-policy), `qlearn.QLearning` from the best action
+  (off-policy)
 * `mc.MonteCarlo`        does not override it
 """
 
@@ -38,7 +39,7 @@ class EvacuationModel:
                  discount=0.9,
                  folderStateNames="state",
                  options=None):
-        # behaviours that differ between the 2021 and the 2024 code (see evacrl.options); default: 2021
+        # behaviours that differ between the 2021 and the 2024 code (see evacrl.options); default: the recommended settings
         self.options = ModelOptions() if options is None else options
         # setting the rewards for survive or dead
         self.surviveReward = self.options.surviveReward
@@ -552,10 +553,21 @@ class EvacuationModel:
         Hook called by updateTarget right after pedestrian pedIndx chose its next node
         (its experience, including this choice, is the last item of self.expeStat[pedIndx]).
         It does nothing here: Monte Carlo updates "stateMat" at the end of the episode
-        (updateValueFunctionDB). Temporal-difference methods override it to update "stateMat"
-        during the episode, see sarsa.SARSA.tdControl.
+        (updateValueFunctionDB). Temporal-difference methods update "stateMat" during the
+        episode, see td.TemporalDifference.tdControl.
         """
         return
+
+    # What `options.discounting == "method"` means for this method; see evacrl.options. Monte Carlo
+    # (this class) has always discounted once per second, the temporal-difference methods once per decision.
+    defaultDiscounting = "second"
+
+    def discountFactor(self, seconds):
+        """Factor by which a return is discounted over `seconds` seconds and one decision."""
+        mode = self.options.discounting
+        if mode == "method":
+            mode = self.defaultDiscounting
+        return self.discount ** seconds if mode == "second" else self.discount
 
     ########## functions to use shortest path
     
@@ -685,7 +697,7 @@ class EvacuationModel:
                 t1 = expSta[i   , 2]
                 t2 = expSta[i+1 , 2]
                 R = self.stepReward * (t2 - t1)
-                G *= self.discount**(t2-t1)
+                G *= self.discountFactor(t2-t1)
                 G += R
                 
                 if ifConstStepSize:

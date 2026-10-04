@@ -17,7 +17,7 @@ from evacrl.mc import MonteCarlo
 plt.ioff()
 
 def run_shortpath(area="kochi", simtime=30, meandeparture=15,
-                  numSim0=0, numBlocks=5, simPerBlock=1000, name='r'):
+                  numSim0=0, numBlocks=5, simPerBlock=1000, name='r', options=None):
     t0 = time.time()
     nextnodepath = paths.case_path(area, "data", "nextnode.csv")
     if not os.path.exists(nextnodepath):
@@ -45,7 +45,8 @@ def run_shortpath(area="kochi", simtime=30, meandeparture=15,
                          transNodedbFile=transNodedbFile,
                          meanRayleigh=meanRayleighTest,
                          discount=0.9,
-                         folderStateNames=folderStateNames)
+                         folderStateNames=folderStateNames,
+                         options=options)
 
         totalagents = np.sum(case.pedDB.shape[0])
         case.loadShortestPathDB(namefile=nextnodepath)
@@ -110,7 +111,8 @@ def run_shortpath(area="kochi", simtime=30, meandeparture=15,
                              transLinkdbFile=transLinkdbFile,
                              transNodedbFile=transNodedbFile,
                              meanRayleigh=meanRayleighTest,
-                             folderStateNames=folderStateNames)
+                             folderStateNames=folderStateNames,
+                             options=options)
 
             # Modified Oct 4, 2021
             # Check best state and load that one

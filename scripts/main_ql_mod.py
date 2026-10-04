@@ -23,6 +23,7 @@ def run_ql_mod(
     numBlocks=5,
     simPerBlock=1000,
     name="r",
+    options=None,
 ):
     t0 = time.time()
     agentsProfileName = paths.case_path(area, "data", "agentsdb.csv")
@@ -49,6 +50,7 @@ def run_ql_mod(
             meanRayleigh=meanRayleighTest,
             discount=0.9,
             folderStateNames=folderStateNames,
+            options=options,
         )
 
         totalagents = np.sum(case.pedDB.shape[0])
@@ -111,6 +113,7 @@ def run_ql_mod(
                 transNodedbFile=transNodedbFile,
                 meanRayleigh=meanRayleighTest,
                 folderStateNames=folderStateNames,
+                options=options,
             )
 
             # Modified Oct 4, 2021

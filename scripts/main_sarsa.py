@@ -14,7 +14,7 @@ import time
 
 
 def run_sarsa(area="kochi",simtime=30,meandeparture=15,numSim0=0,
-              numBlocks=5,simPerBlock=1000,name='r'):
+              numBlocks=5,simPerBlock=1000,name='r',options=None):
     t0 = time.time()
     agentsProfileName = paths.case_path(area, "data", "agentsdb.csv")
     nodesdbFile = paths.case_path(area, "data", "nodesdb.csv")
@@ -38,7 +38,8 @@ def run_sarsa(area="kochi",simtime=30,meandeparture=15,numSim0=0,
                       transNodedbFile = transNodedbFile,
                       meanRayleigh = meanRayleighTest,
                       discount =0.9,
-                      folderStateNames = folderStateNames)
+                      folderStateNames = folderStateNames,
+                      options = options)
 
         totalagents = np.sum(case.pedDB.shape[0])
 
@@ -83,7 +84,8 @@ def run_sarsa(area="kochi",simtime=30,meandeparture=15,numSim0=0,
                           transLinkdbFile= transLinkdbFile, 
                           transNodedbFile= transNodedbFile,
                           meanRayleigh = meanRayleighTest,
-                          folderStateNames = folderStateNames)
+                          folderStateNames = folderStateNames,
+                          options = options)
             
             namefile = os.path.join(folderStateNames , "sim_%09d.csv" % (numSim-1) )
             case.loadStateMatrixFromFile(namefile = namefile)

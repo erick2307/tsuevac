@@ -8,7 +8,9 @@ tests/fixtures/<entry>_golden_expected.json:
 
 * kochi, kochi_ql, kochi_sarsa, kochi_mc   real 4,315-node road network + a small SYNTHETIC population
              (tests/fixtures/kochi_golden_agents.csv, NOT real Kochi data), 3 short simulations;
-             run_ql_mod, run_ql, run_sarsa and run_mc respectively
+             run_ql_mod, run_ql, run_sarsa and run_mc respectively, with the default ModelOptions
+* kochi_sarsa_legacy, kochi_mc_legacy   the same runs of SARSA and Monte Carlo with ModelOptions.legacy(); their
+             recordings are those of the original code (see below)
 * new_kochi  real 19,207-node road network + a deterministic 1-in-1000 sample of its real
              population (cases/new_kochi/data/agentsdb.csv), 2 short simulations; run_ql_mod
 
@@ -85,6 +87,10 @@ CASES = {
     "kochi_ql": _kochi("ql"),
     "kochi_sarsa": _kochi("sarsa"),
     "kochi_mc": _kochi("mc"),
+    # the same runs with ModelOptions.legacy(): the recordings made before any option existed, kept to prove
+    # that the 2021 behaviour is still reproducible after the defaults changed
+    "kochi_sarsa_legacy": dict(_kochi("sarsa"), options="legacy"),
+    "kochi_mc_legacy": dict(_kochi("mc"), options="legacy"),
 }
 
 
@@ -109,6 +115,9 @@ def run_golden_case(name, workdir):
     for d in CODE_DIRS:
         if str(d) not in sys.path:
             sys.path.insert(0, str(d))
+    from evacrl.options import ModelOptions  # noqa: E402
+    options = getattr(ModelOptions, cfg["options"])() if cfg.get("options") else None  # None: the defaults
+    extra = {} if options is None else {"options": options}
     module, function = METHODS[cfg["method"]]
     run_method = getattr(importlib.import_module(module), function)  # imported late so CODE_DIRS is honoured
     from evacrl import paths  # noqa: E402
@@ -118,7 +127,7 @@ def run_golden_case(name, workdir):
     try:
         np.random.seed(cfg["seed"])
         with contextlib.redirect_stdout(io.StringIO()):
-            run_method(area="case", **cfg["run"])
+            run_method(area="case", **cfg["run"], **extra)
     finally:
         paths.CASES_DIR = saved_cases_dir
 
@@ -172,6 +181,12 @@ class Golden(unittest.TestCase):
 
     def test_kochi_mc(self):
         self.check("kochi_mc")
+
+    def test_kochi_sarsa_legacy(self):
+        self.check("kochi_sarsa_legacy")
+
+    def test_kochi_mc_legacy(self):
+        self.check("kochi_mc_legacy")
 
 
 if __name__ == "__main__":
