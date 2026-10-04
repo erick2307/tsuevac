@@ -67,4 +67,38 @@ The parameters of the `run_*` functions are:
 
 The parameters needed by the classes are:  
 * `meanRayleigh` .- This is the mean value of a Rayleigh distribution for the evacuation departure time decision (in seconds).  
-* `folderStateNames` .- A name of a folder to store states explored during the learning process.
+* `folderStateNames` .- A name of a folder to store states explored during the learning process.  
+* `options` .- A `ModelOptions` (`src/evacrl/options.py`); default `ModelOptions()`, the 2021 behaviour, see below.
+
+## Model options
+
+`evacrl.options.ModelOptions` collects the behaviours that differ between the 2021 code (the default, which the golden tests pin)
+and the 2024 Kochi study (`erick2307/2024_urushibara`). Pass it as `options=` to any of the classes:
+
+```python
+from evacrl.options import ModelOptions
+from evacrl.sarsa import SARSA
+
+SARSA(..., options=ModelOptions())                                  # 2021, exactly as before
+SARSA(..., options=ModelOptions(segmentIndex="clamped"))            # 2021 + the far-end fix (see below)
+SARSA(..., options=ModelOptions.kochi2024())                        # reproduces EVACMODEL3_FocalPoints/SARSA2024.py bit for bit
+```
+
+| Option | 2021 (default) | 2024 | What it changes |
+|--------|----------------|------|-----------------|
+| `surviveReward` | `100000` | `10000000` | reward on reaching an evacuation node |
+| `densityLevel` | `"link"` | `"segment"` | density code of a link in the state: whole link, fixed 2 m width / worst segment, real width |
+| `entrySpeed` | `"first_segment"` | `"position"` | speed when entering a link: first segment / segment where the agent is |
+| `segmentSizing` | `"ceil"` | `"round"` | segments of about 2 m per link |
+| `segmentIndex` | `"raw"` | `"raw"` | `"clamped"` fixes agents freezing at the far end of a link (present in both codes) |
+
+[engine-reconciliation.md](./engine-reconciliation.md) says what each does to the results and which setting is recommended.
+Results produced with `segmentIndex="raw"` can contain agents that stop at the end of a link and never evacuate.
+
+### Shortest-path baseline
+
+`loadShortestPathDB(file)` reads `nextnode.csv` (rows `[node, next node]`; `next node == node` at an evacuation node, `-9999`
+where there is no path; a header line is optional). `checkTargetShortestPath()` then moves the agents along it with the same
+speed rules as the learning agents, counts them in column 10 of `pedDB` when they arrive (`getNumberEvacuatedPed()`), and
+stops an agent that has no path. Since the first step of every agent is random in all methods (`initEvacuationAtTime`), the
+baseline is the shortest path *from the second node on*.

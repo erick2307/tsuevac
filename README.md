@@ -11,7 +11,7 @@
 cases/               one folder per study area: inputs in data/, run outputs in state_<name>/ (not tracked)
   kochi/             old Kochi network (4,315 nodes)
   new_kochi/         Kochi network with 19,207 nodes, plus its pre-processing pipeline
-src/evacrl/          importable code: core.py (shared engine), qlearn.py, sarsa.py, mc.py, evac_plots.py, make_video.py, paths.py
+src/evacrl/          importable code: core.py (shared engine), qlearn.py, sarsa.py, mc.py, options.py (model settings), tables.py (table reader), evac_plots.py, make_video.py, paths.py
 scripts/             entry points: main_ql.py, main_ql_mod.py, main_sarsa.py, main_mc.py, main_ShortPath.py
 notebooks/           analysis notebooks
 tests/               golden regression tests
@@ -27,6 +27,7 @@ results/, weights/   outputs shared by the notebooks
 |------|------------|
 | `scripts/main_*.py` | Entry points. Each one defines `run_*` plus one helper per area (`kochi_*`, `arahama_*`, `new_kochi_*`); pick the case on the command line, e.g. `python scripts/main_ql_mod.py kochi` (the default of each script is unchanged; a case whose data is not in `cases/` gets a message listing the ones that are). `main_ql_mod.py` is a variant of `main_ql.py` that reloads the best-performing state matrix at the start of each block. `main_ShortPath.py` is the shortest-path baseline (no learning); it needs a `cases/<area>/data/nextnode.csv`, which is not in the repository (`pre/defPathsFromNodes.py` is the legacy script that produced such a file). |
 | `src/evacrl/` | `core.py`: the simulation engine and state matrix, as the class `EvacuationModel`; `qlearn.py`, `sarsa.py` and `mc.py` hold the `QLearning`, `SARSA` and `MonteCarlo` classes, which are subclasses of it that differ only in how the action values are updated (see the [Manual](./docs/manual.md#the-three-methods-share-one-engine)); `evac_plots.py` (evacuation curves per epoch), `make_video.py` (AVI of a particular epoch), `cli.py` (case selection of the scripts) and `paths.py`. |
+| `src/evacrl/options.py`, `src/evacrl/tables.py` | `ModelOptions`: the behaviours that differ between the 2021 code and the 2024 Kochi study (survival reward, how the density code of a link is computed, speed on entering a link, segment lookup), with the 2021 behaviour as the default; see [docs/engine-reconciliation.md](./docs/engine-reconciliation.md). `load_table`: reads the case tables whether or not they have a header and whether integers are written as `116` or `116.0`. |
 | `src/evacrl/paths.py` | **The only place that knows the layout.** Case data, `figures/`, `weights/` and `results/` are all resolved through it, so moving a folder means editing this file. |
 | `cases/new_kochi/` | Besides its data, holds the pre-processing pipeline of the case (`preProcess.py`, `createLinksAndNodes.py`, `getPopulation.py`, `setActionsAndTransitions.py`, `preprocess.ipynb`); run it from inside this folder (it uses `./data` and `./tmp`). |
 | `notebooks/` | `check_policies`, `plot_survivors` (compare policies, survivors per simulation), `operation_*` (batches of runs: survivors vs. simulation and departure time), `CalculateWeights` (link weights from SARSA). Each starts with a bootstrap cell that finds the repository, so they run from any directory. |

@@ -21,6 +21,8 @@ import cv2
 import glob
 import os
 from evacrl import paths
+from evacrl.options import ModelOptions
+from evacrl.tables import load_table
 plt.ioff()
 
 
@@ -34,9 +36,12 @@ class EvacuationModel:
                  transNodedbFile=paths.case_path("kochi", "data", "transitionsdb.csv"),
                  meanRayleigh=7*60,
                  discount=0.9,
-                 folderStateNames="state"):
+                 folderStateNames="state",
+                 options=None):
+        # behaviours that differ between the 2021 and the 2024 code (see evacrl.options); default: 2021
+        self.options = ModelOptions() if options is None else options
         # setting the rewards for survive or dead
-        self.surviveReward = 100000
+        self.surviveReward = self.options.surviveReward
         self.deadReward = -1000
         self.stepReward = -1
         # store the discount parameter to compute the returns:
@@ -47,15 +52,21 @@ class EvacuationModel:
         # That is, a reward will be assigned every time an agent arrives a node:
         # new structure: [number, coordX, coordY, evacuationCode, rewardCode]
         # 2020Oct08: the reward node is replaced by reward every step
-        self.nodesdb = np.loadtxt(nodesdbFile, delimiter=',') 
+        self.nodesdb = load_table(nodesdbFile)
         # 2020Oct07: An additional column must be added to store the link width
         # Thus, this is the new format: [number, node1, node2, length, width]
-        self.linksdb = np.loadtxt(linksdbFile, delimiter=',', dtype=int) 
+        self.linksdb = load_table(linksdbFile, dtype=int)
         self.populationAtLinks = np.zeros((self.linksdb.shape[0], 2)) # number of agents at links [linkNumber, numberOfAgentsAtLink, density]
         self.populationAtLinks[:,0] = self.linksdb[:,0]
         # Parameters to construct histograms of polations at every link: (1) unit length, (2) number of units
         self.popAtLink_HistParam = np.zeros((self.linksdb.shape[0], 2))
-        self.popAtLink_HistParam[:,1] = np.ceil(self.linksdb[:,3] / 2. ) # assuming length units of about 2 meters
+        if np.any(self.linksdb[:,3] <= 0):
+            raise ValueError("%s: links %s have no length; remove them from the network" % (linksdbFile, self.linksdb[self.linksdb[:,3] <= 0, 0][:10].tolist()))
+        # assuming length units of about 2 meters
+        if self.options.segmentSizing == "round":
+            self.popAtLink_HistParam[:,1] = np.maximum(1, np.round(self.linksdb[:,3] / 2. ))
+        else:
+            self.popAtLink_HistParam[:,1] = np.ceil(self.linksdb[:,3] / 2. )
         self.popAtLink_HistParam[:,0] = self.linksdb[:,3] / self.popAtLink_HistParam[:,1] 
         # Separating memory for histogram information
         # the number of columns contains the larges number of segments of all the links
@@ -65,13 +76,15 @@ class EvacuationModel:
         self.denArrPerLink= np.zeros(( self.linksdb.shape[0] , int(max(self.popAtLink_HistParam[:,1]))+1))
         # 2020Oct07: Memory for velocity array at links
         self.speArrPerLink= np.zeros(( self.linksdb.shape[0] , int(max(self.popAtLink_HistParam[:,1]))+1))
+        # Density level (0, 1, 2) of every segment of every link; only used with options.densityLevel == "segment"
+        self.denLvlArrPerLink= np.zeros(( self.linksdb.shape[0] , int(max(self.popAtLink_HistParam[:,1]))+1))
     
         # for p in self.popHistPerLink: print(p)
-        self.transLinkdb = np.loadtxt(transLinkdbFile, delimiter=',', dtype=int) # database of actions [currentNode, numberOfNodesTarget, linkConnectingNode1, linkConnectingNode2,...]
-        self.transNodedb = np.loadtxt(transNodedbFile, delimiter=',', dtype=int) # database with possible transitions between nodes [currentNode, numberOfNodesTarget, nodeTarget1, nodeTarget2,...]
+        self.transLinkdb = load_table(transLinkdbFile, dtype=int) # database of actions [currentNode, numberOfNodesTarget, linkConnectingNode1, linkConnectingNode2,...]
+        self.transNodedb = load_table(transNodedbFile, dtype=int) # database with possible transitions between nodes [currentNode, numberOfNodesTarget, nodeTarget1, nodeTarget2,...]
         # identifying evacuation nodes
         self.evacuationNodes = self.nodesdb[self.nodesdb[:,3] == 1,0].astype(int)
-        self.pedProfiles = np.loadtxt(agentsProfileName, delimiter=',', dtype=int) # agents profile [age, gender, householdType, householdId, closestNodeNumber]
+        self.pedProfiles = load_table(agentsProfileName, dtype=int) # agents profile [age, gender, householdType, householdId, closestNodeNumber]
         self.numPedestrian = self.pedProfiles.shape[0]
         self.errorLoc = 2.0   # acceptable error between coordinate of a node and a coordinate of a pedestrian
         self.snapshotNumber = 0
@@ -161,6 +174,7 @@ class EvacuationModel:
             self.popHistPerLink[ind,:] = np.zeros( self.popHistPerLink.shape[1] )
             self.denArrPerLink[ind,:] = np.zeros( self.popHistPerLink.shape[1] )
             self.speArrPerLink[ind,:] = 1.19*np.ones( self.popHistPerLink.shape[1] )
+            self.denLvlArrPerLink[ind,:] = np.zeros( self.popHistPerLink.shape[1] )
         occupLinksIndx= np.where( self.populationAtLinks[:,1] > 0 )[0]
         for ind in occupLinksIndx:
             unitL=  self.popAtLink_HistParam[ind,0] 
@@ -179,6 +193,8 @@ class EvacuationModel:
             self.denArrPerLink[ind, :numComp] = hist / (unitL * width)
             self.speArrPerLink[ind, :numComp] = 1.388 - 0.396 * self.denArrPerLink[ind, :numComp]
             self.speArrPerLink[ind, :numComp] = np.clip( self.speArrPerLink[ind, :numComp] , 0.2 , 1.19 )
+            # same thresholds as computeDensityLevel (0.5 and 3.0 persons/m2), one level per segment
+            self.denLvlArrPerLink[ind, :numComp] = (self.denArrPerLink[ind, :numComp] > 0.5).astype(int) + (self.denArrPerLink[ind, :numComp] > 3.0).astype(int)
         return
     
     def computeWeightsAtLinks(self):
@@ -202,8 +218,13 @@ class EvacuationModel:
     def computeDensityLevel(self, codeLink, linkWidth = 2.):
         """
         Computes the pedestrian-density level at specific link. 
-        The current function has only three levels of pedestrian-density
+        The current function has only three levels of pedestrian-density.
+        options.densityLevel == "segment": the largest level among the segments of the link, as of the last call
+        of computePedHistDenVelAtLinks (every 10 s in the scripts). Otherwise (default): the density of the whole
+        link at this very moment, with a fixed width of 2 m.
         """
+        if self.options.densityLevel == "segment":
+            return int(np.max(self.denLvlArrPerLink[codeLink, :]))
         density = float(self.populationAtLinks[codeLink,1]) /(linkWidth * self.linksdb[codeLink,3])
         
         if density <= 0.5:
@@ -315,6 +336,9 @@ class EvacuationModel:
         # Then the new target is assigned
         indx = np.where(error <= self.errorLoc)[0]
         for i in indx:
+            # an agent that has not started yet has no experience (expeStat is None): nothing to check
+            if self.expeStat[i] is None:
+                continue
             # 2020Aug28: we use the new column in pedDB:
             if self.pedDB[i,10]:
                 continue
@@ -390,6 +414,9 @@ class EvacuationModel:
             dist= ( (self.pedDB[pedIndx,0] - x0L)**2 + (self.pedDB[pedIndx,1] - y0L)**2 )**0.5
             unitL= self.popAtLink_HistParam[codeLink,0]
             xAtLink= int( np.floor( dist / unitL) ) 
+            if self.options.segmentIndex == "clamped":
+                # at the far end of the link dist / unitL can reach the number of segments: one past the last
+                xAtLink= min(xAtLink, int(self.popAtLink_HistParam[codeLink,1]) - 1)
             speed= self.speArrPerLink[codeLink, xAtLink] + np.random.rand()*0.02 - 0.01  
             unitDir = (self.pedDB[pedIndx,2:4] - self.pedDB[pedIndx,:2]) / np.linalg.norm(self.pedDB[pedIndx,2:4] - self.pedDB[pedIndx,:2])
             vel_arr = speed * unitDir
@@ -509,6 +536,9 @@ class EvacuationModel:
             expeStatAndVal = np.array([stateIndx, indxTgt, self.time], dtype=int)
             # Update matrix "pedDB":
             self.pedDB[pedIndx , :9] = np.array( [x0_arr[0], x0_arr[1], xTgt_arr[0], xTgt_arr[1], vel_arr[0], vel_arr[1], link, nodeTgt, node0] )
+            if self.options.entrySpeed == "position" and nodeTgt != node0:
+                # speed of the segment where the agent is (it can enter the link from either end)
+                self.updateVelocityV2(pedIndx)
             # Record state and action experienced by the pedestrian:
             self.expeStat[pedIndx].append(expeStatAndVal) 
             # delete this
@@ -530,38 +560,63 @@ class EvacuationModel:
     ########## functions to use shortest path
     
     def loadShortestPathDB(self, namefile):
-        self.shortestPathDB = np.loadtxt(namefile, delimiter=",", skiprows=1, dtype=int)
+        """Next node of every node on its shortest path to an evacuation node: rows [node, nextNode],
+        nextNode == node at an evacuation node and -9999 where there is no path. A header line is optional."""
+        self.shortestPathDB = load_table(namefile, dtype=int)
         return
-    
+
+    def getNumberEvacuatedPed(self):
+        """Number of agents that have reached an evacuation node (column 10 of pedDB)."""
+        return int(np.sum(self.pedDB[:, 10] == 1))
+
     def updateTargetShortestPath(self, pedIndx):
-        if self.pedDB[pedIndx, 6] == -1:
+        """
+        Shortest-path counterpart of `updateTarget`: the next node is read from `shortestPathDB` instead of
+        chosen from the action values. It uses the same entry speed as the learning agents (options.entrySpeed),
+        so that the two can be compared under the same dynamics, and it flags an agent that reaches an
+        evacuation node in column 10 of pedDB exactly as `updateTarget` does. (Before, the flag was never set
+        here, so the scripts counted no one who walked to a shelter, and the speed came from `updateSpeed`, a
+        different model than the one the learning agents use.)
+        """
+        # link -1: already at an evacuation node (or stopped, see below); column 10: evacuated
+        if self.pedDB[pedIndx, 6] == -1 or self.pedDB[pedIndx, 10]:
             return
+        node0 = int(self.pedDB[pedIndx, 7])
+        x0_arr = np.array([self.nodesdb[node0, 1], self.nodesdb[node0, 2]])
+        nodeTgt = self.shortestPathDB[node0, 1]
+        if nodeTgt < 0:
+            # no path from here to an evacuation node (-9999): the agent stops, it does not walk on
+            self.populationAtLinks[int(self.pedDB[pedIndx, 6]), 1] -= 1
+            self.pedDB[pedIndx, 2:4] = x0_arr
+            self.pedDB[pedIndx, 4:6] = 0
+            self.pedDB[pedIndx, 6] = -1
+            return
+        numNodesLinked = self.transNodedb[node0, 1]
+        nodesLinked = self.transNodedb[node0, 2 : 2 + numNodesLinked]
+        indxTgt = np.where(nodesLinked == nodeTgt)[0][0]
+        link = self.transLinkdb[node0, 2 + indxTgt]
+        if nodeTgt == node0:
+            xTgt_arr = x0_arr
+            vel_arr = np.array([0, 0])
+            self.populationAtLinks[int(self.pedDB[pedIndx, 6]), 1] -= 1
+            self.pedDB[pedIndx, 10] = 1
         else:
-            node0 = int(self.pedDB[pedIndx, 7])
-            x0_arr = np.array([self.nodesdb[node0, 1], self.nodesdb[node0, 2]])
-            nodeTgt = self.shortestPathDB[node0, 1]
-            numNodesLinked = self.transNodedb[node0, 1]
-            nodesLinked = self.transNodedb[node0, 2 : 2 + numNodesLinked]
-            indxTgt = np.where(nodesLinked == nodeTgt)[0][0]
-            link = self.transLinkdb[node0, 2 + indxTgt]
-            if nodeTgt == node0:
-                xTgt_arr = x0_arr
-                vel_arr = np.array([0, 0])
-                self.populationAtLinks[int(self.pedDB[pedIndx, 6]), 1] -= 1
-            else:
-                self.populationAtLinks[int(self.pedDB[pedIndx,6]), 1] -= 1
-                self.populationAtLinks[link, 1] += 1
-                xTgt_arr = np.array([ self.nodesdb[nodeTgt, 1], self.nodesdb[nodeTgt, 2]])
-                unitDir = (xTgt_arr - x0_arr) / np.linalg.norm(xTgt_arr - x0_arr)
-                speed = self.updateSpeed(link)
-                vel_arr = speed * unitDir
-            self.pedDB[pedIndx, :9] = np.array([x0_arr[0], x0_arr[1], xTgt_arr[0], xTgt_arr[1], vel_arr[0], vel_arr[1], link, nodeTgt, node0])
+            self.populationAtLinks[int(self.pedDB[pedIndx, 6]), 1] -= 1
+            self.populationAtLinks[link, 1] += 1
+            xTgt_arr = np.array([ self.nodesdb[nodeTgt, 1], self.nodesdb[nodeTgt, 2]])
+            unitDir = (xTgt_arr - x0_arr) / np.linalg.norm(xTgt_arr - x0_arr)
+            vel_arr = self.speArrPerLink[link, 0] * unitDir
+        self.pedDB[pedIndx, :9] = np.array([x0_arr[0], x0_arr[1], xTgt_arr[0], xTgt_arr[1], vel_arr[0], vel_arr[1], link, nodeTgt, node0])
+        if self.options.entrySpeed == "position" and nodeTgt != node0:
+            self.updateVelocityV2(pedIndx)
         return
     
     def checkTargetShortestPath(self):
         error = ((self.pedDB[:, 0] - self.pedDB[:, 2]) ** 2 + (self.pedDB[:, 1] - self.pedDB[:, 3]) ** 2) ** 0.5
         indx = np.where(error <= self.errorLoc)[0]
         for i in indx:
+            if self.expeStat[i] is None:  # has not started yet
+                continue
             self.updateTargetShortestPath(i)
         return
     
