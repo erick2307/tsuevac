@@ -40,7 +40,7 @@ def make(method, discounting="method"):
     return CLASSES[method](
         agentsProfileName=f"{CASE}/population_1.csv", nodesdbFile=f"{CASE}/nodes.csv", linksdbFile=f"{CASE}/edges.csv",
         transLinkdbFile=f"{CASE}/actionsdb.csv", transNodedbFile=f"{CASE}/transitionsdb.csv", meanRayleigh=5 * 60,
-        options=ModelOptions(discounting=discounting))
+        options=ModelOptions(discounting=discounting, discount=0.9))   # the settings of the study (not the defaults any more)
 
 
 def simulate(m, eps):

@@ -522,6 +522,16 @@ class Robustness(Base):
         with self.assertRaisesRegex(ValueError, "no runs to write"):
             output.write_runs(self.dir / "x", [])
 
+    def test_the_discount_is_the_options_unless_given(self):
+        self.assertEqual(make_model(self.case, "qlearning").discount, 0.999)
+        self.assertEqual(make_model(self.case, "qlearning", ModelOptions.legacy()).discount, 0.9)
+        self.assertEqual(make_model(self.case, "qlearning", ModelOptions(discount=0.99)).discount, 0.99)
+        self.assertEqual(make_model(self.case, "qlearning", ModelOptions(discount=0.99), discount=0.5).discount, 0.5)
+        args = cli.build_parser().parse_args(["calibrate", "c", "--out", "o", "--set", "discount=0.95"])
+        self.assertEqual((args.discount, cli.options_from(args).discount), (None, 0.95))
+        args = cli.build_parser().parse_args(["calibrate", "c", "--out", "o", "--preset", "legacy"])
+        self.assertEqual(cli.options_from(args).discount, 0.9)
+
     def test_a_negative_seed_is_refused(self):
         with self.assertRaisesRegex(ValueError, "must not be negative"):
             derive_seeds(-1, 3)

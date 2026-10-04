@@ -50,8 +50,8 @@ class RunResult:
         return float(self.t0 + int(np.argmax(self.curve >= self.curve[-1])))
 
 
-def make_model(case, method="sarsa", options=None, mean_departure=5.0, discount=0.9):
-    """A model of `case` (`Case`), `method` one of `METHODS`, departures Rayleigh-distributed with a mean of `mean_departure` minutes."""
+def make_model(case, method="sarsa", options=None, mean_departure=5.0, discount=None):
+    """A model of `case` (`Case`), `method` one of `METHODS`, departures Rayleigh-distributed with a mean of `mean_departure` minutes. `discount`: None takes the discount of the options."""
     return METHODS[method](meanRayleigh=mean_departure * 60, discount=discount,
                            options=ModelOptions() if options is None else options, **case.kwargs)
 
@@ -109,7 +109,7 @@ def check_state(model, state):
         raise ValueError(f"not a state matrix of this case ({n} nodes): shape {state.shape}, first rows {state[:3, 0].tolist() if state.ndim == 2 else '?'}")
 
 
-def evaluate_state(case, method, state, seed, options=None, sim_time=1800, mean_departure=5.0, discount=0.9, learn=False):
+def evaluate_state(case, method, state, seed, options=None, sim_time=1800, mean_departure=5.0, discount=None, learn=False):
     """One greedy run (no random choices) of the policy in the state matrix `state`, which is left unchanged.
 
     learn=False (default): the policy is frozen, nothing is learned during the run. learn=True: the agents keep learning on a copy of

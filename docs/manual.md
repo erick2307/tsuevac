@@ -53,18 +53,16 @@ forced `randomChoiceRate = 0` (marked "added to check if this is Q-Learning") so
 Q-learning's; both are gone now that the update is real. The results of every entry point are protected by the golden tests in
 `tests/`; the SARSA and Monte Carlo runs are also pinned with `ModelOptions.legacy()` to the recordings of the original code.
 
-**Discounting.** `discount` (0.9) is applied per *decision* in SARSA and Q-learning and per *second* in Monte Carlo
-(`0.9 ** seconds`), which is not the same model. `ModelOptions.discounting` makes it explicit: `"decision"` (default) applies it per decision in all three methods,
-`"second"` per second in all three, `"method"` keeps what each always did (so `ModelOptions.legacy()` reproduces the old Monte
-Carlo). On `kochi2`, Monte Carlo with 0.9 per second learns nothing useful (a greedy policy worse than random), with 0.9 per
-decision it does; see [audits/step2](./audits/step2/README.md).
-
-**The discount also decides what is learned** ([audits/step4](./audits/step4/README.md)). With 0.9 once per *decision* and a reward of
-1e5 on arrival, a shelter 20 nodes away is worth 1e5 * 0.9^20 = 12,158 and one node more or less changes that by about 1,200, as much
-as 1,200 s of walking: the target prefers fewer nodes to a shorter walk. On `kochi2` its exact optimum walks 27 % farther than the
-shortest path and gets 81 % of its survivors at 30 min, which is where SARSA and Q-learning stop however long they train. A discount
-close to 1 per *second* (`--set discounting=second --discount 0.999`) makes the target the evacuation time, and Q-learning then reaches
-99 % of the shortest path. The default is still the old one until the change is confirmed.
+**Discounting.** The default is a discount of **0.999 per second** for all three methods (`ModelOptions().discounting == "second"`,
+`.discount == 0.999`): the return the learner estimates is then, in effect, the time to a shelter, and the best policy of that target is the one
+that gets there soonest. Until Step 4 it was 0.9 once per *decision* in SARSA and Q-learning and 0.9 per *second* in Monte Carlo, which are not the
+same model. With 0.9 once per decision and a reward of 1e5 on arrival, a shelter 20 nodes away is worth 1e5 * 0.9^20 = 12,158 and one node more or
+less changes that by about 1,200, as much as 1,200 s of walking: the target prefers fewer nodes to a shorter walk. On `kochi2` its exact
+optimum walks 27 % farther than the shortest path and gets 81 % of its survivors at 30 min, which is where SARSA and Q-learning stopped however
+long they trained; with 0.999 per second Q-learning reaches 99 % of the shortest path ([audits/step4](./audits/step4/README.md)). 0.9 per second
+makes Monte Carlo learn nothing useful ([audits/step2](./audits/step2/README.md)). `ModelOptions.legacy()` and `ModelOptions.kochi2024()` keep
+`discount=0.9` with `discounting="method"` (each method does what it did), so results of the old code are reproduced whatever the defaults are.
+A model class takes a `discount=` argument that overrides the one of its options.
 
 The parameters of the `run_*` functions are:  
 * `area` .- The study area, i.e. the folder with the input data (`kochi`, `arahama`, `new_kochi`).  
@@ -213,7 +211,8 @@ QLearning(..., options=ModelOptions(surviveReward=10**7))  # a default with one 
 | `entrySpeed` | `"position"` | `"first_segment"` | `"position"` | speed when entering a link: segment where the agent is / first segment |
 | `segmentSizing` | `"ceil"` | `"ceil"` | `"round"` | segments of about 2 m per link |
 | `segmentIndex` | `"clamped"` | `"raw"` | `"raw"` | `"clamped"` fixes agents freezing at the far end of a link (present in both older codes) |
-| `discounting` | `"decision"` | `"method"` | `"method"` | `"decision"`, `"second"` or each method's own: see Discounting above |
+| `discounting` | `"second"` | `"method"` | `"method"` | what the discount is applied to: `"second"`, `"decision"` or each method's own: see Discounting above |
+| `discount` | `0.999` | `0.9` | `0.9` | the discount factor |
 
 [engine-reconciliation.md](./engine-reconciliation.md) says what each does to the results and which setting is recommended.
 Results produced with `segmentIndex="raw"` (every result produced before the fix existed) can contain agents that stop at the end of a link and never evacuate.

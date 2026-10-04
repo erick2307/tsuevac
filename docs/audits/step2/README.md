@@ -60,4 +60,6 @@ the TD methods have always used the per-decision one.
 
 `discounting="decision"` for all three methods as the default (Monte Carlo changes; SARSA and Q-learning do not).
 **Confirmed and applied** at the start of Step 3: only the default-option Monte Carlo golden recording changed.
+**Superseded in Step 4 (D7):** the default is now 0.999 per *second* for all three methods ([Step 4](../step4/README.md)). The numbers of
+this audit were measured with 0.9 per decision (`ModelOptions(discounting="decision", discount=0.9)`; `learning.py` says so).
 `ModelOptions.legacy()` keeps `"method"`, so the 2021 Monte Carlo remains reproducible.

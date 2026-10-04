@@ -45,7 +45,6 @@ def createVideo(filename, foldername, method='ql',area="kochi",
                     transLinkdbFile=transLinkdbFile,
                     transNodedbFile=transNodedbFile,
                     meanRayleigh=meanRayleighTest,
-                    discount=0.9,
                     folderStateNames=foldername,
                     options=options)
 
@@ -56,7 +55,6 @@ def createVideo(filename, foldername, method='ql',area="kochi",
             transLinkdbFile=transLinkdbFile,
             transNodedbFile=transNodedbFile,
             meanRayleigh=meanRayleighTest,
-            discount=0.9,
             folderStateNames=foldername,
             options=options)
 

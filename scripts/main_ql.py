@@ -37,7 +37,6 @@ def run_ql(area="kochi",simtime=30,meandeparture=15,numSim0=0,
                       transLinkdbFile = transLinkdbFile, 
                       transNodedbFile = transNodedbFile,
                       meanRayleigh = meanRayleighTest,
-                      discount =0.9,
                       folderStateNames = folderStateNames,
                       options = options)
 

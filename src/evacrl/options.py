@@ -34,13 +34,19 @@ class ModelOptions:
         "position"      speed of the segment where the agent actually is (2024, default).
     discounting
         What the discount factor `discount` is applied to, in the return that the learning methods estimate.
-        "decision" once per choice of a next node, whatever the time it takes (the temporal-difference methods, SARSA
-                   and Q-learning, did this in 2021 and 2024). Default.
-        "second"   once per second: `discount ** seconds` (Monte Carlo did this in 2021). With discount = 0.9 a
-                   reward 100 s ahead is weighted by 3e-5.
+        "second"   once per second: `discount ** seconds`. Default, with `discount` 0.999: the return is then, in effect, the time
+                   to the shelter, and the best policy of that target is the one that reaches a shelter soonest.
+        "decision" once per choice of a next node, whatever the time it takes (SARSA and Q-learning did this in 2021 and 2024).
+                   With 0.9 and a reward of 1e5 one node more or less on the way to a shelter is worth about 1,200 s of walking,
+                   so the best policy of that target minimises the *number of nodes*, not the distance: on `kochi2` it walks 27 %
+                   farther than the shortest path and gets 81 % of its survivors, which is where SARSA and Q-learning stopped
+                   however long they trained (docs/audits/step4).
         "method"   each method keeps what it did before: "decision" for SARSA and Q-learning, "second" for Monte Carlo
-                   (the 2021 and 2024 behaviour). With discount = 0.9 per second, Monte Carlo learns nothing useful
-                   (docs/audits/step2), which is why it is not the default.
+                   (the 2021 and 2024 behaviour; `legacy()` and `kochi2024()`). With discount = 0.9 per second, Monte Carlo learns
+                   nothing useful (docs/audits/step2).
+    discount
+        The discount factor itself (default 0.999, for "second"). The model classes take a `discount=` argument that overrides
+        it. `legacy()` and `kochi2024()` hold the 0.9 of the old code, together with `discounting="method"`.
     segmentSizing
         Number of segments (about 2 m each) a link is divided into for the density and speed histograms.
         "ceil"  ceil(length / 2) (2021, default).
@@ -60,9 +66,12 @@ class ModelOptions:
     entrySpeed: str = "position"
     segmentSizing: str = "ceil"
     segmentIndex: str = "clamped"
-    discounting: str = "decision"
+    discounting: str = "second"
+    discount: float = 0.999
 
     def __post_init__(self):
+        if not 0.0 < self.discount <= 1.0:
+            raise ValueError(f"discount must be in (0, 1], not {self.discount!r}")
         if self.densityLevel not in DENSITY_LEVELS:
             raise ValueError(f"densityLevel must be one of {DENSITY_LEVELS}, not {self.densityLevel!r}")
         if self.entrySpeed not in ENTRY_SPEEDS:
@@ -77,13 +86,13 @@ class ModelOptions:
     @classmethod
     def legacy(cls):
         """The 2021 behaviour: what the code did before the options existed (it contains the segment-index defect)."""
-        return cls(surviveReward=100000, densityLevel="link", entrySpeed="first_segment", discounting="method",
+        return cls(surviveReward=100000, densityLevel="link", entrySpeed="first_segment", discounting="method", discount=0.9,
                    segmentSizing="ceil", segmentIndex="raw")
 
     @classmethod
     def kochi2024(cls):
         """The dynamics of `SARSA2024.py` (EVACMODEL3_FocalPoints), including its segment-index defect; bit for bit with `SARSA`."""
-        return cls(surviveReward=10000000, densityLevel="segment", entrySpeed="position", discounting="method",
+        return cls(surviveReward=10000000, densityLevel="segment", entrySpeed="position", discounting="method", discount=0.9,
                    segmentSizing="round", segmentIndex="raw")
 
     def replace(self, **changes):

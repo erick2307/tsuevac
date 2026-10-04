@@ -60,7 +60,7 @@ class CalibrationResult:
 
 
 def calibrate(case, *, method="qlearning", sims=300, schedule="calibration", eval_every=25, eval_runs=5, sim_time=1800,
-              mean_departure=5.0, options=None, discount=0.9, seed=0, workers=1, restart_from_best=False, eval_learn=False, progress=None):
+              mean_departure=5.0, options=None, discount=None, seed=0, workers=1, restart_from_best=False, eval_learn=False, progress=None):
     """Train `method` on `case` for `sims` simulations; see the module docstring. Training is sequential, the evaluations of
     a checkpoint run in `workers` processes. `progress(checkpoint)` is called after each checkpoint. Reproducible from `seed`.
 
@@ -104,7 +104,7 @@ def calibrate(case, *, method="qlearning", sims=300, schedule="calibration", eva
                              dict(base=seed, training=train_seeds, evaluation=eval_seeds))
 
 
-def evaluate_policy(case, method, state, runs=20, *, seed=0, workers=1, options=None, sim_time=1800, mean_departure=5.0, discount=0.9, learn=False):
+def evaluate_policy(case, method, state, runs=20, *, seed=0, workers=1, options=None, sim_time=1800, mean_departure=5.0, discount=None, learn=False):
     """`runs` greedy runs of the policy in `state`, departure-time seeds derived from `seed`: a list of `RunResult`. The policy is frozen
     unless `learn` (see `evaluate_state`)."""
     if runs < 1:

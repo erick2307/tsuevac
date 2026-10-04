@@ -36,7 +36,7 @@ class EvacuationModel:
                  transLinkdbFile=paths.case_path("kochi", "data", "actionsdb.csv"),
                  transNodedbFile=paths.case_path("kochi", "data", "transitionsdb.csv"),
                  meanRayleigh=7*60,
-                 discount=0.9,
+                 discount=None,
                  folderStateNames="state",
                  options=None):
         # behaviours that differ between the 2021 and the 2024 code (see evacrl.options); default: the recommended settings
@@ -45,8 +45,8 @@ class EvacuationModel:
         self.surviveReward = self.options.surviveReward
         self.deadReward = -1000
         self.stepReward = -1
-        # store the discount parameter to compute the returns:
-        self.discount = discount
+        # store the discount parameter to compute the returns (`discount=None`: the one of the options)
+        self.discount = self.options.discount if discount is None else discount
         # nodes database in utm coordinates [number, coordX, coordY, evacuactionCode]; 
         # evacuationCode equals 1 if the node is an evacuation node; otherwise, is zero. 
         # On 2020August28 we decided to include a new column that will store the reward in each node

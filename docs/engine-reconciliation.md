@@ -129,4 +129,5 @@ tests have no shortest-path entry. This is the one place where a default changed
 | D3 | `surviveReward`, `densityLevel` stay at the 2021 values until Step 4 | yes: the evidence at 622 agents and 50 simulations cannot separate them | confirmed |
 | D4 | the shortest-path fixes (B) stay as applied, without an option | yes | confirmed |
 | D5 | when to flip the defaults of D1–D2 | at the start of Step 2, when the golden recordings are regenerated anyway, so that they change once | confirmed, done |
-| D6 | the Kochi results of the 2024 repository are regenerated with the fix before they are cited | yes (outside this repository) | open, not part of this repository |
+| D6 | the Kochi results of the 2024 repository are regenerated with the fix before they are cited | yes | confirmed in Step 4 (D8): regenerated with `evacrl.experiment`, see [audits/step4](./audits/step4/README.md) |
+| D7 | discount of the TD methods: 0.9 per decision (always) or 0.999 per second | per second | confirmed, applied after Step 4: the new default, `legacy()` and `kochi2024()` keep 0.9 |

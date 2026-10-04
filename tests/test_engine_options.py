@@ -69,11 +69,11 @@ class Base(unittest.TestCase):
     def tearDown(self):
         self._tmp.cleanup()
 
-    def model(self, agents_at=(0, 1, 3), options=None, style="2021", meanRayleigh=10, links=None):
+    def model(self, agents_at=(0, 1, 3), options=None, style="2021", meanRayleigh=10, links=None, **extra):
         d = write_case(self.dir, agents_at, style, links)
         return SARSA(agentsProfileName=str(d / "agents.csv"), nodesdbFile=str(d / "nodes.csv"),
                      linksdbFile=str(d / "links.csv"), transLinkdbFile=str(d / "actions.csv"),
-                     transNodedbFile=str(d / "transitions.csv"), meanRayleigh=meanRayleigh, options=options)
+                     transNodedbFile=str(d / "transitions.csv"), meanRayleigh=meanRayleigh, options=options, **extra)
 
     def run_shortest_path(self, m, seconds=900):
         m.loadShortestPathDB(str(self.dir / "nextnode.csv"))
@@ -98,23 +98,30 @@ class Options(Base):
     def test_defaults_are_the_recommended_settings(self):
         m = self.model()
         self.assertEqual(m.options, ModelOptions(surviveReward=100000, densityLevel="link", entrySpeed="position",
-                                                 segmentSizing="ceil", segmentIndex="clamped", discounting="decision"))
+                                                 segmentSizing="ceil", segmentIndex="clamped", discounting="second", discount=0.999))
         self.assertEqual(m.surviveReward, 100000)
+        self.assertEqual((m.discount, m.options.discounting), (0.999, "second"))
+
+    def test_the_discount_comes_from_the_options_unless_the_model_is_given_one(self):
+        self.assertEqual(self.model(options=ModelOptions(discount=0.99)).discount, 0.99)
+        self.assertEqual(self.model(options=ModelOptions.legacy()).discount, 0.9)
+        self.assertEqual(self.model(options=ModelOptions.kochi2024()).discount, 0.9)
+        self.assertEqual(self.model(options=ModelOptions(discount=0.99), discount=0.5).discount, 0.5)
 
     def test_legacy_and_kochi2024_do_not_follow_the_defaults(self):
         self.assertEqual(ModelOptions.legacy(), ModelOptions(surviveReward=100000, densityLevel="link",
                                                              entrySpeed="first_segment", segmentSizing="ceil",
-                                                             segmentIndex="raw", discounting="method"))
+                                                             segmentIndex="raw", discounting="method", discount=0.9))
         self.assertEqual(ModelOptions.kochi2024(), ModelOptions(surviveReward=10000000, densityLevel="segment",
                                                                 entrySpeed="position", segmentSizing="round",
-                                                                segmentIndex="raw", discounting="method"))
+                                                                segmentIndex="raw", discounting="method", discount=0.9))
 
     def test_survive_reward_comes_from_the_options(self):
         self.assertEqual(self.model(options=ModelOptions.kochi2024()).surviveReward, 10000000)
 
     def test_invalid_option_values_are_rejected(self):
         for bad in (dict(densityLevel="x"), dict(entrySpeed="x"), dict(segmentSizing="x"), dict(segmentIndex="x"),
-                    dict(discounting="x")):
+                    dict(discounting="x"), dict(discount=0), dict(discount=-0.1), dict(discount=1.1)):
             with self.assertRaises(ValueError):
                 ModelOptions(**bad)
 

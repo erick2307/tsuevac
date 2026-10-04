@@ -55,7 +55,7 @@ def _common(p, kind):
     p.add_argument("--popfile", type=int, default=1, help="population file number of a 2024-layout folder")
     if kind != "sp":
         p.add_argument("--method", choices=sorted(METHODS), default="qlearning")
-        p.add_argument("--discount", type=float, default=0.9)
+        p.add_argument("--discount", type=float, default=None, help="discount factor (default: the one of the model options, 0.999 per second)")
 
 
 def build_parser():
@@ -211,9 +211,11 @@ def _main(argv):
         if args.sp:
             _, safe, _ = output.read_curves(args.sp)
             reference = float(safe[:, min(_seconds(args.time), safe.shape[1]) - 1].mean())
+        discount = options.discount if args.discount is None else args.discount
         plot_learning(os.path.join(args.out, "learning.png"), output.read_history(args.out), reference=reference,
-                      title=f"{case.name}: {args.method}, discount {args.discount:g}")
-        summary = dict(best_sim=res.best_sim, best_eval=res.best_eval, agents=res.agents, states=int(res.best_state.shape[0]), sp_reference=reference)
+                      title=f"{case.name}: {args.method}, discount {discount:g} ({options.discounting})")
+        summary = dict(best_sim=res.best_sim, best_eval=res.best_eval, agents=res.agents, states=int(res.best_state.shape[0]), sp_reference=reference,
+                       discount=discount, discounting=options.discounting)
         write_manifest(args.out, build_manifest("calibration", case, vars(args), options=options, seeds=res.seeds, results=summary, started=started, argv=[command]))
         print(f"best checkpoint: after {res.best_sim} simulations, {res.best_eval:.1f} of {res.agents} safe (greedy); results in {args.out}")
         return 0

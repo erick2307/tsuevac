@@ -5,7 +5,7 @@ expected values worked out by hand on the five-node corridor of test_engine_opti
 
     node 0 (1 action) --- node 1 (2 actions: to 0, to 2) --- node 2 (evacuation node, 1 action)
 
-With alpha = 0.05, discount = 0.9, stepReward = -1 per second, surviveReward = 1e5.
+With alpha = 0.05, discount = 0.9 (per decision unless a test says otherwise: `HAND`), stepReward = -1 per second, surviveReward = 1e5.
 
 Run: python -m unittest discover tests
 """
@@ -35,6 +35,7 @@ ACTIONS_SHELTER_WITH_EXIT = {**ACTIONS, 2: [-1, 1]}
 TRANSITIONS_SHELTER_WITH_EXIT = {**TRANSITIONS, 2: [2, 1]}
 
 ALPHA, GAMMA, SURVIVE = 0.05, 0.9, 100000
+HAND = ModelOptions(discounting="decision", discount=GAMMA)   # the settings of the hand-worked values below (not the defaults)
 
 
 class Base(unittest.TestCase):
@@ -50,7 +51,7 @@ class Base(unittest.TestCase):
         d = write_case(self.dir, agents_at, **tables)
         return cls(agentsProfileName=str(d / "agents.csv"), nodesdbFile=str(d / "nodes.csv"),
                    linksdbFile=str(d / "links.csv"), transLinkdbFile=str(d / "actions.csv"),
-                   transNodedbFile=str(d / "transitions.csv"), meanRayleigh=meanRayleigh, options=options)
+                   transNodedbFile=str(d / "transitions.csv"), meanRayleigh=meanRayleigh, options=HAND if options is None else options)
 
     def experience(self, m, steps):
         """Give agent 0 the experience [(node, action, time), ...]; returns the state index of each step."""
@@ -169,14 +170,28 @@ class Discounting(Base):
     def test_factor_by_method_and_option(self):
         expected = {"decision": GAMMA, "second": GAMMA ** 100}
         for cls, by_method in ((SARSA, "decision"), (QLearning, "decision"), (MonteCarlo, "second")):
-            # the default is "decision" for every method; "method" gives each its own, as in 2021
+            # "decision" (here: HAND) is once per decision for every method; "method" gives each its own, as in 2021
             self.assertEqual(self.model(cls).discountFactor(100), expected["decision"], cls.__name__)
-            m = self.model(cls, options=ModelOptions(discounting="method"))
+            m = self.model(cls, options=ModelOptions(discounting="method", discount=GAMMA))
             self.assertEqual(m.discountFactor(100), expected[by_method], cls.__name__)
             self.assertEqual(self.model(cls, options=ModelOptions.legacy()).discountFactor(100), expected[by_method])
             for mode in ("decision", "second"):
-                m = self.model(cls, options=ModelOptions(discounting=mode))
+                m = self.model(cls, options=ModelOptions(discounting=mode, discount=GAMMA))
                 self.assertEqual(m.discountFactor(100), expected[mode], f"{cls.__name__} {mode}")
+
+    def test_the_default_is_a_discount_of_0_999_per_second_for_every_method(self):
+        for cls in (SARSA, QLearning, MonteCarlo):
+            m = self.model(cls, options=ModelOptions())
+            self.assertEqual((m.discount, m.options.discounting), (0.999, "second"))
+            self.assertEqual(m.discountFactor(100), 0.999 ** 100, cls.__name__)
+            self.assertEqual(m.discountFactor(0), 1.0)
+
+    def test_a_discount_given_to_the_model_wins_over_the_options(self):
+        d = write_case(self.dir, (0,))
+        files = dict(agentsProfileName=str(d / "agents.csv"), nodesdbFile=str(d / "nodes.csv"), linksdbFile=str(d / "links.csv"),
+                     transLinkdbFile=str(d / "actions.csv"), transNodedbFile=str(d / "transitions.csv"), meanRayleigh=10)
+        m = QLearning(options=ModelOptions(), discount=0.5, **files)
+        self.assertEqual(m.discountFactor(2), 0.25)
 
     def test_a_decision_is_discounted_once_whatever_the_time_it_took(self):
         for cls in (SARSA, QLearning):
@@ -188,7 +203,7 @@ class Discounting(Base):
             self.assertAlmostEqual(m.stateMat[s0, 11], -45.5, places=9, msg=cls.__name__)
 
     def test_a_second_is_discounted_when_asked(self):
-        m = self.model(QLearning, options=ModelOptions(discounting="second"))
+        m = self.model(QLearning, options=ModelOptions(discounting="second", discount=GAMMA))
         s0, s1 = self.experience(m, [(0, 0, 0), (1, 0, 10)])
         m.stateMat[s0, 11], m.stateMat[s1, 11] = 0.0, 100.0
         m.tdControl(0)
@@ -196,7 +211,7 @@ class Discounting(Base):
         self.assertAlmostEqual(m.stateMat[s0, 11], 0.05 * (-10 + GAMMA ** 10 * 100), places=9)
 
     def monte_carlo_values(self, mode):
-        m = self.model(MonteCarlo, options=ModelOptions(discounting=mode))
+        m = self.model(MonteCarlo, options=ModelOptions(discounting=mode, discount=GAMMA))
         s0, s1, s2 = self.experience(m, [(0, 0, 0), (1, 1, 100), (2, 0, 160)])
         m.updateValuefunctionByAgentV2(0)
         return m.stateMat[s0, 11], m.stateMat[s1, 12], m.stateMat[s2, 11]

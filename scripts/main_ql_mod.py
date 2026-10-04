@@ -48,7 +48,6 @@ def run_ql_mod(
             transLinkdbFile=transLinkdbFile,
             transNodedbFile=transNodedbFile,
             meanRayleigh=meanRayleighTest,
-            discount=0.9,
             folderStateNames=folderStateNames,
             options=options,
         )

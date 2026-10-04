@@ -44,7 +44,6 @@ def run_shortpath(area="kochi", simtime=30, meandeparture=15,
                          transLinkdbFile=transLinkdbFile,
                          transNodedbFile=transNodedbFile,
                          meanRayleigh=meanRayleighTest,
-                         discount=0.9,
                          folderStateNames=folderStateNames,
                          options=options)
 
