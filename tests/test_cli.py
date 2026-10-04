@@ -61,6 +61,13 @@ class RunCase(unittest.TestCase):
             self.assertNotIn("no_data,", msg)
         self.assertEqual(self.calls, [])
 
+    def test_no_cases_at_all_explains_how_to_point_to_the_repository(self):
+        for name in ("alpha", "beta"):
+            (Path(paths.CASES_DIR) / name / "data").rmdir()
+        with self.assertRaises(SystemExit) as cm:
+            cli.run_case(self.runners, default="alpha", argv=["alpha"])
+        self.assertIn("EVACRL_ROOT", str(cm.exception))
+
     def test_missing_default_says_it_is_the_default(self):
         with self.assertRaises(SystemExit) as cm:
             cli.run_case(self.runners, default="gamma", argv=[])

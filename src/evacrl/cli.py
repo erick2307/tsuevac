@@ -27,6 +27,11 @@ def run_case(runners, default, argv=None):
         raise SystemExit(f"unknown case '{name}'; {script} defines: {', '.join(sorted(runners))}")
     if not (paths.case_dir(name) / "data").is_dir():
         hint = "" if argv else f" (it is the default of {script})"
+        if not available_cases():
+            raise SystemExit(
+                f"no cases found in {paths.CASES_DIR}. Run from inside the repository, or set EVACRL_ROOT to the "
+                f"repository folder (needed when evacrl is installed with a plain `pip install`)."
+            )
         raise SystemExit(
             f"case '{name}'{hint} has no data in {paths.case_dir(name) / 'data'}.\n"
             f"Cases available here: {', '.join(available_cases()) or 'none'}. "

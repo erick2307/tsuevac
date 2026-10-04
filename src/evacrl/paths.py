@@ -8,7 +8,26 @@ changing the constants below (and nothing else).
 import os
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[2]  # src/evacrl/paths.py -> repository root
+def _find_repo_root():
+    """The repository: $EVACRL_ROOT, else the checkout this file lives in (source tree or editable
+    install), else the repository the program is run from (a regular `pip install`)."""
+    override = os.environ.get("EVACRL_ROOT")
+    if override:
+        return Path(override).resolve()
+
+    def is_root(folder):
+        return (folder / "pyproject.toml").is_file() and (folder / "cases").is_dir()
+
+    for folder in Path(__file__).resolve().parents:
+        if is_root(folder):
+            return folder
+    for folder in [Path.cwd(), *Path.cwd().parents]:
+        if is_root(folder):
+            return folder
+    return Path(__file__).resolve().parents[2]  # not found: src/evacrl/paths.py -> repository root
+
+
+REPO_ROOT = _find_repo_root()
 
 # Study areas (kochi, new_kochi, arahama, ...) are folders directly under CASES_DIR; each holds
 # `data/` (inputs, tracked) and `state_<name>/` (run outputs, not tracked).

@@ -7,6 +7,7 @@ name = "evacrl"
 version = "0.1.0"
 description = "Tsunami evacuation guidance with reinforcement learning (Q-learning, SARSA, Monte Carlo)"
 readme = "README.md"
+requires-python = ">=3.10"  # tested on 3.10, 3.11, 3.12 and 3.13
 # Core: the algorithms (src/evacrl), the entry points (scripts/) and the regression tests (tests/).
 # The full opencv-python is required, not -headless: makeVideo() calls cv2.destroyAllWindows().
 dependencies = ["numpy", "matplotlib", "opencv-python"]
