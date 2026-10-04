@@ -116,6 +116,10 @@ class Options(Base):
                                                                 entrySpeed="position", segmentSizing="round",
                                                                 segmentIndex="raw", discounting="method", discount=0.9))
 
+    def test_a_discount_of_one_means_no_discounting(self):
+        m = self.model(options=ModelOptions(discount=1.0))
+        self.assertEqual((m.discount, m.discountFactor(100)), (1.0, 1.0))
+
     def test_survive_reward_comes_from_the_options(self):
         self.assertEqual(self.model(options=ModelOptions.kochi2024()).surviveReward, 10000000)
 

@@ -172,6 +172,16 @@ class Results(unittest.TestCase):
             time, safe, agents = output.read_curves(tmp)
             self.assertEqual(safe.tolist(), [[0, 0, 1, 4, 4, 4], [0, 0, 0, 0, 0, 0]])
             self.assertEqual(agents.tolist(), [4, 4])
+            self.assertEqual(Path(tmp, "curves_summary.csv").read_text().splitlines(), ["time_s,mean,p5,p95", "0,0.00,0.0,0.0"])   # one row per 10 s
+
+    def test_the_curve_summary_is_the_mean_and_the_percentiles_every_ten_seconds(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            curves = [np.arange(25) * k for k in (1, 2, 3, 4, 5)]
+            output.write_runs(tmp, [RunResult(k, 100, 0, c) for k, c in enumerate(curves)], horizon=20)
+            rows = Path(tmp, "curves_summary.csv").read_text().splitlines()
+            self.assertEqual(rows[0], "time_s,mean,p5,p95")
+            # at second 10 the five runs record 10, 20, 30, 40, 50: mean 30, 5th percentile 10 + 0.2 * 10, 95th 40 + 0.8 * 10; at 20 twice that
+            self.assertEqual(rows[1:], ["0,0.00,0.0,0.0", "10,30.00,12.0,48.0", "20,60.00,24.0,96.0"])
 
 
 class Convergence_(unittest.TestCase):
@@ -843,7 +853,7 @@ class CommandLine(Base):
         self.assertEqual(code, 0, out)
         self.assertIn("4 shortest-path runs, 10 agents", out)
         folder = self.dir / "sp"
-        self.assertEqual(sorted(p.name for p in folder.iterdir()), ["convergence.csv", "curves.npz", "manifest.json", "runs.csv"])
+        self.assertEqual(sorted(p.name for p in folder.iterdir()), ["convergence.csv", "curves.npz", "curves_summary.csv", "manifest.json", "runs.csv"])
         manifest = json.loads((folder / "manifest.json").read_text())
         self.assertEqual((manifest["kind"], manifest["results"]["runs"]), ("shortest_path", 4))
         self.assertEqual(manifest["results"]["incomplete_runs"], 0)

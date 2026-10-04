@@ -21,7 +21,7 @@ def curves_matrix(results, sim_time):
 
 
 def write_runs(folder, results, horizon=1800):
-    """`runs.csv` (one row per run) and `curves.npz` (the whole curves)."""
+    """`runs.csv` (one row per run), `curves.npz` (the whole curves) and `curves_summary.csv` (mean and 5th / 95th percentile every 10 s)."""
     if not results:
         raise ValueError("no runs to write")
     os.makedirs(folder, exist_ok=True)
@@ -34,6 +34,13 @@ def write_runs(folder, results, horizon=1800):
     time, safe = curves_matrix(results, sim_time)
     np.savez_compressed(os.path.join(folder, "curves.npz"), time=time, safe=safe, agents=np.array([r.agents for r in results]),
                         seeds=np.array([r.seed for r in results]))
+    # the curves of all runs are large (runs x seconds): a small summary to plot or to keep in a repository
+    with open(os.path.join(folder, "curves_summary.csv"), "w", newline="", encoding="utf-8") as f:
+        w = csv.writer(f)
+        w.writerow(["time_s", "mean", "p5", "p95"])
+        for k in range(0, len(time), 10):
+            column = safe[:, k]
+            w.writerow([int(time[k]), f"{column.mean():.2f}", f"{np.percentile(column, 5):.1f}", f"{np.percentile(column, 95):.1f}"])
 
 
 def read_curves(folder):
