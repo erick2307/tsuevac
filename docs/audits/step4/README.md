@@ -147,11 +147,11 @@ agents), 10 Q-learning simulations of 30 min:
 | `densityLevel` | Nodes | States | Decisions made in a state with a crowded link |
 |---|---:|---:|---:|
 | `"link"` (2021 code, the default): whole link, 2 m wide | 297 | **297** | **0.00 %** |
-| `"segment"` (2024): worst 2 m segment, real width | 297 | 634 | 2.98 % |
+| `"segment"` (2024): worst 2 m segment, real width | 297 | 658 | 3.07 % |
 
 With the 2021 code the state is the node and nothing else: every state is a node (as on `kochi2` in Step 1), so the learner cannot tell a crowded
-street from an empty one, and what it learns cannot depend on crowding. The 2024 code makes 634 states from the same nodes but only 3 % of
-the decisions are made in a crowded one, even with 1,704 agents. The greedy results after 10 simulations (1,094 and 985 of 1,704) say only that more
+street from an empty one, and what it learns cannot depend on crowding. The 2024 code makes 658 states from the same nodes but only 3 % of
+the decisions are made in a crowded one, even with 1,704 agents (measured with the new default discount; with 0.9 per decision: 634 states, 2.98 %). The greedy results after 10 simulations (1,316 and 937 of 1,704) say only that more
 states take longer to learn; they are not a comparison of the final policies. A crowded area (`kochi_area4`) was not run. So decision D3 of Step 1
 (`densityLevel`, `surviveReward` stay at the 2021 values) still stands without evidence for changing it, and the question that matters
 (does a policy that sees crowding beat the shortest path where crowding binds?) is open.
@@ -222,10 +222,36 @@ phases of the evacuation. Starting new states from the values of the node's empt
 because the nodes that training rarely reached are flat too, and agents then cycle between two or three of them (3,826 of the 4,038 agents left
 cycled among at most four nodes).
 
+**Training on the whole evacuation** (`crowded_long_episodes.py`: episodes of 120 min instead of 30, 30 simulations, checkpoints evaluated greedily and frozen over
+120 min, the best kept, then 5 fresh runs): it helps, and it is not enough.
+
+| Q-learning, 120-min episodes | Safe at 30 min | at 60 min | at 120 min | Evacuated at 120 min | Best checkpoint after |
+|---|---:|---:|---:|---:|---:|
+| shortest path (5 runs) | 7,517 | 9,377 | **13,502** (all, by 5,781 s) | 100 % | |
+| `densityLevel="link"` | 7,358 ± 100 | 9,766 | 12,025 | 89.1 % | 10 simulations |
+| `densityLevel="segment"` | 6,670 ± 248 | 8,926 | 11,054 | 81.9 % | 30 (still improving) |
+
+The greedy evaluations of the checkpoints at 120 min are 12,036, 9,494, 10,341 for `link` (after 10, 20, 30 simulations) and 10,286, 10,426, 10,868 for
+`segment`: `link` does not improve with training, `segment` slowly does. With the policies trained on 30 min the figures at 120 min were 10,037 and 10,023,
+so seeing the whole evacuation helps (+2,000 and +1,000 people), but **after 30 simulations of 2 h neither policy evacuates everybody, and neither beats
+the shortest path at any time**: 7,358 against 7,517 at 30 min, 9,766 against 9,377 at 60 min (`link` is ahead there by 4 %: a first sign, within the
+noise of 5 runs and one seed), 89 % against 100 % at 120 min.
+
+**What this says, and what it does not.** (1) On a crowded area the learner of this model does not yet find a policy better than the shortest path
+within the budget tried (30-60 simulations, one seed, tabular states): the answer to "is learning useful here?" is *not shown*, not "no". (2) The way
+it fails is informative: a tabular policy is arbitrary wherever training did not go, so agents that a crowded street diverts into untrained
+territory cycle; more simulations and episodes that cover the whole evacuation reduce it. (3) The `segment` code, which is the one that can express
+"this street is full", needs many more simulations (6,905 states, half of the decisions in a crowded state) than were affordable here (one simulation
+of 2 h takes 3-4 minutes on this area). (4) What could change the outcome and was not tried: far longer training (hundreds of simulations), a state
+with fewer or coarser density codes, values for unseen states taken from the shortest-path distance, a function approximator instead of a table. These are
+research questions of their own, not engineering of this repository.
+
 ## Decisions for you
 
-| | Decision | Recommendation |
+| | Decision | Outcome / recommendation |
 |---|---|---|
-| D7 | Discount of the temporal-difference methods: keep 0.9 per decision (what the code always did), or `discounting="second"` with `discount=0.999` | **change**: with the old discount the learner cannot get past 81 % of the shortest path (4a), with the new it reaches 99 %. It also needs `surviveReward` to stay large against the discounted step cost (it does: 1e5 against 1 per second), and SARSA and Monte Carlo want a longer look (60 simulations, one seed). Nothing was changed in the defaults: `--set discounting=second --discount 0.999` does it per run |
-| D8 | The 2024 Kochi results (1,000 shortest-path runs per area) are regenerated with the default options before they are cited | yes (decision D6 of Step 1; `python -m evacrl.experiment sp CASE --until-converged --time 120`) |
-| D9 | What to run next to show that learning is *useful*: a crowded area (`kochi_area4`, 13,502 agents) with the per-second discount, and a segment-level density code, against the shortest path | yes: it is the question the model exists to answer, and 4a says the first run on `kochi2` could not answer it |
+| D7 | Discount of the temporal-difference methods: 0.9 per decision, or 0.999 per second | **confirmed and applied** (above). `ModelOptions.legacy()` and `kochi2024()` keep 0.9 |
+| D8 | The 2024 Kochi results regenerated with the default options | **done** (`results/kochi2024_regenerated`): the committed evacuation times must not be cited; kochi4 needs 180 min |
+| D9 | A crowded area with the per-second discount against the shortest path | **done, answer: not shown** (above). Learning matches the shortest path where the area is not crowded and does not beat it where it is, within 30-60 simulations |
+| D10 | Whether to put a long training run on `kochi_area4` (hundreds of simulations of 120 min, the `segment` code; 3-4 min per simulation, so 300 simulations are 15-20 h on one core, a few hours on four with several seeds) | your call: it is the experiment that can show that learning helps, and the only way to find out; it is not needed for Steps 5 and 6, which are about releasing what exists |
+| D11 | The Kochi study's own conclusion about learned policies (made with the 0.9-per-decision discount, which capped them at 81 %) should be re-examined before it is cited | yes |

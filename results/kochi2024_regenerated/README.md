@@ -11,3 +11,6 @@ One folder per area: `runs.csv` (a row per run: seed, agents, safe at 30 min, sa
 mean, sd, CV and standard error after every batch of 10 runs), `curves_summary.csv` (mean and 5th / 95th percentile of the safe agents every 10 s)
 and `manifest.json` (the checksums of the input files, the options, every seed, the code version). The curves of every run (`curves.npz`) are not
 kept in the repository. The comparison with the committed results is in [docs/audits/step4](../../docs/audits/step4/README.md).
+
+`kochi4_180min` is `kochi4` simulated for 180 min (20 runs, no convergence rule): in the 120-min runs 5 of 30 still had agents walking at the
+end, so the evacuation time of that area is censored there; in 180 min every run ends (6,966 ± 234 s).
