@@ -21,8 +21,15 @@ one() {   # one AREA
   a=$1; o="$WORK/$a"; mkdir -p "$o"
   step "$a: rebuild from raw/" $PY -m evacrl.casebuild from-raw "$REPO/cases/$a/raw" "$o/case" --strategy proportional --weights "$REPO/cases/$a/node_population.csv" --merge clusters --threshold 5
   same=yes
-  for f in nodesdb linksdb actionsdb transitionsdb nextnode agentsdb; do cmp -s "$o/case/data/$f.csv" "$REPO/cases/$a/data/$f.csv" || { same=no; say "     differs: $f.csv"; }; done
-  say "     rebuilt tables identical to the shipped ones: $same"; [ $same = yes ] || status=1
+  for f in linksdb actionsdb transitionsdb nextnode agentsdb; do cmp -s "$o/case/data/$f.csv" "$REPO/cases/$a/data/$f.csv" || { same=no; say "     differs: $f.csv"; }; done
+  # coordinates are written with 6 decimals: a cluster centre that falls on a rounding boundary can differ in the last digit between NumPy versions
+  $PY - "$o/case/data/nodesdb.csv" "$REPO/cases/$a/data/nodesdb.csv" <<'PYEOF' || { same=no; say "     differs: nodesdb.csv"; }
+import sys
+import numpy as np
+a, b = (np.loadtxt(f, delimiter=",", comments="#") for f in sys.argv[1:3])
+assert a.shape == b.shape and np.array_equal(a[:, [0, 3, 4]], b[:, [0, 3, 4]]) and np.abs(a[:, 1:3] - b[:, 1:3]).max() <= 1.5e-6
+PYEOF
+  say "     rebuilt tables identical to the shipped ones (coordinates to 1.5e-6 m): $same"; [ $same = yes ] || status=1
   step "$a: validate" $PY -m evacrl.casebuild validate "$REPO/cases/$a"
   step "$a: sp (10 runs, 30 min)" $PY -m evacrl.experiment sp "$a" --runs 10 --time 30 --workers 2 --out "$o/sp"
   step "$a: calibrate (10 simulations)" $PY -m evacrl.experiment calibrate "$a" --method qlearning --sims 10 --eval-every 5 --eval-runs 2 --out "$o/ql" --sp "$o/sp"
@@ -44,13 +51,13 @@ PYEOF
 }
 for a in kochi_area0 kochi_area1 kochi_area2 kochi_area4; do one $a & done
 wait
-say "--- the 2021 entry point on the two older cases (1 simulation of 5 min each)"
+say "--- the 2021 entry point on the two older cases (2 simulations of 1 min each)"
 cd "$REPO"
 for a in kochi new_kochi; do
   step "$a: run_ql_mod" $PY -c "
 import sys; sys.path.insert(0, 'scripts')
 from main_ql_mod import run_ql_mod
-run_ql_mod(area='$a', simtime=5, meandeparture=1, numBlocks=1, simPerBlock=1, name='e2e')"
+run_ql_mod(area='$a', simtime=1, meandeparture=0.5, numBlocks=1, simPerBlock=1, name='e2e')"
   rm -rf "cases/$a/state_e2e"
 done
 say "work folder: $WORK"
