@@ -329,6 +329,14 @@ class Training(Base):
         self.assertEqual(res.seeds["training"], derive_seeds(2, 6, "training"))
         self.assertEqual(res.seeds["evaluation"], derive_seeds(2, 2, "evaluation"))
 
+    def test_the_safe_count_of_every_training_simulation_is_recorded(self):
+        res = calibrate(self.case, **self.kw())
+        self.assertEqual(len(res.training_safe), 6)
+        self.assertTrue(all(isinstance(n, int) and 0 <= n <= res.agents for n in res.training_safe))
+        # the mean of each checkpoint's window is what the checkpoint reports
+        self.assertAlmostEqual(res.history[0].train_safe, float(np.mean(res.training_safe[:3])))
+        self.assertAlmostEqual(res.history[1].train_safe, float(np.mean(res.training_safe[3:])))
+
     def test_the_best_checkpoint_is_chosen_by_the_greedy_evaluation_alone(self):
         class Fake:
             def __init__(self, n):

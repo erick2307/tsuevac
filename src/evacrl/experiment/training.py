@@ -57,6 +57,7 @@ class CalibrationResult:
     final_state: np.ndarray
     agents: int
     seeds: dict = field(default_factory=dict)
+    training_safe: List[int] = field(default_factory=list)   # safe at the end of every training simulation (the exploring runs)
 
 
 def calibrate(case, *, method="qlearning", sims=300, schedule="calibration", eval_every=25, eval_runs=5, sim_time=1800,
@@ -73,7 +74,7 @@ def calibrate(case, *, method="qlearning", sims=300, schedule="calibration", eva
     train_seeds = derive_seeds(seed, sims, "training")
     eval_seeds = derive_seeds(seed, eval_runs, "evaluation")
     state, best_state, best_eval, best_sim = None, None, -np.inf, 0
-    history, exploring, agents = [], [], 0
+    history, exploring, agents, training_safe = [], [], 0, []
     go_back = False
     for s in range(sims):
         np.random.seed(train_seeds[s])
@@ -87,6 +88,7 @@ def calibrate(case, *, method="qlearning", sims=300, schedule="calibration", eva
         eps = epsilon_at(schedule, s, sims)
         curve = run_episode(model, sim_time, epsilon=eps)
         exploring.append(int(curve[-1]) if len(curve) else 0)
+        training_safe.append(exploring[-1])
         state = model.stateMat
         if (s + 1) % eval_every == 0 or s + 1 == sims:
             runs = map_jobs(evaluate_state, [(case, method, state, es, options, sim_time, mean_departure, discount, eval_learn) for es in eval_seeds], workers)
@@ -101,7 +103,7 @@ def calibrate(case, *, method="qlearning", sims=300, schedule="calibration", eva
             if progress is not None:
                 progress(check)
     return CalibrationResult(history, best_sim, best_eval, best_state, np.array(state, copy=True), agents,
-                             dict(base=seed, training=train_seeds, evaluation=eval_seeds))
+                             dict(base=seed, training=train_seeds, evaluation=eval_seeds), training_safe)
 
 
 def evaluate_policy(case, method, state, runs=20, *, seed=0, workers=1, options=None, sim_time=1800, mean_departure=5.0, discount=None, learn=False):
