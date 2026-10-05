@@ -39,6 +39,15 @@ Results of 0.1.0 are **not** reproduced by the defaults of 0.2.0 (see *Changed*)
 * `new_kochi`: the node with 11 links lost its 11th link at one end only; the longest link there is removed at both ends.
 
 ### Fixed
+* The shortest-path table (`nextnode.csv`, `evacrl.casebuild.routing.next_nodes`) left the choice between equally short walks to
+  SciPy, which breaks ties differently in different versions: `kochi_area4` rebuilt on Python 3.10 (SciPy 1.15) differed from the
+  shipped table (SciPy 1.18) in one entry. The next node is now the lowest-numbered neighbour on a shortest walk, whatever the order
+  of the links and the SciPy version. The shipped tables change in 3 (`kochi_area0`), 3 (`kochi_area1`), 0 (`kochi_area2`) and 13
+  (`kochi_area4`) entries, every one between two equally short steps, so no walk gets longer
+  ([`docs/audits/step5`](./docs/audits/step5/README.md)); the shortest-path baseline of those cases varies slightly with it. `method="allpairs"` (the
+  2024 study's way) keeps SciPy's tie-breaking, to reproduce its tables.
+* SciPy is a core dependency: `evacrl.casebuild` (and so `python -m evacrl.casebuild validate`) failed to import after a plain
+  `pip install evacrl`.
 * Unused variables and imports found by `ruff` (no change of behaviour: the golden recordings are unchanged).
 
 ## 0.1.0

@@ -455,6 +455,53 @@ class ShortestPaths(unittest.TestCase):
             self.assertTrue(validate_tables(net.nodes, net.links, *actions_and_transitions(net), fast).ok)
             self.assertTrue(validate_tables(net.nodes, net.links, *actions_and_transitions(net), slow).ok)
 
+    def test_equally_short_walks_are_broken_towards_the_lowest_numbered_neighbour(self):
+        # shelter 3; node 0 reaches it by 1 or by 2 (both 200 m); node 4 by 2 or 1 through 0 (also equal)
+        nodes = [[0, 0, 0, 0, 1], [1, 100, 0, 0, 1], [2, 0, 100, 0, 1], [3, 100, 100, 1, 1], [4, -50, 0, 0, 1]]
+        links = [[0, 0, 1, 100, 3], [1, 0, 2, 100, 3], [2, 1, 3, 100, 3], [3, 2, 3, 100, 3], [4, 4, 0, 50, 3]]
+        net = Network(nodes, links)
+        self.assertEqual(next_nodes(net)[:, 1].tolist(), [1, 3, 3, 3, 0])
+        # the order of the links, and which end is written first, change nothing
+        rng = np.random.default_rng(0)
+        for _ in range(10):
+            order = rng.permutation(len(links))
+            shuffled = [[i, *(links[j][1:3] if rng.random() < 0.5 else links[j][2:0:-1]), links[j][3], 3] for i, j in enumerate(order)]
+            self.assertEqual(next_nodes(Network(nodes, shuffled))[:, 1].tolist(), [1, 3, 3, 3, 0])
+
+    def test_equally_near_shelters_are_broken_the_same_way(self):
+        # node 1 is 100 m from shelter 0 and from shelter 2; node 3 is 100 m from 2 and from 4 (nodes 1 and 3 are not linked)
+        net = Network([[0, 0, 0, 1, 1], [1, 100, 0, 0, 1], [2, 200, 0, 1, 1], [3, 300, 0, 0, 1], [4, 400, 0, 1, 1]],
+                      [[0, 1, 0, 100, 3], [1, 1, 2, 100, 3], [2, 3, 2, 100, 3], [3, 3, 4, 100, 3]])
+        self.assertEqual(next_nodes(net)[:, 1].tolist(), [0, 0, 2, 2, 4])
+
+    def test_every_walk_of_the_table_has_the_length_of_the_shortest(self):
+        rng = np.random.default_rng(11)
+        for trial in range(5):
+            n = 70
+            xy = rng.uniform(0, 400, size=(n, 2))
+            pairs = {tuple(sorted(p)) for p in rng.integers(0, n, size=(160, 2)) if p[0] != p[1]}
+            # lengths in tens of metres: many ties
+            links = [[i, a, b, 10 * max(int(np.hypot(*(xy[a] - xy[b])) // 10), 1), 3] for i, (a, b) in enumerate(sorted(pairs))]
+            nodes = [[i, xy[i, 0], xy[i, 1], 1 if i in (2, 30, 55) else 0, 1] for i in range(n)]
+            net = Network(nodes, links)
+            table, dist = next_nodes(net)[:, 1], distance_to_shelter(net)
+            length = {}
+            for _, a, b, w, _ in links:
+                length[a, b] = length[b, a] = min(w, length.get((a, b), np.inf))
+            for node in range(n):
+                if np.isinf(dist[node]):
+                    self.assertEqual(table[node], NO_PATH)
+                    continue
+                walked, here = 0.0, node
+                for _ in range(n):
+                    if net.nodes[here, 3] == 1:
+                        break
+                    nxt = int(table[here])
+                    walked += length[here, nxt]
+                    here = nxt
+                self.assertEqual(net.nodes[here, 3], 1, f"trial {trial}: the walk from {node} does not end at a shelter")
+                self.assertEqual(walked, dist[node], f"trial {trial}: the walk from {node} is not a shortest one")
+
     def test_unknown_options_are_rejected(self):
         net = cleaned()
         with self.assertRaises(ValueError):

@@ -38,14 +38,34 @@ def _adjacency(network, parallel):
     return csr_matrix((np.concatenate([w, w]), (np.concatenate([lo, hi]), np.concatenate([hi, lo]))), shape=(n, n))
 
 
+def _lowest_step_on_a_shortest_walk(adjacency, dist):
+    """For every node, the neighbour with the lowest number among those that lie on a shortest walk to a shelter, that is,
+    those with `dist[neighbour] + length == dist[node]` (`NO_PATH` where `dist` is infinite). Every length is positive, so
+    the neighbour is strictly nearer and the steps lead to a shelter."""
+    n = len(dist)
+    a = adjacency.tocoo()
+    row, col, length = a.row, a.col, a.data
+    ok = np.isfinite(dist[row]) & np.isclose(dist[col] + length, dist[row], rtol=1e-12, atol=1e-9)
+    row, col = row[ok], col[ok]
+    order = np.lexsort((col, row))
+    row, col = row[order], col[order]
+    first = np.ones(len(row), dtype=bool)
+    first[1:] = row[1:] != row[:-1]
+    step = np.full(n, NO_PATH, dtype=int)
+    step[row[first]] = col[first]
+    return step
+
+
 def next_nodes(network, method="nearest", parallel="min"):
     """`(n, 2)` int array `[node, next node]`.
 
     method="nearest" (default): one Dijkstra search started from all the shelters at once, so the memory is that of
-        the network, not of its square. Where two shelters are equally near, or two walks are equally short, the
-        choice is arbitrary but fixed.
+        the network, not of its square. Where two shelters are equally near, or two walks are equally short, the next
+        node is the one with the lowest number among those on a shortest walk: the table depends neither on the order of
+        the links nor on the version of SciPy (its own tie-breaking changes between versions).
     method="allpairs": the 2024 study's way, a full distance matrix (n x n: too large beyond a few thousand nodes) and
-        the first shelter among the nearest. Kept to reproduce its tables.
+        the first shelter among the nearest, ties as SciPy's `dijkstra` breaks them (they can differ between SciPy
+        versions). Kept to reproduce its tables.
     """
     n = network.num_nodes
     shelters = network.shelters
@@ -55,8 +75,8 @@ def next_nodes(network, method="nearest", parallel="min"):
         return table
     adjacency = _adjacency(network, parallel)
     if method == "nearest":
-        _, predecessors, _ = dijkstra(adjacency, directed=False, indices=shelters, return_predecessors=True, min_only=True)
-        table[:, 1] = np.where(predecessors < 0, NO_PATH, predecessors)
+        dist = dijkstra(adjacency, directed=False, indices=shelters, min_only=True)
+        table[:, 1] = _lowest_step_on_a_shortest_walk(adjacency, dist)
     elif method == "allpairs":
         dist, predecessors = dijkstra(adjacency, directed=False, return_predecessors=True)
         predecessors[np.arange(n), np.arange(n)] = np.arange(n)

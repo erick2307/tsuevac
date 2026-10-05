@@ -15,6 +15,7 @@ import shutil
 import sys
 import tempfile
 import unittest
+import warnings
 from pathlib import Path
 
 import numpy as np
@@ -32,6 +33,10 @@ except ImportError as exc:  # pragma: no cover
     raise unittest.SkipTest(f"evacrl.casebuild.geo needs the 'casebuild' extra ({exc}); pip install -e \".[casebuild]\"")
 
 from evacrl.casebuild import PopulationSpec, build_tables, validate_tables  # noqa: E402
+
+# pyproj 3.7.1, the last release for Python 3.10, warns on every coordinate transformation under NumPy >= 1.25 (not ours: the
+# tests run with `-W error`)
+warnings.filterwarnings("ignore", message="Conversion of an array with ndim > 0 to a scalar", category=DeprecationWarning)
 
 LON0, LAT0 = 133.53, 33.56
 DLON, DLAT = 0.0011, 0.0009   # about 100 m

@@ -26,11 +26,11 @@ Python 3.10 to 3.13 (tested on all four in CI).
 git clone https://github.com/erick2307/tsuevac
 cd tsuevac
 python -m venv .venv && . .venv/bin/activate
-pip install -e .                    # numpy, matplotlib, opencv-python; use ".[casebuild]" to download networks and use the census
+pip install -e .                    # numpy, scipy, matplotlib, opencv-python; ".[casebuild]" adds what downloading networks and the census need
 python -m unittest discover tests   # about 2 minutes (the tests that need geopandas skip without it)
 ```
 
-`pip install -r requirements.txt` adds SciPy and pandas (the evacuation-curve plots). The package contains the code only: the
+`pip install -r requirements.txt` adds pandas (the evacuation-curve plots). The package contains the code only: the
 cases (`cases/`), the scripts (`scripts/`) and the audits live in the repository, so work from a clone.
 
 ## Quick start

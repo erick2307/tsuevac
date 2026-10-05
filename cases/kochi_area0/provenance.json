@@ -23,6 +23,7 @@
     "short_links": 16,
     "threshold": 5.0
   },
+  "nextnode_rule": "0.2.0: the next node is the lowest-numbered neighbour on a shortest walk (before: left to SciPy's tie-breaking)",
   "population_weights": {
     "file": "node_population.csv",
     "people": 4195.786,
