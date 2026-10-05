@@ -17,6 +17,9 @@ that such a comparison needs.
   the agents safe after 2 h, the shortest path all of them; the segment-level code is 13 % behind at 30 minutes. Trained on 2-hour episodes
   (30 simulations) they reach 89 % and 82 % at 2 h. A tabular policy is arbitrary where training did not go.
   **Whether learned guidance beats the shortest path is not shown by this repository.**
+* A policy cannot be judged by the best training simulation, as the 2024 study's calibration did: those runs are half random, and on `kochi2` that measure reads about
+  50 % of the shortest path whether the trained policy is at 87 % (the study's configuration) or 100 % (the defaults here). Compare policies in greedy, frozen runs
+  on other seeds ([audits/step6](./docs/audits/step6/README.md#the-2024-studys-conclusions-d11)).
 * The evacuation times committed with the 2024 study's shortest-path runs must not be cited; they are regenerated in
   [`results/kochi2024_regenerated`](./results/kochi2024_regenerated/README.md).
 
