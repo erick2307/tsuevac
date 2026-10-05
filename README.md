@@ -13,7 +13,7 @@ that such a comparison needs.
   learns the shortest path and, there, nothing better. Before the discount was corrected it stopped at 81 %; that ceiling was the
   discount (0.9 per decision), not the training.
 * On the crowded `kochi_area4` (shipped; 13,502 agents) learned policies do **not yet** beat the shortest path. Trained on 30-minute
-  episodes (60 simulations), the link-level code is 2.1 % behind it after 30 minutes (7,356 against 7,517 agents safe) but has only 74 % of
+  episodes (60 simulations), the link-level code is 2 % behind it after 30 minutes (7,356 against 7,507 agents safe) but has only 74 % of
   the agents safe after 2 h, the shortest path all of them; the segment-level code is 13 % behind at 30 minutes. Trained on 2-hour episodes
   (30 simulations) they reach 89 % and 82 % at 2 h. A tabular policy is arbitrary where training did not go.
   **Whether learned guidance beats the shortest path is not shown by this repository.**

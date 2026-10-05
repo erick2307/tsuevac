@@ -200,13 +200,19 @@ in batches of 10 until the evacuation time and the number safe at 30 min have a 
 
 `crowded_area.py`: Q-learning with the default options (0.999 per second), the study's protocol (episodes of 30 min, the random-choice rate falling as
 1 / (s / N + 1), 60 simulations), the best checkpoint of three kept, then 10 fresh frozen greedy runs. Two density codes in the state. The shortest
-path puts 13,502 people on the same streets: 7,517 ± 89 (55.7 %) are safe after 30 min.
+path puts 13,502 people on the same streets: 7,507 ± 96 (55.6 %) are safe after 30 min.
 
 | | Safe at 30 min | % of agents | Against shortest path | Walk against shortest path | First choice = shortest path's | States | Decisions in a state with a crowded link |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| shortest path | 7,517 ± 89 | 55.7 % | | | | | |
-| Q-learning, `densityLevel="link"` (default) | 7,356 ± 78 | 54.5 % | **-2.1 %** | +0.4 % | 88 % | 1,433 (1,110 nodes) | 0.8 % |
-| Q-learning, `densityLevel="segment"` | 6,519 ± 197 | 48.3 % | **-13.3 %** | +1.8 % | 87 % | 6,905 | 50 % |
+| shortest path | 7,507 ± 96 | 55.6 % | | | | | |
+| Q-learning, `densityLevel="link"` (default) | 7,356 ± 78 | 54.5 % | **-2.0 %** | +0.4 % | 88 % | 1,433 (1,110 nodes) | 0.8 % |
+| Q-learning, `densityLevel="segment"` | 6,519 ± 197 | 48.3 % | **-13.2 %** | +1.8 % | 87 % | 6,905 | 50 % |
+
+*Step 5 note.* The shortest-path figures of this section (7,507 ± 96 at 30 min; 7,556, 9,483 and everybody by 5,828 ± 73 s over 2 h) were measured again
+with the tie-break of 0.2.0 (the first version of the shortest-path table left ties to SciPy, which gave different tables on different versions; 13 of the
+1,110 entries of `kochi_area4`'s changed, each between two equally short steps: [audits/step5](../step5/README.md)). The values first measured, 7,517 ± 89,
+9,377 at 60 min and 5,781 ± 94 s, differ by less than one run-to-run standard deviation. The learned-policy figures do not use the table and are
+unchanged; their walk and first-choice comparison with the shortest path was recomputed and is the same (`../step5/crowded_remeasure.py`).
 
 Learning curves, greedy evaluation of the checkpoints after 20, 40 and 60 simulations: `link` 7,345, 7,321, 7,257 (it was at the plateau after 20 and
 no better with more); `segment` 5,383, 6,100, 6,732 (still rising). **Within 60 simulations neither beats the shortest path.** The `link` code
@@ -214,7 +220,7 @@ sees crowding in 0.8 % of the decisions and so learns the shortest path, a littl
 the states, and learns slowly.
 
 **The policies do not finish the evacuation.** Run for the whole 2 h (`crowded_full_evacuation.sh`, 5 runs each) the shortest path has everybody safe
-at 5,781 ± 94 s, but the learned policies have 10,037 ± 420 (`link`) and 10,023 ± 245 (`segment`) of 13,502 safe. Diagnosis (one run of the
+at 5,828 ± 73 s, but the learned policies have 10,037 ± 420 (`link`) and 10,023 ± 245 (`segment`) of 13,502 safe. Diagnosis (one run of the
 `link` policy): 3,277 agents are still on their way after 2 h, having made a median of 115 decisions (those who arrived made 12); 47 % of their
 decisions are in states that did not exist at the end of training (403 new states), where the values are the initial 0.5 for every action, so the
 choice is the first action of the node. A tabular policy is arbitrary wherever training did not go, and training of 30 min never saw the later
@@ -227,14 +233,14 @@ cycled among at most four nodes).
 
 | Q-learning, 120-min episodes | Safe at 30 min | at 60 min | at 120 min | Evacuated at 120 min | Best checkpoint after |
 |---|---:|---:|---:|---:|---:|
-| shortest path (5 runs) | 7,517 | 9,377 | **13,502** (all, by 5,781 s) | 100 % | |
+| shortest path (5 runs) | 7,556 | 9,483 | **13,502** (all, by 5,828 s) | 100 % | |
 | `densityLevel="link"` | 7,358 ± 100 | 9,766 | 12,025 | 89.1 % | 10 simulations |
 | `densityLevel="segment"` | 6,670 ± 248 | 8,926 | 11,054 | 81.9 % | 30 (still improving) |
 
 The greedy evaluations of the checkpoints at 120 min are 12,036, 9,494, 10,341 for `link` (after 10, 20, 30 simulations) and 10,286, 10,426, 10,868 for
 `segment`: `link` does not improve with training, `segment` slowly does. With the policies trained on 30 min the figures at 120 min were 10,037 and 10,023,
 so seeing the whole evacuation helps (+2,000 and +1,000 people), but **after 30 simulations of 2 h neither policy evacuates everybody, and neither beats
-the shortest path at any time**: 7,358 against 7,517 at 30 min, 9,766 against 9,377 at 60 min (`link` is ahead there by 4 %: a first sign, within the
+the shortest path at any time**: 7,358 against 7,556 at 30 min, 9,766 against 9,483 at 60 min (`link` is ahead there by 3 %: a first sign, within the
 noise of 5 runs and one seed), 89 % against 100 % at 120 min.
 
 **What this says, and what it does not.** (1) On a crowded area the learner of this model does not yet find a policy better than the shortest path

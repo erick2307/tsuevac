@@ -55,6 +55,62 @@ link), repeated on a real one.
 4. **The quick start of the first README took 14 minutes** on 4 cores; shortened, and its commands are run by the audit.
 5. CI actions moved to the Node 24 versions (`checkout@v5`, `setup-python@v6`), after a warning in the first run.
 
-## Not changed, for you
+## Independent review
 
-See "Decisions for you" at the end (to be completed with the independent review).
+A reviewer who had not seen the work read the commit, built the package, ran the quick start and read the documents against the code
+(read-only). Twelve findings, two of them high. Every one was checked before it was acted on:
+
+| # | Finding | Verdict | What was done |
+|---|---|---|---|
+| 1 | `pip install -e .` as the README says, then `evacrl-casebuild --help` and the first quick-start line fail (SciPy); CI and the audit script hid it by installing SciPy and pandas | **confirmed** (high) | SciPy in the core dependencies (finding 2 above); the CI core job is now the bare `pip install -e .` and runs both console scripts; the audit script installs nothing else and no longer pipes the output of the command that failed |
+| 2 | Python 3.10 claimed as tested, red at HEAD; the old shortest-path figures of D9 not reproducible with a changed table | **confirmed** (high) | findings 1 and 3 above; the shortest-path figures of D9 measured again (below) |
+| 3 | "Every command writes a manifest.json": false for `compare`, `policy` | **confirmed** | README and `evacrl.experiment` docstring name `sp`, `calibrate`, `evaluate` |
+| 4 | Headline results selectively worded: "within 2 %" came from 30-minute training while "89 % / 82 %" came from 2-hour training; the 82 % policy is 13 % behind at 30 min; `kochi2` is not shipped | **confirmed** | README says which training each number is from, gives the 74 % of the 30-minute training and says `kochi2` is read from the study's repository |
+| 5 | CHANGELOG: promises dates, says "bit for bit" for `legacy()` (only SARSA and Monte Carlo are pinned), omits that `run_ql*` results changed (real Q-learning), says "temporal-difference methods" for a change that includes Monte Carlo | **confirmed** (4 of 4) | corrected |
+| 6 | Licence page: incomplete (the 3,086-row shelter shapefile with names and phone numbers, the other OSM-derived folders, the area polygons, basemaps in notebooks), wrong about "or any later version", "large local GIS data not tracked" false (277 MB are), a Dropbox "conflicted copy" file | **confirmed** | rows added, sentence reworded, repository.md corrected, the conflicted copy (byte-identical to `Censo_Code173.csv`) removed. **Not changed:** personal paths in legacy scripts and notebooks (`/home/emas/...`, `/Users/...`), and e-mail addresses in the git history |
+| 7 | `test_docs.py` checked only part of the Markdown files; headings with code gave the wrong anchor | **confirmed** (latent) | walks every Markdown file outside `datasets/`; anchors computed from the heading as written, tested through `anchors()`. Known limits, kept: the option check is a substring match on the help text, ignores short options and sees only fenced commands at the start of a line |
+| 8 | An installed wheel run outside a clone resolved `cases/`, `figures/`, `weights/` inside the interpreter's library folder | **confirmed** | the fallback is the current folder; the case-lookup error names `EVACRL_ROOT` |
+| 9 | Stale lines in repository.md (byte-identical recordings, test list, "most methods are stubs": 15 of 53 function bodies are, "four" files of another author: five) | **confirmed** | corrected. **Not changed:** process wording in `roadmap.md` and the audits ("awaiting your confirmation", "decisions for you"), which reads oddly in a public repository |
+| 10 | Quick start about 13 minutes, writes `runs/` untracked | **confirmed** | shortened to what was timed (about 6 minutes), `/runs/` ignored |
+| 11 | The sdist has tests but not their fixtures, and no changelog | **confirmed** | `MANIFEST.in`: no tests, cases or docs; the changelog, citation and licence in. The wheel was already clean (41 files) |
+| 12 | `clean_checkout.sh` clones the origin, not the local HEAD | **confirmed** | it refuses to run if they differ |
+| | Could not verify: the GitHub runner (libGL for OpenCV) | **now verified** | CI runs on `ubuntu-latest` |
+| | Could not verify: Office "public domain", OSM download dates, basemaps in notebooks | open | in the licence page |
+| | `CITATION.cff` named one author for the 2024 study's repository | **removed** | authorship of that repository is not mine to state |
+
+## The shortest-path figures of D9, measured again
+
+After finding 1 the shortest-path baseline of `kochi_area4` was run again (`crowded_remeasure.py`, same seeds as D9). The change is under one standard deviation:
+
+| | before | with the 0.2.0 tie-break |
+|---|---:|---:|
+| safe at 30 min, 10 runs | 7,517 ± 89 (55.7 %) | 7,507 ± 96 (55.6 %) |
+| 5 runs of 2 h: safe at 60 min | 9,377 | 9,483 |
+| everybody safe by | 5,781 ± 94 s | 5,828 ± 73 s |
+| learned `link` / `segment` policy, walk against the shortest path; first choice equal | +0.4 % / +1.8 %; 88 % / 87 % | the same |
+
+The D9 text and the README quote the new values. The conclusion is unchanged: learning does not beat the shortest path on this area within the
+budget tried.
+
+## Result of the checks
+
+* Local, on the final tree: 309 tests with the geospatial packages and 277 without (1 skipped), `python -W error`, Python 3.11; `ruff` clean.
+* GitHub Actions on the pushed branch: lint, build (with the wheel installed and run away from the checkout), and the tests on Python 3.10, 3.11, 3.12 and 3.13
+  in both configurations: first run (before the fixes) 7 of 10 jobs green and the 3 red ones were the two defects above; after the fixes 10 of 10 on two
+  successive commits.
+* The clean-checkout script on the final commit: see "Clean checkout of the final commit" below.
+
+## Decisions for you
+
+| | Decision | Recommendation |
+|---|---|---|
+| D12 | Version **0.2.0** (the defaults changed, so results differ from 0.1.0) and the licence **`GPL-3.0-only`** (the repository carries the GPLv3 text and no "or later" notice; widening it later is possible, narrowing is not) | both as they are |
+| D13 | The Kochi Prefectural Office layers (shelters, census mesh) are recorded as "public domain, as stated by you"; Japanese open data is often CC BY-like and then asks for attribution | look up the Office's terms and put the wording in [docs/data-licences.md](../../data-licences.md) before the repository is shared |
+| D14 | Rows of the licence page that say "source and terms not recorded" (census and building databases, tsunami inundation, shelter register, area polygons) and the five files in `pre/` that name Moya as author: their agreement to GPL-3.0 | fill in, or remove the data / files that cannot be cleared |
+| D15 | 277 MB of GIS data are tracked (three files over 65 MB; a clone is about 100 MB compressed). Moving them out needs a history rewrite to help, which I did not do | leave, or move to a release asset / Git LFS and say so in the README |
+| D16 | `experimental/` (an unfinished rewrite), `pre/`, `variants/app_2022/` are labelled legacy, nothing deleted | label (done); delete `experimental/` if you do not mean to continue it |
+| D17 | `CITATION.cff` has one author, no affiliation, no ORCID and no paper (`preferred-citation`) | add them; I did not invent any |
+| D18 | Process wording in `roadmap.md` and the audits; personal paths in legacy scripts and notebooks; the e-mail addresses in the git history | a tidy-up commit in Step 6 if you want the repository to read as a finished release |
+| D11 | (from Step 4, not yet answered) the 2024 Kochi study's conclusion about learned policies was made under the 0.9-per-decision discount that capped them at 81 %: re-examine it before it is cited | yes |
+
+D10 (a long training run on `kochi_area4`) was declined (your choice (a)).
