@@ -43,6 +43,8 @@ SARSA and Monte Carlo (pinned bit for bit by golden recordings), `ModelOptions.k
 * `new_kochi`: the node with 11 links lost its 11th link at one end only; the longest link there is removed at both ends.
 
 ### Removed
+* The GIS layers and rasters of `datasets/gis/data/` (277 MB; nothing in the package, the cases or the tests uses them), to keep a clone small. They
+  remain in the git history ([datasets/gis/README.md](./datasets/gis/README.md)).
 * `experimental/` (`new_model/`, an unfinished object-oriented rewrite; `tdcontrol.py`; `tests_mc.py`). They remain in the git history.
 
 ### Fixed

@@ -32,7 +32,8 @@ pip install -e .                    # numpy, scipy, matplotlib, opencv-python; "
 python -m unittest discover tests   # about 2 minutes (the tests that need geopandas skip without it)
 ```
 
-`pip install -r requirements.txt` adds pandas (the evacuation-curve plots). The package contains the code only: the
+`pip install -r requirements.txt` adds pandas (the evacuation-curve plots). The history is large (a full clone downloads about 150 MB, mostly
+files that are no longer in the repository); for a light clone use `git clone --depth 1 https://github.com/erick2307/tsuevac`. The package contains the code only: the
 cases (`cases/`), the scripts (`scripts/`) and the audits live in the repository, so work from a clone.
 
 ## Quick start

@@ -48,7 +48,7 @@ results/, weights/   outputs shared by the notebooks
 | `tests/` | `test_golden.py`: short, seeded simulations of Q-learning (`run_ql`, `run_ql_mod`), SARSA and Monte Carlo on the Kochi networks compared with recorded results (the `*_legacy` entries of SARSA and Monte Carlo are byte-identical to what the original code produced before the reorganisation; the others were regenerated when a default changed, see the [CHANGELOG](../CHANGELOG.md)). `test_data_provenance.py`: the derived inputs can be regenerated from their sources. `test_td.py`, `test_engine_options.py`, `test_tables.py`: the update rules (hand-worked values), the model options, the table reader. `test_casebuild*.py`: the case builder, the shipped cases rebuilt from `raw/`, the geospatial part (skipped without the `casebuild` extra). `test_experiment.py`: the experiment layer. `test_cli.py`, `test_evac_plots.py`, `test_paths.py`, `test_docs.py`: case selection, plots, where the repository is, links and commands of the documentation. Run them before and after any change. |
 | `variants/app_2022/` | Newer, self-contained version of the workflow: `main.py` (Q-learning, uses `bin/qlearn.py`), `setup/` (builds a case from an area-of-study GeoJSON in `input/`), `make_video.py`, `analysis.ipynb`. Run from inside the folder. |
 | `datasets/census/` | Census, household and building databases (`CensusAndBuildingDatabase`, `Household_database`, `Population_database`), the inputs of `pre/SetPopDB.py`. |
-| `datasets/gis/` | GIS data (QGIS projects, rasters) and figures for the tsunami inundation / road network, plus the notebook that reads them (it uses `./data`, so it stays next to the data). |
+| `datasets/gis/` | Figures for the tsunami inundation / road network, and the notebook that reads the GIS data (QGIS layers and rasters, 277 MB, **not tracked since 0.2.0**: see [datasets/gis/README.md](../datasets/gis/README.md)). |
 | `datasets/legacy/` | Older samples: `kochi_old/` (state and results in the 31-column layout) and two evacuee start/end/departure tables. |
 | `results/`, `weights/` | Sample outputs of old Kochi runs; also where the notebooks and `computeWeightsAtLinks` read and write. |
 
@@ -112,7 +112,7 @@ by `variants/app_2022/setup/lib/getPopulation.py`, `cases/new_kochi/setActionsAn
 
 ## Repository conventions
 
-* Simulation outputs (`cases/*/state_*/`, `figures/`, `weights/w_*.csv`, `*.avi`) are not tracked; see [`.gitignore`](../.gitignore). The GIS data under `datasets/gis/data/qgis` and `qgis_1` (277 MB, three files over 65 MB) **are** tracked, which makes a clone large.
+* Simulation outputs (`cases/*/state_*/`, `figures/`, `weights/w_*.csv`, `*.avi`) are not tracked; see [`.gitignore`](../.gitignore). The GIS data under `datasets/gis/data/qgis` and `qgis_1` (277 MB) were tracked until 0.2.0; they remain in the history (see [datasets/gis/README.md](../datasets/gis/README.md)).
 * Input CSVs and images are **not** ignored: commit any `data/*.csv` a case needs to run.
 * Locations live in `src/evacrl/paths.py`; do not build `<area>/data/...` paths from the working directory. The repository is found from the checkout, or from the repository you run in; with a plain `pip install` outside it, set `EVACRL_ROOT` to its folder.
 * Regression tests: `python -m unittest discover tests`. `GOLDEN_STRICT=1` additionally compares every output file byte for byte (same NumPy/Python only). After an intentional change of behaviour, regenerate the recorded results with `UPDATE_GOLDEN=1 python tests/test_golden.py [entry ...]`.
