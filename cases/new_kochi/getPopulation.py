@@ -24,7 +24,7 @@ def getPopulation(pref_code=39):
     pref_code (int, optional): Prefecture code. 
     Defaults to 39 (Kochi Pref.).
     """
-    rootfolder = "/Volumes/Pegasus32/data" #"/Users/erick/ReGID Dropbox/zDATA"
+    rootfolder = "/path/to/data" #"/path/to/zDATA"
     # GetAreaCodes
     datafolder = u"PAREA_Town_2018/Shape形式/Shape形式/世界測地系"
     areafile = f"{pref_code:02d}/A{pref_code:02d}24POL.shp"

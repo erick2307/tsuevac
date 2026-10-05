@@ -68,9 +68,9 @@ def getPopulation(pref_code=39, office=OFFICE):
     Defaults to 39 (Kochi Pref.).
     """
     if office:
-        rootfolder = "/Volumes/Pegasus32/data"
+        rootfolder = "/path/to/data"
     else:
-        rootfolder = "/Users/erick/ReGID Dropbox/zDATA"
+        rootfolder = "/path/to/zDATA"
     # GetAreaCodes
     datafolder = "PAREA_Town_2018/Shape形式/Shape形式/世界測地系"
     areafile = f"{pref_code:02d}/A{pref_code:02d}24POL.shp"
@@ -116,9 +116,9 @@ def getPopulation_before2011(pref_code=39, office=OFFICE):
     Defaults to 39 (Kochi Pref.).
     """
     if office:
-        rootfolder = "/Volumes/Pegasus32/data"
+        rootfolder = "/path/to/data"
     else:
-        rootfolder = "/Users/erick/ReGID Dropbox/zDATA"
+        rootfolder = "/path/to/zDATA"
     # GetAreaCodes
     datafolder = "平成22年国勢調査100mメッシュ推計データ"
     areafile = f"{pref_code:02d}{pref[pref_code]}/メッシュ地図2010WH_{pref_code:02d}.shp"

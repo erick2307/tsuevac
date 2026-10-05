@@ -6,7 +6,7 @@ The action values are updated once per simulation, from the experience of every 
 `updateValueFunctionDB` (the `tdControl` hook of the engine does nothing here).
 
 Created on Fri Jan 11 16:31:19 2019
-@author: root
+@author: Erick Mas
 """
 
 from evacrl.core import EvacuationModel

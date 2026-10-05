@@ -56,7 +56,7 @@ the TD methods have always used the per-decision one.
   Q-learning reaches 99 % of the shortest path. (The reward 1e5 and the density code, the other candidates named here, are not what limits it.)
 * A policy learned by Monte Carlo is not compared with TD ones beyond this: it had 50 simulations, the TD methods 100.
 
-## Decision for you
+## Decision
 
 `discounting="decision"` for all three methods as the default (Monte Carlo changes; SARSA and Q-learning do not).
 **Confirmed and applied** at the start of Step 3: only the default-option Monte Carlo golden recording changed.

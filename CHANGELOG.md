@@ -42,6 +42,9 @@ SARSA and Monte Carlo (pinned bit for bit by golden recordings), `ModelOptions.k
   are not reproduced and must not be cited ([regenerated](./results/kochi2024_regenerated/README.md)).
 * `new_kochi`: the node with 11 links lost its 11th link at one end only; the longest link there is removed at both ends.
 
+### Removed
+* `experimental/` (`new_model/`, an unfinished object-oriented rewrite; `tdcontrol.py`; `tests_mc.py`). They remain in the git history.
+
 ### Fixed
 * The shortest-path table (`nextnode.csv`, `evacrl.casebuild.routing.next_nodes`) left the choice between equally short walks to
   SciPy, which breaks ties differently in different versions: `kochi_area4` rebuilt on Python 3.10 (SciPy 1.15) differed from the

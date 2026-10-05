@@ -32,8 +32,8 @@ dependencies = ["numpy", "scipy", "matplotlib", "opencv-python"]
 plots = ["pandas"]
 # notebooks/
 notebooks = ["scipy", "pandas", "seaborn", "geopandas", "contextily", "jupyter"]
-# Building a case from raw data: cases/new_kochi pipeline, pre/, variants/app_2022/setup, datasets/gis,
-# experimental/new_model. The `osgeo` module (createLinksAndNodes.py, SetDatabaseBldMeshCodes.py) comes from
+# Building a case from raw data: cases/new_kochi pipeline, pre/, variants/app_2022/setup, datasets/gis.
+# The `osgeo` module (createLinksAndNodes.py, SetDatabaseBldMeshCodes.py) comes from
 # GDAL, which is best installed with conda (`conda install gdal`) rather than pip.
 # osmnx < 2: the pipeline uses graph_from_bbox(north, south, east, west), save_graph_shapefile, config and
 # plot_graph_folium, which osmnx 2.0 changed or removed (checked offline against osmnx 1.9.4 and 2.1.1).
@@ -61,11 +61,11 @@ version = { attr = "evacrl.__version__" }
 where = ["src"]
 
 # Lint: `ruff check` (pyflakes errors and syntax errors) on the maintained code. The pre-processing scripts, the 2022 variant,
-# the experimental rewrite and the notebooks are not linted (see docs/repository.md).
+# and the notebooks are not linted (see docs/repository.md).
 [tool.ruff]
 line-length = 140
 target-version = "py310"
-extend-exclude = ["datasets", "experimental", "variants", "pre", "notebooks", "cases/new_kochi", "docs/audits/*/head"]
+extend-exclude = ["datasets", "variants", "pre", "notebooks", "cases/new_kochi", "docs/audits/*/head"]
 
 [tool.ruff.lint]
 select = ["E9", "F"]

@@ -162,7 +162,7 @@ def plotNetwork():
 
 
 def getPrefShelters(pref_code=39, crs="EPSG:6690", filter=True):
-    rootfolder = "/Volumes/Pegasus32/data"
+    rootfolder = "/path/to/data"
     datafolder = "PAREA_Hazard_2018/data/世界測地系"
     areafile = f"{pref_code:02d}/PHRP{pref_code:02d}18.shp"
     path = os.path.join(rootfolder, datafolder, areafile)
@@ -190,7 +190,7 @@ def getAreaShelters(
 
 
 def getPrefEvacBldgs(crs="EPSG:4326"):
-    rootfolder = "/Volumes/Pegasus32/kochi/evacuation"
+    rootfolder = "/path/to/kochi/evacuation"
     filename = "Kochi_EvacBldg_20211220.csv"
     path = Path(rootfolder, filename)
     bldgs_pd = pd.read_csv(path)

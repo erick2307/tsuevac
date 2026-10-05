@@ -15,7 +15,6 @@ use the code is the [Manual](./manual.md).
 | `notebooks/` | analysis notebooks of the 2021 work; run by hand, not by the tests | not tested, not linted |
 | `pre/` | **legacy**: scripts of the 2021 pre-processing (census disaggregation, shelters), still used by `cases/kochi/` | `SetPopDB` is covered by a provenance test; not linted |
 | `variants/app_2022/` | **legacy**: the 2022 self-contained workflow with its own `qlearn.py`; not interchangeable with `src/evacrl` (below) | not tested, not linted |
-| `experimental/` | **not maintained**: `new_model/` is an unfinished object-oriented rewrite (several methods are stubs), `tdcontrol.py` a toy, `tests_mc.py` ad-hoc runs | not tested, not linted; do not build on it |
 | `datasets/` | data; **source and terms of several folders are not recorded**, see [data-licences.md](./data-licences.md) | |
 
 ## Layout
@@ -33,7 +32,6 @@ docs/                manual, pre-processing notes, migration guide (old -> new p
 datasets/            large raw / shared inputs: census/, gis/ (QGIS data and its notebook), legacy/ (older samples)
 pre/                 pre-processing scripts (population disaggregation, shelters, shortest paths)
 variants/app_2022/   self-contained 2022 workflow (its own qlearn.py and setup pipeline)
-experimental/        new_model/ (object-oriented rewrite), tdcontrol.py, tests_mc.py
 results/, weights/   outputs shared by the notebooks
 ```
 
@@ -49,11 +47,9 @@ results/, weights/   outputs shared by the notebooks
 | `notebooks/` | `check_policies`, `plot_survivors` (compare policies, survivors per simulation), `operation_*` (batches of runs: survivors vs. simulation and departure time), `CalculateWeights` (link weights from SARSA). Each starts with a bootstrap cell that finds the repository, so they run from any directory. |
 | `tests/` | `test_golden.py`: short, seeded simulations of Q-learning (`run_ql`, `run_ql_mod`), SARSA and Monte Carlo on the Kochi networks compared with recorded results (the `*_legacy` entries of SARSA and Monte Carlo are byte-identical to what the original code produced before the reorganisation; the others were regenerated when a default changed, see the [CHANGELOG](../CHANGELOG.md)). `test_data_provenance.py`: the derived inputs can be regenerated from their sources. `test_td.py`, `test_engine_options.py`, `test_tables.py`: the update rules (hand-worked values), the model options, the table reader. `test_casebuild*.py`: the case builder, the shipped cases rebuilt from `raw/`, the geospatial part (skipped without the `casebuild` extra). `test_experiment.py`: the experiment layer. `test_cli.py`, `test_evac_plots.py`, `test_paths.py`, `test_docs.py`: case selection, plots, where the repository is, links and commands of the documentation. Run them before and after any change. |
 | `variants/app_2022/` | Newer, self-contained version of the workflow: `main.py` (Q-learning, uses `bin/qlearn.py`), `setup/` (builds a case from an area-of-study GeoJSON in `input/`), `make_video.py`, `analysis.ipynb`. Run from inside the folder. |
-| `experimental/new_model/` | Work-in-progress object-oriented rewrite (`tsuevac` package: `Environment`, `Agent`, `Evacuee`, `Node`, `Shelter`, `Model`). Several methods are still stubs. |
 | `datasets/census/` | Census, household and building databases (`CensusAndBuildingDatabase`, `Household_database`, `Population_database`), the inputs of `pre/SetPopDB.py`. |
 | `datasets/gis/` | GIS data (QGIS projects, rasters) and figures for the tsunami inundation / road network, plus the notebook that reads them (it uses `./data`, so it stays next to the data). |
 | `datasets/legacy/` | Older samples: `kochi_old/` (state and results in the 31-column layout) and two evacuee start/end/departure tables. |
-| `experimental/` | Also `tdcontrol.py` (toy TD-control skeleton) and `tests_mc.py` (ad-hoc runs of `MonteCarlo`: Arahama sequences, shortest-path run, video). |
 | `results/`, `weights/` | Sample outputs of old Kochi runs; also where the notebooks and `computeWeightsAtLinks` read and write. |
 
 ## Installing and the optional groups

@@ -52,7 +52,7 @@ def createGraph(area={'north': 33.58, 'south': 33.53, 'east': 133.58, 'west': 13
 
 
 def getPrefShelters(pref_code=39, crs='EPSG:6690', filter=True):
-    rootfolder = "/Users/erick/ReGID Dropbox/zDATA"
+    rootfolder = "/path/to/zDATA"
     datafolder = u"PAREA_Hazard_2018/data/世界測地系"
     areafile = f"{pref_code:02d}/PHRP{pref_code:02d}18.shp"
     path = os.path.join(rootfolder, datafolder, areafile)

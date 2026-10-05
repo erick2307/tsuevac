@@ -83,7 +83,7 @@ nearest node, however far it is (it took every point inside the *box* of the net
 there to the building is not part of the evacuation, and the street node that received it stops being a place people can pass
 through (a shelter has no way out). Area 3 has no shelter inside its box at all.
 
-**S2, built after your confirmation: attach.** `shelters="attach"` (the default now; `--shelters-as attach`) puts a node at the
+**S2, built after confirmation: attach.** `shelters="attach"` (the default now; `--shelters-as attach`) puts a node at the
 shelter and joins it to the nearest street node by one link as long as the distance (whole metres, width 3 m). Points within 5 m of
 each other are one shelter (in area 4 three points sit at the same place), a point closer than 1 m to a node is that node, and a shelter is never
 attached to another shelter. The street node stays an ordinary node. Nothing is left out and nothing is moved. A7 compares the two
@@ -146,11 +146,11 @@ crowding does bind, and for the learned policy, whose state contains the density
 * The old all-pairs shortest-path step needs n × n matrices: about 3 GB each for `new_kochi`. `next_nodes` searches from all shelters at
   once and gives the same table (with the same parallel-link rule) in the memory of the network: identical on all five areas above.
 
-## Decisions for you
+## Decisions
 
 | | Decision | Recommendation |
 |---|---|---|
 | S1 | Population of the shipped `kochi_area*`: the study's (`within`, uniform) or the census total by area-weighting, placed by the census (`weighted`, `proportional`) | **decided: the second** (4,196 / 2,743 / 1,704 / 13,502 agents). The people per node are stored in each case (`node_population.csv`) so that it rebuilds offline; the study's population is one command |
 | S2 | Shelters far from the network: keep snapping (study), leave out beyond a distance, or attach each shelter by a link whose length is the distance | **built and applied** (A7): the four shipped cases were rebuilt with it; `--shelters-as snap` and `--legacy` give the study's version |
-| S3 | The licence and terms of the OSM-derived network and of the shelter and census layers (`cases/README.md`) | the shelter and census layers are from the Kochi Prefectural Office and public domain, **as stated by you** (recorded in `cases/README.md`, not verified against the Office's own terms); still open: the ODbL notice for the OpenStreetMap network and the origin of the area polygons |
+| S3 | The licence and terms of the OSM-derived network and of the shelter and census layers (`cases/README.md`) | the shelter and census layers are from the Kochi Prefectural Office and public domain, **as stated by the repository owner** (recorded in `cases/README.md`, not verified against the Office's own terms); still open: the ODbL notice for the OpenStreetMap network and the origin of the area polygons |
 | S4 | `new_kochi`: rebuild its tables without the 11th-link inconsistency | **decided and done**: `cases/new_kochi/fixExcessLinks.py` removed the longest link at node 3106 (link 4779, 22 m, to node 4588) from both ends, renumbered the links, rebuilt `actionsdb`/`transitionsdb`; the old script now refuses a node with more than 10 links. Node 3106 now has the 10 links, including the 9 m link the old table dropped at its end only |

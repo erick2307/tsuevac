@@ -120,7 +120,7 @@ tests have no shortest-path entry. This is the one place where a default changed
 * `linksdb` is read as whole meters (the documented format; the Urushibara pipeline writes `int64` lengths and removes
   zero-length links). A link of length 0 is now reported by number instead of failing later with `nan`.
 
-## Decisions for you
+## Decisions
 
 | | Decision | Recommendation | Outcome |
 |---|---|---|---|

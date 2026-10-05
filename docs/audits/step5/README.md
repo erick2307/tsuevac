@@ -114,17 +114,17 @@ budget tried.
 with that wheel from the clone: `sp` 26 s, `calibrate` 331 s, `evaluate` 17 s, `compare` and `policy` 1 s each (about 6 minutes, 4 cores). GitHub Actions on the same
 commit: all jobs green.
 
-## Decisions for you
+## Decisions
 
-| | Decision | Recommendation |
+| | Decision | Outcome |
 |---|---|---|
-| D12 | Version **0.2.0** (the defaults changed, so results differ from 0.1.0) and the licence **`GPL-3.0-only`** (the repository carries the GPLv3 text and no "or later" notice; widening it later is possible, narrowing is not) | both as they are |
-| D13 | The Kochi Prefectural Office layers (shelters, census mesh) are recorded as "public domain, as stated by you"; Japanese open data is often CC BY-like and then asks for attribution | look up the Office's terms and put the wording in [docs/data-licences.md](../../data-licences.md) before the repository is shared |
-| D14 | Rows of the licence page that say "source and terms not recorded" (census and building databases, tsunami inundation, shelter register, area polygons) and the five files in `pre/` that name Moya as author: their agreement to GPL-3.0 | fill in, or remove the data / files that cannot be cleared |
-| D15 | 277 MB of GIS data are tracked (three files over 65 MB; a clone is about 100 MB compressed). Moving them out needs a history rewrite to help, which I did not do | leave, or move to a release asset / Git LFS and say so in the README |
-| D16 | `experimental/` (an unfinished rewrite), `pre/`, `variants/app_2022/` are labelled legacy, nothing deleted | label (done); delete `experimental/` if you do not mean to continue it |
-| D17 | `CITATION.cff` has one author, no affiliation, no ORCID and no paper (`preferred-citation`) | add them; I did not invent any |
-| D18 | Process wording in `roadmap.md` and the audits; personal paths in legacy scripts and notebooks; the e-mail addresses in the git history | a tidy-up commit in Step 6 if you want the repository to read as a finished release |
-| D11 | (from Step 4, not yet answered) the 2024 Kochi study's conclusion about learned policies was made under the 0.9-per-decision discount that capped them at 81 %: re-examine it before it is cited | yes |
+| D12 | Version 0.2.0 and `GPL-3.0-only` | **confirmed** as they are |
+| D13 | The Kochi Prefectural Office layers recorded as "public domain, as stated by the repository owner" | **accepted** as recorded (the Office's own terms were not looked at) |
+| D14 | Authorship and the five `pre/` files that name Moya | Erick Mas is the author in `pyproject.toml`, `CITATION.cff` and `src/evacrl/mc.py` (its `@author: root` header). The `@author` headers of the five `pre/` files (`Moya`, `luismoya`) are **not rewritten**: `pre/DisaggregationLibrary.py` hard-codes `C:\Users\Moya\ReGID Dropbox\Luis Moya\...`, so changing its header would credit the repository owner with a file that its own paths say was written by someone else. If those files were in fact written by the owner, say so and the headers change; otherwise the GPL-3.0 question for them stays open ([data-licences.md](../../data-licences.md#code-written-by-others)) |
+| D15 | Shrink clones | handled in [Step 6](../step6/README.md#d15-smaller-clones) |
+| D16 | Delete `experimental/` | **done** (it remains in the git history); `migration.md`, `repository.md`, `pyproject.toml`, the licence page and the CHANGELOG updated |
+| D17 | Citation metadata | ORCID `0000-0002-4861-5739` added to `CITATION.cff` (validated). No affiliation or paper was given, so none is stated |
+| D18 | Tidy-up | working-document wording ("decisions for you", "your call", "awaiting your confirmation") rewritten in the roadmap and the audits; personal absolute paths in legacy scripts and notebooks replaced by placeholders (`/path/to/...`; `pre/DisaggregationLibrary.py` keeps its author's paths); the e-mail addresses in the git history cannot change without rewriting it (Step 6, D15) |
+| D11 | Re-examine the 2024 study's conclusions about learned policies | **confirmed**, done in [Step 6](../step6/README.md#the-2024-studys-conclusions-d11) |
 
-D10 (a long training run on `kochi_area4`) was declined (your choice (a)).
+D10 (a long training run on `kochi_area4`) was declined.

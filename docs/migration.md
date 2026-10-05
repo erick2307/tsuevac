@@ -12,12 +12,12 @@ to the new ones, and says what to do with local files that git does not track.
 | `arahama/` (local only, never in the repository) | `cases/arahama/` |
 | `qlearn.py`, `sarsa.py`, `mc.py`, `evac_plots.py`, `make_video.py` | `src/evacrl/` |
 | `main_ql.py`, `main_ql_mod.py`, `main_sarsa.py`, `main_mc.py`, `main_ShortPath.py` | `scripts/` |
-| `tdcontrol.py`, `tests_mc.py` | `experimental/` |
+| `tdcontrol.py`, `tests_mc.py` | `experimental/` (removed in 0.2.0; in the git history) |
 | `check_policies.ipynb`, `plot_survivors.ipynb` | `notebooks/` |
 | `database/operation_arahama.ipynb`, `database/operation_kochi.ipynb`, `other/CalculateWeights.ipynb` | `notebooks/` |
 | `other/evacuees_start_end_departure*.csv`, `other/kochi_old/` | `datasets/legacy/` |
 | `app/` | `variants/app_2022/` |
-| `new_model/` | `experimental/new_model/` |
+| `new_model/` | `experimental/new_model/` (removed in 0.2.0, an unfinished rewrite; in the git history) |
 | `new_model/man/*.drawio` | `docs/diagrams/` |
 | `system/` | `datasets/gis/` |
 | `pre/CensusAndBuildingDatabase/`, `pre/Household_database/`, `pre/Population_database/` | `datasets/census/` |

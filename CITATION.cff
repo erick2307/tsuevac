@@ -11,6 +11,7 @@ version: 0.2.0
 authors:
   - family-names: Mas
     given-names: Erick
+    orcid: "https://orcid.org/0000-0002-4861-5739"
 repository-code: "https://github.com/erick2307/tsuevac"
 license: GPL-3.0-only
 keywords:

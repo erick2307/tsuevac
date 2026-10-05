@@ -156,7 +156,7 @@ states take longer to learn; they are not a comparison of the final policies. A 
 (`densityLevel`, `surviveReward` stay at the 2021 values) still stands without evidence for changing it, and the question that matters
 (does a policy that sees crowding beat the shortest path where crowding binds?) is open.
 
-## After your confirmation of D7-D9
+## The confirmed follow-ups: D7-D9
 
 ### D7. The discount default is 0.999 per second (applied)
 
@@ -252,12 +252,12 @@ of 2 h takes 3-4 minutes on this area). (4) What could change the outcome and wa
 with fewer or coarser density codes, values for unseen states taken from the shortest-path distance, a function approximator instead of a table. These are
 research questions of their own, not engineering of this repository.
 
-## Decisions for you
+## Decisions
 
 | | Decision | Outcome / recommendation |
 |---|---|---|
 | D7 | Discount of the temporal-difference methods: 0.9 per decision, or 0.999 per second | **confirmed and applied** (above). `ModelOptions.legacy()` and `kochi2024()` keep 0.9 |
 | D8 | The 2024 Kochi results regenerated with the default options | **done** (`results/kochi2024_regenerated`): the committed evacuation times must not be cited; kochi4 needs 180 min |
 | D9 | A crowded area with the per-second discount against the shortest path | **done, answer: not shown** (above). Learning matches the shortest path where the area is not crowded and does not beat it where it is, within 30-60 simulations |
-| D10 | Whether to put a long training run on `kochi_area4` (hundreds of simulations of 120 min, the `segment` code; measured 3.7-4.1 min per simulation including the checkpoint evaluations, so 300 simulations are about 19-21 h of wall-clock for one training run; the four cores of this machine do not shorten a run, they allow four seeds at the same time) | your call: it is the experiment that can show that learning helps, and the only way to find out; it is not needed for Steps 5 and 6, which are about releasing what exists |
-| D11 | The Kochi study's own conclusion about learned policies (made with the 0.9-per-decision discount, which capped them at 81 %) should be re-examined before it is cited | yes |
+| D10 | Whether to put a long training run on `kochi_area4` (hundreds of simulations of 120 min, the `segment` code; measured 3.7-4.1 min per simulation including the checkpoint evaluations, so 300 simulations are about 19-21 h of wall-clock for one training run; the four cores of one machine do not shorten a run, they allow four seeds at the same time) | **declined**: it is the experiment that can show that learning helps, and the only way to find out; it is not needed for releasing what exists |
+| D11 | The Kochi study's own conclusion about learned policies (made with the 0.9-per-decision discount, which capped them at 81 %) should be re-examined before it is cited | **confirmed**: done in [Step 6](../step6/README.md#the-2024-studys-conclusions-d11) |

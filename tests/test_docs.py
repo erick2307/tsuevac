@@ -87,7 +87,7 @@ class Links(unittest.TestCase):
     def test_there_are_files_to_check(self):
         found = {os.path.relpath(p, ROOT) for p in markdown_files()}
         for name in ("README.md", "CHANGELOG.md", os.path.join("docs", "manual.md"), os.path.join("pre", "README.md"),
-                     os.path.join("experimental", "README.md"), os.path.join("variants", "app_2022", "README.md")):
+                     os.path.join("variants", "app_2022", "README.md")):
             self.assertIn(name, found)
         self.assertFalse([p for p in found if p.startswith("datasets")])
 
