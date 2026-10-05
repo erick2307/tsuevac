@@ -98,7 +98,21 @@ budget tried.
 * GitHub Actions on the pushed branch: lint, build (with the wheel installed and run away from the checkout), and the tests on Python 3.10, 3.11, 3.12 and 3.13
   in both configurations: first run (before the fixes) 7 of 10 jobs green and the 3 red ones were the two defects above; after the fixes 10 of 10 on two
   successive commits.
-* The clean-checkout script on the final commit: see "Clean checkout of the final commit" below.
+* The clean-checkout script on the final commit (`49e6835`, below).
+
+## Clean checkout of the final commit
+
+`clean_checkout.sh` on `49e6835` (a fresh clone of the pushed branch, a new environment per Python version, nothing installed beyond the README's install):
+
+| | 3.10 | 3.11 | 3.12 | 3.13 |
+|---|---|---|---|---|
+| `pip install -e .`, `python -W error -m unittest discover tests` | 275 tests OK (2 skipped) | 275 OK (2) | 275 OK (2) | 275 OK (2) |
+| `pip install -e ".[casebuild]"`, same | 309 OK | 309 OK | 309 OK | 309 OK |
+
+`ruff` clean, `CITATION.cff` valid, wheel and sdist build and pass `twine check`; the wheel installed in another environment imports from `site-packages`,
+`evacrl-casebuild` and `evacrl-experiment` answer `--help`, and `validate cases/kochi_area2` reports the case valid. The quick start of the README, run
+with that wheel from the clone: `sp` 26 s, `calibrate` 331 s, `evaluate` 17 s, `compare` and `policy` 1 s each (about 6 minutes, 4 cores). GitHub Actions on the same
+commit: all jobs green.
 
 ## Decisions for you
 
