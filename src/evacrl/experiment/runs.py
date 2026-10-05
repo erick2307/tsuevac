@@ -11,6 +11,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
+from evacrl.experiment.seeds import seeded
 from evacrl.mc import MonteCarlo
 from evacrl.options import ModelOptions
 from evacrl.qlearn import QLearning
@@ -25,7 +26,7 @@ class RunResult:
     that second has been simulated (the `time, safe` rows of the 2024 study's results; the engine's clock reads `t + 1` then). So
     `safe_at(s)`, the agents safe after `s` seconds, is `curve[s - t0 - 1]`, and `last_evacuee`, the study's evacuation time, is the
     recorded second at which the final count appears: `safe_at(last_evacuee + 1)` is the whole count. Agents that start at a shelter
-    count when they depart, as in the engine."""
+    are counted from the first recorded second (the engine marks them as evacuated when it is made, not when they would depart)."""
     seed: int
     agents: int
     t0: int
@@ -94,19 +95,33 @@ def shortest_path_run(case, seed, options=None, sim_time=7200, mean_departure=5.
     """One shortest-path run (`case.nextnode` is needed). `seed` fixes the departure times."""
     if case.nextnode is None:
         raise ValueError(f"the case {case.name!r} has no nextnode.csv: build one with evacrl.casebuild")
-    np.random.seed(seed)
-    model = make_model(case, "sarsa", options, mean_departure)
-    model.loadShortestPathDB(case.nextnode)
-    curve = run_episode(model, sim_time, shortest_path=True)
+    with seeded(seed):
+        model = make_model(case, "sarsa", options, mean_departure)
+        model.loadShortestPathDB(case.nextnode)
+        curve = run_episode(model, sim_time, shortest_path=True)
     return RunResult(seed, model.numPedestrian, _first_second(model), curve)
 
 
 def check_state(model, state):
-    """`state` must be the state matrix of this case: 31 columns, and its first rows the states of the nodes 0, 1, 2, ..."""
+    """`validate_state` for the case a model was made from."""
+    validate_state(state, model.nodesdb.shape[0], model.transLinkdb[:, 1])
+
+
+def validate_state(state, n, actions_per_node):
+    """`state` must be the state matrix of a case with `n` nodes and `actions_per_node[i]` actions at node i: 31 columns, its first rows
+    the states of the nodes 0, 1, 2, ..., no state of a node that does not exist, and nothing in the slots of the actions a node does
+    not have (a state matrix of a larger case would pass the first test alone). Raises `ValueError`."""
     state = np.asarray(state)
-    n = model.nodesdb.shape[0]
+    wrong = f"not a state matrix of this case ({n} nodes): shape {state.shape}"
     if state.ndim != 2 or state.shape[1] != 31 or state.shape[0] < n or not np.array_equal(state[:n, 0], np.arange(n)):
-        raise ValueError(f"not a state matrix of this case ({n} nodes): shape {state.shape}, first rows {state[:3, 0].tolist() if state.ndim == 2 else '?'}")
+        raise ValueError(f"{wrong}, first rows {state[:3, 0].tolist() if state.ndim == 2 else '?'}")
+    if state[:, 0].max() >= n or state[:, 0].min() < 0:
+        raise ValueError(f"{wrong}: it has states of nodes up to {int(state[:, 0].max())}")
+    actions = np.asarray(actions_per_node)[state[:, 0].astype(int)].astype(int)       # how many actions each state's node has
+    unused = np.arange(10)[None, :] >= actions[:, None]
+    for name, columns in (("density codes", slice(1, 11)), ("action values", slice(11, 21)), ("visit counts", slice(21, 31))):
+        if np.any(state[:, columns][unused] != 0):
+            raise ValueError(f"{wrong}: it has {name} in slots of actions that its nodes do not have")
 
 
 def evaluate_state(case, method, state, seed, options=None, sim_time=1800, mean_departure=5.0, discount=None, learn=False):
@@ -114,11 +129,11 @@ def evaluate_state(case, method, state, seed, options=None, sim_time=1800, mean_
 
     learn=False (default): the policy is frozen, nothing is learned during the run. learn=True: the agents keep learning on a copy of
     the state (what the 2024 calibration and the audits of Steps 2-4 did), so the result is that of a policy that adapts as it goes."""
-    np.random.seed(seed)
-    model = make_model(case, method, options, mean_departure, discount)
-    check_state(model, state)
-    model.stateMat = np.array(state, copy=True)
-    curve = run_episode(model, sim_time, epsilon=0.0, learn=learn)
+    with seeded(seed):
+        model = make_model(case, method, options, mean_departure, discount)
+        check_state(model, state)
+        model.stateMat = np.array(state, copy=True)
+        curve = run_episode(model, sim_time, epsilon=0.0, learn=learn)
     return RunResult(seed, model.numPedestrian, _first_second(model), curve)
 
 

@@ -10,13 +10,17 @@ import time
 
 import numpy as np
 
-from evacrl import paths
 
 
 def _git():
-    """Commit of the repository the code is run from (and whether it has uncommitted changes), or None outside a checkout."""
+    """Commit of the checkout this code is in (and whether it has uncommitted changes), or None if it is not in a git checkout of its own:
+    an installed package, or one that happens to sit in some other repository, or a data folder (EVACRL_ROOT) in another one."""
+    here = os.path.dirname(os.path.abspath(__file__))
     try:
-        run = lambda *args: subprocess.run(["git", *args], cwd=paths.REPO_ROOT, capture_output=True, text=True, timeout=10, check=True).stdout.strip()
+        run = lambda *args: subprocess.run(["git", *args], cwd=here, capture_output=True, text=True, timeout=10, check=True).stdout.strip()
+        top = run("rev-parse", "--show-toplevel")
+        if not os.path.isfile(os.path.join(top, "src", "evacrl", "experiment", "manifest.py")):
+            return None
         return dict(commit=run("rev-parse", "HEAD"), uncommitted_changes=bool(run("status", "--porcelain", "--untracked-files=no")))
     except Exception:
         return None

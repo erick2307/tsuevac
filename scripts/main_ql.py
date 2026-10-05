@@ -120,7 +120,7 @@ def run_ql(area="kochi",simtime=30,meandeparture=15,numSim0=0,
     return 
 
 
-def kochi_ql():  
+def kochi_ql(area="kochi"):  
     simtime=30 #min
     meandeparture=15 #min
     
@@ -129,7 +129,6 @@ def kochi_ql():
     simPerBlock= 100
     
     name=f"ql_{simtime}_{meandeparture}_{simPerBlock}"
-    area="kochi"
     
     run_ql(area=area,simtime=simtime, meandeparture=meandeparture, 
         numSim0=numSim0, numBlocks=numBlocks, simPerBlock=simPerBlock, name=name) 
@@ -168,4 +167,4 @@ def new_kochi_ql():
 
 if __name__ == "__main__":
     # python scripts/main_ql.py [kochi | arahama | new_kochi]   (default: arahama)
-    cli.run_case({"kochi": kochi_ql, "arahama": arahama_ql, "new_kochi": new_kochi_ql}, default="arahama")
+    cli.run_case({"kochi": kochi_ql, "arahama": arahama_ql, "new_kochi": new_kochi_ql}, default="arahama", generic=kochi_ql)

@@ -9,6 +9,12 @@ import matplotlib.pyplot as plt
 from scipy.stats import rayleigh
 import time
 
+def departureCDF(x, meandeparture):
+    """Share of the agents that have left by `x` (same unit as `meandeparture`, the MEAN departure time): the Rayleigh distribution the engine
+    draws the departure times from, whose scale is the mean times sqrt(2/pi) (`EvacuationModel.__init__`)."""
+    return rayleigh.cdf(x, 0, meandeparture * (2 / np.pi) ** 0.5)
+
+
 def survivorsVsTime(numfiles,startfile=0,simtime=30,pop=35930,meandeparture=15,
                     allfiles=True,blocks=250,casealias='case1',statefolder = "case_u30min",options=None):
     if allfiles:
@@ -93,10 +99,8 @@ def plotSurvivors(numfiles,simtime=30,pop=35930,meandeparture=15,allfiles=True,b
     plt.ylim(0,1)
     
     scale = 1
-    loc = 0
-    sc = meandeparture
     x = np.linspace(0,simtime,1000)
-    plt.plot(x, scale*rayleigh.cdf(x,loc,sc),cls, lw=2,alpha=0.9, label='Fast')    
+    plt.plot(x, scale*departureCDF(x, meandeparture),cls, lw=2,alpha=0.9, label='Fast')    
     fout=os.path.join("results",f"evacuation_rate_{casealias}.png")
     plt.savefig(fout)
 

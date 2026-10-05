@@ -18,7 +18,6 @@ values are updated*, so that is the single hook a subclass overrides:
 
 import numpy as np
 import matplotlib.pyplot as plt
-import cv2
 import glob
 import os
 from evacrl import paths
@@ -47,6 +46,8 @@ class EvacuationModel:
         self.stepReward = -1
         # store the discount parameter to compute the returns (`discount=None`: the one of the options)
         self.discount = self.options.discount if discount is None else discount
+        if not 0 < self.discount <= 1:
+            raise ValueError(f"the discount must be in (0, 1], not {self.discount!r}")
         # nodes database in utm coordinates [number, coordX, coordY, evacuactionCode]; 
         # evacuationCode equals 1 if the node is an evacuation node; otherwise, is zero. 
         # On 2020August28 we decided to include a new column that will store the reward in each node
@@ -87,6 +88,7 @@ class EvacuationModel:
         self.evacuationNodes = self.nodesdb[self.nodesdb[:,3] == 1,0].astype(int)
         self.pedProfiles = load_table(agentsProfileName, dtype=int) # agents profile [age, gender, householdType, householdId, closestNodeNumber]
         self.numPedestrian = self.pedProfiles.shape[0]
+        self.checkInputs(agentsProfileName)
         self.errorLoc = 2.0   # acceptable error between coordinate of a node and a coordinate of a pedestrian
         self.snapshotNumber = 0
         
@@ -212,6 +214,21 @@ class EvacuationModel:
         numComp= int( self.popAtLink_HistParam[codeLink,1] )
         return self.denArrPerLink[codeLink, :numComp]
     
+    def checkInputs(self, agentsProfileName="the agents file"):
+        """Stop, with a message, where the tables would otherwise fail later with a cryptic error (`evacrl.casebuild.validate_case` lists
+        every problem of a case): no agents, a node with more links than the state matrix holds (10), an agent that starts on a node
+        with no links."""
+        if self.pedProfiles.ndim != 2 or self.pedProfiles.shape[0] == 0 or self.pedProfiles.shape[1] < 5:
+            raise ValueError(f"{agentsProfileName}: no agents (one row per agent, five columns, the last one the starting node)")
+        most = int(self.transLinkdb[:, 1].max())
+        if most > 10:
+            node = int(self.transLinkdb[np.argmax(self.transLinkdb[:, 1]), 0])
+            raise ValueError(f"node {node} has {most} links; the state matrix holds 10 per node")
+        start = self.pedProfiles[:, 4]
+        stuck = np.where((self.transNodedb[start, 1] == 0) & ~np.isin(start, self.evacuationNodes))[0]
+        if len(stuck):
+            raise ValueError(f"agent {int(stuck[0])} (of {len(stuck)}) starts at node {int(start[stuck[0]])}, which has no links and is not an evacuation node")
+
     def getVelArrAtLink(self, codeLink):
         numComp= int( self.popAtLink_HistParam[codeLink,1] )
         return self.speArrPerLink[codeLink, :numComp]
@@ -224,6 +241,8 @@ class EvacuationModel:
         of computePedHistDenVelAtLinks (every 10 s in the scripts). Otherwise (default): the density of the whole
         link at this very moment, with a fixed width of 2 m.
         """
+        if codeLink < 0:
+            return 0              # the "link" -1 is the stay of an evacuation node: it is not the last link of the table
         if self.options.densityLevel == "segment":
             return int(np.max(self.denLvlArrPerLink[codeLink, :]))
         density = float(self.populationAtLinks[codeLink,1]) /(linkWidth * self.linksdb[codeLink,3])
@@ -823,6 +842,7 @@ class EvacuationModel:
         return
     
     def makeVideo(self, nameVideo = "Simul.avi"):
+        import cv2   # only here: the simulation does not need OpenCV (and so not its system libraries)
         listImagesUS = glob.glob( os.path.join(paths.FIGURES_DIR, "*png"))
         numSS_ar= np.zeros( len(listImagesUS) , dtype= int)
         for i, li in enumerate(listImagesUS):

@@ -108,6 +108,14 @@ def build_parser():
     return parser
 
 
+def _prepare_out(folder):
+    """Make the result folder, or stop with a message if that cannot be done (a file of that name, no permission)."""
+    try:
+        os.makedirs(folder, exist_ok=True)
+    except OSError as exc:
+        raise SystemExit(f"error: cannot use --out {folder}: {exc.strerror or exc}")
+
+
 def _seconds(minutes):
     """Minutes as a whole number of seconds, rounded (`int(2.05 * 60)` would be 122)."""
     return int(round(minutes * 60))
@@ -166,6 +174,14 @@ def _main(argv):
             print(f"wrote {args.out}")
         return 0
     options = options_from(args)
+    if args.command in ("sp", "calibrate", "evaluate"):
+        _prepare_out(args.out)                     # a result folder that cannot be made is found out before the computation, not after it
+    sp_curves = None
+    if args.command == "calibrate" and args.sp:
+        try:
+            sp_curves = output.read_curves(args.sp)
+        except OSError as exc:
+            raise SystemExit(f"error: --sp {args.sp} is not the folder of an `sp` run ({exc})")
 
     if args.command == "sp":
         if args.runs is None and not args.until_converged:
@@ -176,7 +192,6 @@ def _main(argv):
         res = repeat_shortest_path(case, args.runs, until_converged=args.until_converged, max_runs=args.max_runs, min_runs=args.min_runs,
                                    batch=args.batch, tol=args.tol, horizon=horizon, seed=args.seed, workers=args.workers, options=options,
                                    sim_time=_seconds(args.time), mean_departure=args.departure)
-        os.makedirs(args.out, exist_ok=True)
         output.write_runs(args.out, res.runs, horizon)
         output.write_convergence(args.out, res.trace)
         last, safe = res.metric("last_evacuee"), res.metric("safe", horizon)
@@ -199,7 +214,6 @@ def _main(argv):
         return 0
 
     if args.command == "calibrate":
-        os.makedirs(args.out, exist_ok=True)
         log = lambda c: print(f"sim {c.sim:5d}  epsilon {c.epsilon:.3f}  exploring {c.train_safe:7.1f}  greedy {c.eval_mean:7.1f} ± {c.eval_sd:5.1f}{'  *' if c.best else ''}", flush=True)
         res = calibrate(case, method=args.method, sims=args.sims, schedule=args.schedule, eval_every=args.eval_every, eval_runs=args.eval_runs,
                         sim_time=_seconds(args.time), mean_departure=args.departure, options=options, discount=args.discount, seed=args.seed,
@@ -208,8 +222,8 @@ def _main(argv):
         output.write_state(os.path.join(args.out, "best_state.csv"), res.best_state)
         output.write_state(os.path.join(args.out, "final_state.csv"), res.final_state)
         reference = None
-        if args.sp:
-            _, safe, _ = output.read_curves(args.sp)
+        if sp_curves is not None:
+            _, safe, _ = sp_curves
             reference = float(safe[:, min(_seconds(args.time), safe.shape[1]) - 1].mean())
         discount = options.discount if args.discount is None else args.discount
         plot_learning(os.path.join(args.out, "learning.png"), output.read_history(args.out), reference=reference,
@@ -224,7 +238,6 @@ def _main(argv):
         state = np.loadtxt(args.state, delimiter=",")
         runs = evaluate_policy(case, args.method, state, args.runs, seed=args.seed, workers=args.workers, options=options,
                                sim_time=_seconds(args.time), mean_departure=args.departure, discount=args.discount, learn=args.keep_learning)
-        os.makedirs(args.out, exist_ok=True)
         output.write_runs(args.out, runs, _seconds(args.time))
         safe = np.array([r.evacuated for r in runs], dtype=float)
         write_manifest(args.out, build_manifest("evaluation", case, dict(vars(args), state_sha256=_sha256(args.state)), options=options,

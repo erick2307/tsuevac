@@ -8,6 +8,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
+from evacrl.experiment.runs import validate_state
 from evacrl.tables import load_table
 
 NO_PATH = -9999
@@ -24,6 +25,7 @@ def greedy_next_nodes(case, state):
     """The node each node's greedy choice leads to (a shelter: itself; a node without links: -9999)."""
     nodes, _, transitions = _tables(case)
     state = np.asarray(state)
+    validate_state(state, len(nodes), transitions[:, 1])
     out = np.full(len(nodes), NO_PATH)
     for i in range(len(nodes)):
         if nodes[i, 3] == 1:
@@ -32,8 +34,8 @@ def greedy_next_nodes(case, state):
         k = int(transitions[i, 1])
         if k == 0:
             continue
-        if int(state[i, 0]) != i:
-            raise ValueError(f"row {i} of the state matrix is the state of node {int(state[i, 0])}: not a state matrix of this case")
+        if i >= len(state) or int(state[i, 0]) != i:
+            raise ValueError(f"row {i} of the state matrix is not the state of node {i}: not a state matrix of this case")
         out[i] = transitions[i, 2 + int(np.argmax(state[i, 11:11 + k]))]
     return out
 

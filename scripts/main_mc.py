@@ -127,16 +127,15 @@ def run_mc(area="kochi",simtime=30, meandeparture=15, numSim0=0, numBlocks= 5, s
 
     return 
 
-def kochi_mc():  
+def kochi_mc(area="kochi"):  
     simtime=30 #min
     meandeparture=15 #min
     
-    numSim0= 1950
+    numSim0= 0
     numBlocks= 1
-    simPerBlock= 8050
+    simPerBlock= 1000
 
     name=f"mc_{simtime}_{meandeparture}"
-    area="kochi"
     
     run_mc(area=area,simtime=simtime, meandeparture=meandeparture, 
         numSim0=numSim0, numBlocks=numBlocks, simPerBlock=simPerBlock, name=name) 
@@ -173,4 +172,4 @@ def new_kochi_mc():
 
 if __name__ == "__main__":
     # python scripts/main_mc.py [kochi | arahama | new_kochi]   (default: kochi)
-    cli.run_case({"kochi": kochi_mc, "arahama": arahama_mc, "new_kochi": new_kochi_mc}, default="kochi")
+    cli.run_case({"kochi": kochi_mc, "arahama": arahama_mc, "new_kochi": new_kochi_mc}, default="kochi", generic=kochi_mc)

@@ -9,6 +9,7 @@ SARSA and Monte Carlo (pinned bit for bit by golden recordings), `ModelOptions.k
 (SARSA, bit for bit against its code). Q-learning has no 2021 form: in 0.1.0 it was SARSA under another name.
 
 ### Added
+* `CalibrationResult.training_safe` (the safe count of every training simulation), `evacrl.experiment.seeds.seeded`, `run_case(..., generic=)`.
 * `evacrl.options.ModelOptions`: the behaviours in which the 2021 code and the 2024 Kochi study differ (survival reward, density
   code of a link, speed on entering a link, segment lookup, what the discount applies to, the discount) as explicit options
   ([engine reconciliation](./docs/engine-reconciliation.md)).
@@ -48,16 +49,31 @@ SARSA and Monte Carlo (pinned bit for bit by golden recordings), `ModelOptions.k
 * `experimental/` (`new_model/`, an unfinished object-oriented rewrite; `tdcontrol.py`; `tests_mc.py`). They remain in the git history.
 
 ### Fixed
-* The shortest-path table (`nextnode.csv`, `evacrl.casebuild.routing.next_nodes`) left the choice between equally short walks to
+Found by the final review (Step 6, [report](./docs/audits/step6/README.md)); the recorded results of the golden tests do not change.
+* `scripts/main_ShortPath.py` stopped after its first simulation (the shortest-path table was loaded for the first model only) and could not be
+  run on any shipped case; every `main_*.py` now accepts the name of any folder of `cases/` (`python scripts/main_ShortPath.py kochi_area2`).
+  `main_mc.py`'s default no longer resumes simulation 1950 of a run that is not in the repository.
+* The state of an evacuation node read the *last link of the table* (its only action is the "link" -1), splitting its terminal value by the
+  crowding of an unrelated link; its density code is now 0.
+* `python -m evacrl.experiment`: a result folder that cannot be made, or a missing `--sp` reference, is reported before the computation rather
+  than after it; a state matrix of another case is refused by `policy` and `evaluate` (states of nodes the case lacks, values in the slots of
+  actions a node does not have); a run no longer changes the random numbers of the program that calls it; the manifest records the commit of the
+  code, not of whatever git repository the data folder is in.
+* The engine refuses, with a message, a discount outside (0, 1] (it did only in `ModelOptions`), a table without rows, a node with more than 10
+  links and an agent that starts on a node without links; it no longer imports OpenCV unless a video is made.
+* The reference curve of `plotSurvivors` used the mean departure time as the scale of the Rayleigh distribution (the engine uses the mean times
+  sqrt(2/pi)).
+* Shortest-path keys use 64-bit integers (they overflowed on Windows with NumPy < 2 above 46,340 nodes).
+* (Step 5, clean checkout) The shortest-path table (`nextnode.csv`, `evacrl.casebuild.routing.next_nodes`) left the choice between equally short walks to
   SciPy, which breaks ties differently in different versions: `kochi_area4` rebuilt on Python 3.10 (SciPy 1.15) differed from the
   shipped table (SciPy 1.18) in one entry. The next node is now the lowest-numbered neighbour on a shortest walk, whatever the order
   of the links and the SciPy version. The shipped tables change in 3 (`kochi_area0`), 3 (`kochi_area1`), 0 (`kochi_area2`) and 13
   (`kochi_area4`) entries, every one between two equally short steps, so no walk gets longer
   ([`docs/audits/step5`](./docs/audits/step5/README.md)); the shortest-path baseline of those cases varies slightly with it. `method="allpairs"` (the
   2024 study's way) keeps SciPy's tie-breaking, to reproduce its tables.
-* SciPy is a core dependency: `evacrl.casebuild` (and so `python -m evacrl.casebuild validate`) failed to import after a plain
+* (Step 5) SciPy is a core dependency: `evacrl.casebuild` (and so `python -m evacrl.casebuild validate`) failed to import after a plain
   `pip install evacrl`.
-* Unused variables and imports found by `ruff` (no change of behaviour: the golden recordings are unchanged).
+* (Step 5) Unused variables and imports found by `ruff` (no change of behaviour: the golden recordings are unchanged).
 
 ## 0.1.0
 

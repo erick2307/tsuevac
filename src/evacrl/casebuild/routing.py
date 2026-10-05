@@ -17,8 +17,8 @@ def _adjacency(network, parallel):
     if parallel not in ("min", "last"):
         raise ValueError("parallel must be 'min' or 'last'")
     n = network.num_nodes
-    a = network.links[:, 1].astype(int)
-    b = network.links[:, 2].astype(int)
+    a = network.links[:, 1].astype(np.int64)         # int64: lo * n + hi overflows 32 bits above 46,340 nodes (the default int on Windows with NumPy < 2)
+    b = network.links[:, 2].astype(np.int64)
     w = network.links[:, 3]
     usable = (a != b) & (w > 0)                      # a loop leads nowhere; a link without length is not a link
     a, b, w = a[usable], b[usable], w[usable]

@@ -15,7 +15,7 @@ from typing import List
 import numpy as np
 
 from evacrl.experiment.runs import evaluate_state, make_model, map_jobs, run_episode
-from evacrl.experiment.seeds import derive_seeds
+from evacrl.experiment.seeds import derive_seeds, seeded
 
 SCHEDULES = ("calibration", "quadratic", "constant")
 
@@ -77,16 +77,16 @@ def calibrate(case, *, method="qlearning", sims=300, schedule="calibration", eva
     history, exploring, agents, training_safe = [], [], 0, []
     go_back = False
     for s in range(sims):
-        np.random.seed(train_seeds[s])
-        model = make_model(case, method, options, mean_departure, discount)
-        agents = model.numPedestrian
-        if go_back:
-            model.stateMat = np.array(best_state, copy=True)       # the episode changes its state matrix in place: not the stored best
-            go_back = False
-        elif state is not None:
-            model.stateMat = state
-        eps = epsilon_at(schedule, s, sims)
-        curve = run_episode(model, sim_time, epsilon=eps)
+        with seeded(train_seeds[s]):
+            model = make_model(case, method, options, mean_departure, discount)
+            agents = model.numPedestrian
+            if go_back:
+                model.stateMat = np.array(best_state, copy=True)   # the episode changes its state matrix in place: not the stored best
+                go_back = False
+            elif state is not None:
+                model.stateMat = state
+            eps = epsilon_at(schedule, s, sims)
+            curve = run_episode(model, sim_time, epsilon=eps)
         exploring.append(int(curve[-1]) if len(curve) else 0)
         training_safe.append(exploring[-1])
         state = model.stateMat

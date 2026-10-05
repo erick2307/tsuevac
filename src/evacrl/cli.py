@@ -18,13 +18,17 @@ def available_cases():
     return sorted(p.name for p in paths.CASES_DIR.iterdir() if (p / "data").is_dir())
 
 
-def run_case(runners, default, argv=None):
-    """Call `runners[name]()` for the case in `argv[0]` (default: sys.argv[1:]) or else `default`."""
+def run_case(runners, default, argv=None, generic=None):
+    """Call `runners[name]()` for the case in `argv[0]` (default: sys.argv[1:]) or else `default`. For a name without a runner
+    that is a folder of `cases/` with a `data/` folder, call `generic(name)` if there is one."""
     argv = sys.argv[1:] if argv is None else list(argv)
     name = argv[0] if argv else default
     script = Path(sys.argv[0]).name or "script.py"
+    if name not in runners and generic is not None and (paths.case_dir(name) / "data").is_dir():
+        return generic(name)
     if name not in runners:
-        raise SystemExit(f"unknown case '{name}'; {script} defines: {', '.join(sorted(runners))}")
+        extra = " (or, for a folder of cases/ with a data/ folder, its name)" if generic is not None else ""
+        raise SystemExit(f"unknown case '{name}'; {script} defines: {', '.join(sorted(runners))}{extra}")
     if not (paths.case_dir(name) / "data").is_dir():
         hint = "" if argv else f" (it is the default of {script})"
         if not available_cases():

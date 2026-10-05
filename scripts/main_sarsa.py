@@ -120,7 +120,7 @@ def run_sarsa(area="kochi",simtime=30,meandeparture=15,numSim0=0,
     return 
 
 
-def kochi_sarsa():
+def kochi_sarsa(area="kochi"):
     simtime=30 #min
     meandeparture=15 #min
     
@@ -129,7 +129,6 @@ def kochi_sarsa():
     simPerBlock= 1000
 
     name=f"sarsa_{simtime}_{meandeparture}_{simPerBlock}"
-    area="kochi"
 
     run_sarsa(area=area,simtime=simtime, meandeparture=meandeparture, 
         numSim0=numSim0, numBlocks=numBlocks, simPerBlock=simPerBlock, name=name) 
@@ -169,4 +168,4 @@ def new_kochi_sarsa():
 
 if __name__ == "__main__":
     # python scripts/main_sarsa.py [kochi | arahama | new_kochi]   (default: kochi)
-    cli.run_case({"kochi": kochi_sarsa, "arahama": arahama_sarsa, "new_kochi": new_kochi_sarsa}, default="kochi")
+    cli.run_case({"kochi": kochi_sarsa, "arahama": arahama_sarsa, "new_kochi": new_kochi_sarsa}, default="kochi", generic=kochi_sarsa)

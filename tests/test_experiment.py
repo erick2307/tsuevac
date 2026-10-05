@@ -19,6 +19,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 os.environ.setdefault("MPLBACKEND", "Agg")
 
@@ -34,6 +35,7 @@ from evacrl.experiment import training as training_module  # noqa: E402
 from evacrl.experiment import cli, output  # noqa: E402
 from evacrl.experiment.plots import plot_comparison, plot_learning, plot_policy, policy_arrows  # noqa: E402
 from evacrl.experiment.policy import compare_with_shortest_path, greedy_next_nodes, walks  # noqa: E402
+from evacrl.experiment.runs import check_state  # noqa: E402
 from evacrl.options import ModelOptions  # noqa: E402
 
 NODES = [(0, 0, 0, 0), (1, 100, 0, 0), (2, 200, 0, 0), (3, 300, 0, 1), (4, 100, 100, 0), (5, 250, 100, 0)]
@@ -86,6 +88,20 @@ class Base(unittest.TestCase):
         self._tmp.cleanup()
 
 
+class GlobalRandomState(Base):
+    def test_the_runs_of_the_experiment_layer_do_not_change_the_callers_random_numbers(self):
+        state = np.random.get_state
+        np.random.seed(99)
+        before = state()
+        shortest_path_run(self.case, 3, sim_time=SIM)
+        trained = calibrate(self.case, method="qlearning", sims=2, eval_every=2, eval_runs=1, sim_time=SIM, mean_departure=1.0, seed=1).final_state
+        evaluate_state(self.case, "qlearning", trained, 5, sim_time=SIM, mean_departure=1.0)
+        after = state()
+        self.assertEqual(before[0], after[0])
+        np.testing.assert_array_equal(before[1], after[1])
+        self.assertEqual(before[2:], after[2:])
+
+
 class Seeds(unittest.TestCase):
     def test_the_first_seeds_of_a_longer_list_are_those_of_a_shorter_one(self):
         self.assertEqual(derive_seeds(7, 12)[:5], derive_seeds(7, 5))
@@ -93,6 +109,20 @@ class Seeds(unittest.TestCase):
     def test_the_same_base_seed_gives_the_same_seeds_and_another_gives_others(self):
         self.assertEqual(derive_seeds(3, 6), derive_seeds(3, 6))
         self.assertTrue(set(derive_seeds(3, 6)).isdisjoint(derive_seeds(4, 6)))
+
+    def test_a_run_leaves_the_global_random_state_as_it_found_it(self):
+        from evacrl.experiment.seeds import seeded
+        np.random.seed(5)
+        reference = np.random.random()
+        np.random.seed(123)
+        expected = np.random.random(3)
+        np.random.seed(123)
+        with seeded(5):
+            inside = np.random.random()
+        self.assertEqual(inside, reference)                                                    # seeded inside
+        np.testing.assert_array_equal(np.random.random(3), expected)                         # as if the block had not happened
+        with self.assertRaises(RuntimeError), seeded(5):
+            raise RuntimeError                                                                 # also when the block fails
 
     def test_the_streams_of_an_experiment_do_not_share_seeds(self):
         names = ("shortest_path", "training", "evaluation", "policy")
@@ -522,6 +552,22 @@ class Manifest(Base):
             self.assertIn(key, m["software"])
         self.assertTrue(m["created_utc"].endswith("Z"))
 
+    def test_the_commit_is_that_of_the_code_not_of_whatever_repository_the_data_are_in(self):
+        import subprocess
+        from evacrl.experiment import manifest
+        from evacrl import paths
+        here = subprocess.run(["git", "rev-parse", "HEAD"], cwd=REPO, capture_output=True, text=True)
+        other = self.dir / "elsewhere"
+        other.mkdir()
+        for args in (["init", "-q"], ["-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "--allow-empty", "-m", "x"]):
+            subprocess.run(["git", *args], cwd=other, check=True, capture_output=True)
+        theirs = subprocess.run(["git", "rev-parse", "HEAD"], cwd=other, capture_output=True, text=True).stdout.strip()
+        with mock.patch.object(paths, "REPO_ROOT", other):                                   # EVACRL_ROOT or the folder pip was run from
+            found = manifest._git()
+        self.assertNotEqual(found and found["commit"], theirs)
+        if here.returncode == 0:                                                              # run from a checkout: its commit
+            self.assertEqual(found["commit"], here.stdout.strip())
+
     def test_it_is_written_as_json(self):
         m = build_manifest("calibration", self.case, dict(a=np.arange(3)), argv=["x"])
         path = write_manifest(self.dir / "out", m)
@@ -703,10 +749,35 @@ class Policy(Base):
         self.assertEqual(greedy_next_nodes(self.case, state).tolist(), [1, 4, 3, 3, 1, 4])
         np.testing.assert_array_equal(greedy_next_nodes(self.case, self.state({1: [0.1, 0.1, 0.1]}))[:3], [1, 2, 3])   # ties: the first action
 
-    def test_unused_action_slots_are_not_looked_at(self):
+    def test_values_in_slots_of_actions_that_do_not_exist_are_refused(self):
         state = self.state({0: [-5.0], 2: [-1.0, -2.0]})
-        state[0, 12:21] = 99.0                                                              # slots of actions that do not exist
-        self.assertEqual(greedy_next_nodes(self.case, state)[0], 1)
+        self.assertEqual(greedy_next_nodes(self.case, state)[0], 1)                         # the first action: its value is the best of one
+        for columns, what in ((slice(12, 21), "action values"), (slice(2, 11), "density codes"), (slice(22, 31), "visit counts")):
+            bad = np.array(state, copy=True)
+            bad[0, columns] = 7.0                                                           # node 0 has one action: the other slots are empty
+            with self.assertRaisesRegex(ValueError, what):
+                greedy_next_nodes(self.case, bad)
+
+    def test_a_state_matrix_of_a_larger_case_is_refused_even_if_its_first_rows_fit(self):
+        state = self.state({0: [1]})
+        larger = np.vstack([state, [6, *([0] * 30)]])                                      # also has a state of node 6, which this case lacks
+        for check in (lambda s: greedy_next_nodes(self.case, s), lambda s: check_state(make_model(self.case, "qlearning", None, 1.0), s)):
+            with self.assertRaisesRegex(ValueError, "nodes up to 6"):
+                check(larger)
+            check(state)                                                                    # the real one passes
+        with self.assertRaisesRegex(ValueError, "not a state matrix"):
+            greedy_next_nodes(self.case, state[:3])                                         # too short: a clear error, not an IndexError
+
+    def test_the_command_line_refuses_a_state_of_another_case_before_running(self):
+        state = self.state({0: [1]})
+        larger = np.vstack([state, [6, *([0] * 30)]])
+        path = self.dir / "larger.csv"
+        np.savetxt(path, larger, delimiter=",")
+        for command in (["policy", str(self.dir / "tiny"), "--state", str(path)],
+                        ["evaluate", str(self.dir / "tiny"), "--state", str(path), "--runs", "1", "--out", str(self.dir / "ev")]):
+            with contextlib.redirect_stdout(io.StringIO()), self.assertRaises(SystemExit) as caught:
+                cli.main(command)
+            self.assertIn("not a state matrix of this case", str(caught.exception))
 
     def test_a_state_matrix_of_another_case_is_refused(self):
         with self.assertRaisesRegex(ValueError, "not a state matrix of this case"):
@@ -867,6 +938,23 @@ class CommandLine(Base):
         self.assertEqual(manifest["seeds"]["runs"], derive_seeds(3, 4, "shortest_path"))
         self.assertEqual(manifest["case"]["files"], self.case.checksums())
         self.assertEqual(len((folder / "runs.csv").read_text().splitlines()), 5)
+
+    def test_a_result_folder_that_cannot_be_made_is_reported_before_anything_runs(self):
+        blocker = self.dir / "afile"
+        blocker.write_text("x")
+        for command in (("sp", "--runs", 50), ("evaluate", "--state", self.dir / "none.csv", "--runs", 50), ("calibrate", "--sims", 50)):
+            with self.subTest(command=command[0]), self.assertRaises(SystemExit) as caught, mock.patch.object(cli, "repeat_shortest_path") as sp, \
+                    mock.patch.object(cli, "calibrate") as cal, mock.patch.object(cli, "evaluate_policy") as ev:
+                self.run_cli(command[0], self.dir / "tiny", "--out", blocker, *command[1:])
+            self.assertIn("cannot use --out", str(caught.exception))
+            self.assertEqual((sp.call_count, cal.call_count, ev.call_count), (0, 0, 0))     # nothing was computed
+
+    def test_a_missing_sp_reference_is_reported_before_training(self):
+        with self.assertRaises(SystemExit) as caught, mock.patch.object(cli, "calibrate") as cal:
+            self.run_cli("calibrate", self.dir / "tiny", "--out", self.dir / "ql", "--sims", 50, "--sp", self.dir / "no_such_folder")
+        self.assertIn("not the folder of an `sp` run", str(caught.exception))
+        self.assertEqual(cal.call_count, 0)
+        self.assertFalse((self.dir / "ql" / "best_state.csv").exists())
 
     def test_a_warning_when_agents_are_still_walking_at_the_end(self):
         code, out = self.run_cli("sp", self.dir / "tiny", "--out", self.dir / "cut", "--time", 250 / 60, "--horizon", 250 / 60, "--runs", 2, "--seed", 3)

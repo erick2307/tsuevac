@@ -162,7 +162,7 @@ def run_ql_mod(
     return
 
 
-def kochi_ql_mod():
+def kochi_ql_mod(area="kochi"):
     simtime = 30  # min
     meandeparture = 15  # min
 
@@ -171,7 +171,6 @@ def kochi_ql_mod():
     simPerBlock = 10
 
     name = f"ql_mod_{simtime}_{meandeparture}_{simPerBlock}"
-    area = "kochi"
 
     run_ql_mod(
         area=area,
@@ -235,6 +234,6 @@ if __name__ == "__main__":
     # python scripts/main_ql_mod.py [kochi | arahama | new_kochi]   (default: arahama)
     t = time.time()
     cli.run_case(
-        {"kochi": kochi_ql_mod, "arahama": arahama_ql_mod, "new_kochi": new_kochi_ql_mod}, default="arahama"
+        {"kochi": kochi_ql_mod, "arahama": arahama_ql_mod, "new_kochi": new_kochi_ql_mod}, default="arahama", generic=kochi_ql_mod
     )
     print(f"Time:{time.time()-t} s.")

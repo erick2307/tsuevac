@@ -47,8 +47,8 @@ and would beat every negative value). Reaching an evacuation node ends the episo
 and nothing is bootstrapped from beyond it. When agents always choose the best action (no exploration) the two updates are
 identical to the last digit, which `tests/test_td.py` checks; with exploration they differ.
 
-All four entry points explore with a decaying rate (`randomChoiceRate` is 0.99 in the first simulation, then `1 - (s/eoe)^2` for
-the first 80% of the simulations of a block, then 0). Before the off-policy update was added, `QLearning` was `SARSA` with no code of its own, and `main_ql.py`
+`main_ql.py`, `main_ql_mod.py` and `main_sarsa.py` explore with a decaying rate (`randomChoiceRate` is 0.99 in the first simulation, then `1 - (s/eoe)^2` for
+the first 80% of the simulations of a block, then 0); `main_mc.py` explores at a constant 0.9 for the first 80% and 0.1 after. Before the off-policy update was added, `QLearning` was `SARSA` with no code of its own, and `main_ql.py`
 forced `randomChoiceRate = 0` (marked "added to check if this is Q-Learning") so that its greedy choices made SARSA's target
 Q-learning's; both are gone now that the update is real. The results of every entry point are protected by the golden tests in
 `tests/`; the SARSA and Monte Carlo runs are also pinned with `ModelOptions.legacy()` to the recordings of the original code.
@@ -180,12 +180,14 @@ and `--discount`. Times are minutes: `--time` simulated (shortest path 120, trai
 * **Times.** `--time`, `--horizon` and `--departure` are minutes, converted to whole seconds by rounding. A run records the number safe at each
   simulated second `t` after that second has been simulated, as the 2024 study's `time, safe` rows do. The *evacuation time* is the second `t` at
   which the final count is first recorded (the study's definition); "safe at 30 min" is the count after 1,800 s of simulation (recorded at
-  `t = 1799`). Agents that start at a shelter count when they depart, as in the engine. `--horizon` cannot be later than `--time`.
+  `t = 1799`). Agents that start at a shelter are counted from the first recorded second (the engine marks them as evacuated when it is made, not when they would depart). `--horizon` cannot be later than `--time`.
 * **Results.** `runs.csv` (one row per run), `curves.npz` (the whole safe-against-time curves), the figures, and `manifest.json`: the case
   and the SHA-256 of every input file, the model options, every parameter, the seeds, the results, the code version (git commit and
   whether the tree was modified), Python and NumPy versions and the command.
 
-From Python: `from evacrl.experiment import Case, repeat_shortest_path, calibrate, evaluate_policy`; see the docstrings.
+From Python: `from evacrl.experiment import Case, repeat_shortest_path, calibrate, evaluate_policy`; see the docstrings. With `workers > 1`, on a platform that starts
+worker processes afresh (macOS, Windows) put the call under `if __name__ == "__main__":`; the command line does that for you. A run seeds NumPy's global generator
+for its own duration and puts it back, so it does not change the random numbers of the program that calls it.
 
 ## Model options
 

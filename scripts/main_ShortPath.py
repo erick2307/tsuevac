@@ -116,6 +116,7 @@ def run_shortpath(area="kochi", simtime=30, meandeparture=15,
             # namefile = os.path.join(folderStateNames, "sim_%09d.csv" % index)
             # case.loadStateMatrixFromFile(namefile=namefile)
             totalagents = np.sum(case.pedDB.shape[0])
+            case.loadShortestPathDB(namefile=nextnodepath)    # every simulation builds a new model: it needs the table too
 
             for t in range(int(min(case.pedDB[:, 9])), simulTime):
                 case.initEvacuationAtTime()
@@ -239,10 +240,11 @@ def arahama_shortpath():
                   numSim0=0, numBlocks=1, simPerBlock=10, name='a')
 
 if __name__ == "__main__":
-    # python scripts/main_ShortPath.py [kochi | arahama | new_kochi]   (default: arahama)
+    # python scripts/main_ShortPath.py [kochi | arahama | new_kochi | any folder of cases/ with a nextnode.csv]   (default: arahama)
     _run = functools.partial(run_shortpath, simtime=30, meandeparture=15, numSim0=0, numBlocks=1, simPerBlock=10, name='a')
     cli.run_case({"arahama": arahama_shortpath, "kochi": functools.partial(_run, area="kochi"),
-                  "new_kochi": functools.partial(_run, area="new_kochi")}, default="arahama")
+                  "new_kochi": functools.partial(_run, area="new_kochi")}, default="arahama",
+                 generic=lambda area: _run(area=area))
     # SurvivedAgentsPerEvacuationNode()
     # ArahamaMTRL_20191220_Video()
     # ArahamaMTRL_20191220_SeqSim()

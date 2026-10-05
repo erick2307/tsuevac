@@ -29,7 +29,7 @@ def _is_text(field):
 
 
 def _first_data_line(path):
-    """Index (0-based) of the first line that is neither blank, a `#` comment, nor a header."""
+    """Index (0-based) of the first line that is neither blank, a `#` comment, nor a header; None if there is none."""
     with open(path, "r", encoding=_ENCODING) as f:
         for i, line in enumerate(f):
             text = line.strip()
@@ -37,7 +37,7 @@ def _first_data_line(path):
                 continue
             if not any(_is_text(v) for v in text.split(",")):
                 return i
-    return 0
+    return None
 
 
 def load_table(path, dtype=float):
@@ -46,8 +46,13 @@ def load_table(path, dtype=float):
     For an integer `dtype` the values may be written as floats, but only when they are whole numbers;
     anything else raises `ValueError` rather than being silently truncated.
     """
-    data = np.loadtxt(path, delimiter=",", comments="#", skiprows=_first_data_line(path), ndmin=2,
+    first = _first_data_line(path)
+    if first is None:
+        raise ValueError(f"{path}: the table has no rows")
+    data = np.loadtxt(path, delimiter=",", comments="#", skiprows=first, ndmin=2,
                       encoding=_ENCODING)
+    if data.size == 0:
+        raise ValueError(f"{path}: the table has no rows")
     if np.issubdtype(np.dtype(dtype), np.integer):
         if not np.all(np.isfinite(data)):
             raise ValueError(f"{path}: expected whole numbers, found nan or inf")

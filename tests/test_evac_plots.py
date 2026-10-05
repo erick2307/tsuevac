@@ -28,6 +28,27 @@ except ImportError as exc:
     raise unittest.SkipTest(f"evacrl.evac_plots needs the 'plots' extra ({exc}); pip install -e \".[plots]\"")
 
 
+class DepartureCurve(unittest.TestCase):
+    def test_the_reference_curve_is_the_distribution_the_engine_draws_departures_from(self):
+        from evacrl.evac_plots import departureCDF
+        self.assertAlmostEqual(float(departureCDF(15.0, 15.0)), 1 - np.exp(-np.pi / 4), places=12)     # F(mean) of a Rayleigh with scale mean*sqrt(2/pi)
+        x = np.linspace(0, 200, 200001)
+        trapezoid = getattr(np, "trapezoid", None) or np.trapz
+        self.assertAlmostEqual(float(trapezoid(1 - departureCDF(x, 15.0), x)), 15.0, places=2)         # the mean of the distribution is the mean given
+
+    def test_the_engines_departure_times_follow_it(self):
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        from evacrl.evac_plots import departureCDF
+        from evacrl.experiment import Case, make_model
+        from test_experiment import write_case
+        with tempfile.TemporaryDirectory() as tmp:
+            case = Case.load(write_case(Path(tmp) / "tiny", starts=[0] * 4000))
+            np.random.seed(0)
+            model = make_model(case, "sarsa", None, 1.0)                                               # mean departure 1 minute
+        left_within_a_minute = float(np.mean(model.pedDB[:, 9] <= 60))
+        self.assertAlmostEqual(left_within_a_minute, float(departureCDF(1.0, 1.0)), delta=0.02)        # 0.544; with scale = mean it would be 0.393
+
+
 class PlotSurvivors(unittest.TestCase):
     POP = 100
 

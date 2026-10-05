@@ -30,6 +30,11 @@ class LoadTable(unittest.TestCase):
         path.write_text(text, encoding="utf-8")
         return str(path)
 
+    def test_a_table_without_rows_is_an_error_not_an_empty_array(self):
+        for text in ("", "\n\n", "# age,gender,hhType,hhId,Node\n", "age,gender\n"):
+            with self.subTest(text=text), self.assertRaisesRegex(ValueError, "no rows"):
+                load_table(self.write(text))
+
     def test_no_header(self):
         np.testing.assert_array_equal(load_table(self.write("0,1\n2,3\n"), dtype=int), [[0, 1], [2, 3]])
 

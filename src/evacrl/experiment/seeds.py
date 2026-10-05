@@ -7,9 +7,23 @@ the number of workers or of runs asked for (the first n seeds of a longer list a
 between the *streams* of an experiment: the departure times of the shortest-path runs, the training episodes, the evaluation
 episodes never share a seed.
 """
+import contextlib
+
 import numpy as np
 
 STREAMS = {"shortest_path": 0, "training": 1, "evaluation": 2, "policy": 3}
+
+
+@contextlib.contextmanager
+def seeded(seed):
+    """Seed NumPy's global generator, which the engine draws from, for the duration of the block, and put it back as it was: a run of the
+    experiment layer does not change the random numbers of the program that calls it (in a worker process nobody would see the difference)."""
+    state = np.random.get_state()
+    np.random.seed(seed)
+    try:
+        yield
+    finally:
+        np.random.set_state(state)
 
 
 def derive_seeds(base_seed, n, stream="shortest_path"):
