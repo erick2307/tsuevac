@@ -5,7 +5,6 @@ import os
 
 import numpy as np
 
-from evacrl.experiment.runs import RunResult
 
 
 def curves_matrix(results, sim_time):

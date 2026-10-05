@@ -567,7 +567,6 @@ class Robustness(Base):
     def test_the_evaluation_is_frozen_unless_asked_otherwise(self):
         np.random.seed(0)
         model = make_model(self.case, "qlearning", mean_departure=1.0)
-        n = model.stateMat.shape[0]
         trained = calibrate(self.case, **dict(method="qlearning", sims=3, eval_every=3, eval_runs=1, sim_time=SIM, mean_departure=1.0, seed=1)).final_state
         for learn, changed in ((False, False), (True, True)):
             np.random.seed(0)

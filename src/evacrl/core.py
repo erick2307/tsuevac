@@ -858,7 +858,6 @@ class EvacuationModel:
             os.remove(f)
     
     def plotNetwork(self):
-        colorNode = ["b","r"] 
         plt.figure(num="Network",figsize=(5,4))
         for i in range(self.linksdb.shape[0]):
             plt.plot([self.nodesdb[int(self.linksdb[i,1]),1], self.nodesdb[int(self.linksdb[i,2]),1]],[self.nodesdb[int(self.linksdb[i,1]),2], self.nodesdb[int(self.linksdb[i,2]),2]], c='k', lw=1)

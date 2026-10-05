@@ -8,7 +8,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))  # run with
 
 import numpy as np
 import matplotlib.pyplot as plt
-import time
 import os
 from evacrl import cli, paths
 import functools
@@ -18,7 +17,6 @@ plt.ioff()
 
 def run_shortpath(area="kochi", simtime=30, meandeparture=15,
                   numSim0=0, numBlocks=5, simPerBlock=1000, name='r', options=None):
-    t0 = time.time()
     nextnodepath = paths.case_path(area, "data", "nextnode.csv")
     if not os.path.exists(nextnodepath):
         raise SystemExit(f"{nextnodepath} not found. The shortest-path baseline needs it; it is not part of this repository "
@@ -115,7 +113,6 @@ def run_shortpath(area="kochi", simtime=30, meandeparture=15,
 
             # Modified Oct 4, 2021
             # Check best state and load that one
-            index = evacs_list.index(max(evacs_list))
             # namefile = os.path.join(folderStateNames, "sim_%09d.csv" % index)
             # case.loadStateMatrixFromFile(namefile=namefile)
             totalagents = np.sum(case.pedDB.shape[0])
@@ -123,8 +120,7 @@ def run_shortpath(area="kochi", simtime=30, meandeparture=15,
             for t in range(int(min(case.pedDB[:, 9])), simulTime):
                 case.initEvacuationAtTime()
                 case.stepForward()
-                optimalChoice = bool(np.random.choice(2, 1,
-                                     p=[randomChoiceRate, optimalChoiceRate]))
+                np.random.choice(2, 1, p=[randomChoiceRate, optimalChoiceRate])  # the draw is kept: it advances the seeded stream
                 # case.checkTarget(ifOptChoice=optimalChoice)
                 case.checkTargetShortestPath()
                 if not t % 10:

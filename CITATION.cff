@@ -1,0 +1,28 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "evacrl: tsunami evacuation guidance with reinforcement learning"
+abstract: >-
+  Agent-based simulation of a tsunami evacuation on a road network, with tabular reinforcement learning
+  (Q-learning, SARSA, Monte Carlo) that guides evacuees at each intersection, a shortest-path baseline, a pipeline
+  that builds a study area from OpenStreetMap, shelters and a census mesh, and an experiment layer (repeated runs,
+  calibration, comparison, manifests).
+type: software
+version: 0.2.0
+authors:
+  - family-names: Mas
+    given-names: Erick
+repository-code: "https://github.com/erick2307/tsuevac"
+license: GPL-3.0-only
+keywords:
+  - tsunami
+  - evacuation
+  - reinforcement learning
+  - agent-based simulation
+  - disaster risk reduction
+references:
+  - type: software
+    title: "2024_urushibara: the Kochi evacuation study (EVACMODEL3_FocalPoints)"
+    authors:
+      - family-names: Mas
+        given-names: Erick
+    repository-code: "https://github.com/erick2307/2024_urushibara"

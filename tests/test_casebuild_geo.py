@@ -25,13 +25,13 @@ sys.path.insert(0, str(REPO / "src"))
 try:
     import geopandas as gpd
     import networkx as nx
-    import osmnx as ox
-    from shapely.geometry import MultiPolygon, Point, Polygon, box
+    import osmnx as ox  # noqa: F401  (the casebuild extra: skip these tests where it is missing)
+    from shapely.geometry import MultiPolygon, Point, box
     from evacrl.casebuild import geo
 except ImportError as exc:  # pragma: no cover
     raise unittest.SkipTest(f"evacrl.casebuild.geo needs the 'casebuild' extra ({exc}); pip install -e \".[casebuild]\"")
 
-from evacrl.casebuild import PopulationSpec, build_tables, merge_short_links, validate_tables  # noqa: E402
+from evacrl.casebuild import PopulationSpec, build_tables, validate_tables  # noqa: E402
 
 LON0, LAT0 = 133.53, 33.56
 DLON, DLAT = 0.0011, 0.0009   # about 100 m

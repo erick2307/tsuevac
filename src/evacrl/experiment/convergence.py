@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """When are enough repeated runs enough? The running mean of a metric settles, and its coefficient of variation (sd / mean)
 stops moving. The 2024 study ran 1,000 shortest-path simulations and looked at the running CV by eye; this makes it a rule."""
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 import numpy as np
 

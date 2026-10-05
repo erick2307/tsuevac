@@ -11,7 +11,7 @@ import os
 
 import numpy as np
 
-from evacrl.casebuild.network import Network, attach_shelters, network_from_edges
+from evacrl.casebuild.network import attach_shelters, network_from_edges
 
 _HINT = 'pip install -e ".[casebuild]"'
 

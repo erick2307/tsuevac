@@ -5,7 +5,7 @@ from typing import List
 
 import numpy as np
 
-from evacrl.experiment.convergence import Convergence, convergence_trace
+from evacrl.experiment.convergence import convergence_trace
 from evacrl.experiment.runs import RunResult, map_jobs, shortest_path_run
 from evacrl.experiment.seeds import derive_seeds
 

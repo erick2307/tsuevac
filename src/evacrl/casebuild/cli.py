@@ -15,7 +15,6 @@ import json
 import os
 import sys
 
-import numpy as np
 
 from evacrl.casebuild import case as case_io
 from evacrl.casebuild.pipeline import LEGACY, PopulationSpec, build_case
