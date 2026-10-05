@@ -6,12 +6,13 @@
 
 Where the size is (measured on the repository as pushed, `shrink_history.sh`):
 
-| | download | on disk (files) |
+| | download (`.git`) | files on disk |
 |---|---:|---:|
 | full clone, before | 154 MB | 343 MB |
 | `git clone --depth 1`, before | 61 MB | 343 MB |
-| full clone, after the GIS layers left the tip (this commit) | unchanged until the history is rewritten | about 66 MB |
-| full clone, after the history is rewritten (below) | **54 MB** | about 66 MB |
+| full clone, with the GIS layers out of the tip (this commit) | 154 MB (history unchanged) | 114 MB |
+| `git clone --depth 1`, same | 50 MB | 114 MB |
+| full clone, after the history is rewritten (below) | **about 54 MB** (measured as the pack of the rewritten repository) | 114 MB |
 
 The GIS layers (277 MB) are mostly zeros in a pack (13 MB compressed), so removing them from the tip shrinks the *checkout* by 277 MB but the *download* little. What
 weighs in the download is history: files that were deleted long ago and are still in it (two AVI videos 51 MB, the 2021 Arahama and Kochi state dumps about 50 MB).
