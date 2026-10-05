@@ -16,12 +16,16 @@ WORK="${WORK:-$(mktemp -d)}"
 echo "clean checkout of $REPO ($REF) in $WORK"
 git clone -q --branch "$REF" "$REPO" "$WORK/src"
 git -C "$WORK/src" log --oneline -1
+if [ "$REPO" = "$(git -C "$TOP" remote get-url origin)" ] && [ "$(git -C "$WORK/src" rev-parse HEAD)" != "$(git -C "$TOP" rev-parse HEAD)" ]; then
+  echo "the clone ($(git -C "$WORK/src" rev-parse --short HEAD)) is not the HEAD of $TOP ($(git -C "$TOP" rev-parse --short HEAD)): push first" >&2
+  exit 2
+fi
 
 one() {   # one VERSION KIND
   v=$1; kind=$2; env="$WORK/venv-$v-$kind"
   uv venv -q --python "$v" "$env"
-  case $kind in core) extra="." ;; geo) extra=".[casebuild]" ;; esac
-  (cd "$WORK/src" && uv pip install -q --python "$env/bin/python" -e "$extra" scipy pandas) > "$WORK/install-$v-$kind.log" 2>&1 || { echo "FAIL install $v $kind"; return 1; }
+  case $kind in core) extra="." ;; geo) extra=".[casebuild]" ;; esac   # core: the install of the README, nothing else
+  (cd "$WORK/src" && uv pip install -q --python "$env/bin/python" -e "$extra") > "$WORK/install-$v-$kind.log" 2>&1 || { echo "FAIL install $v $kind"; return 1; }
   (cd "$WORK/src" && MPLBACKEND=Agg "$env/bin/python" -W error -m unittest discover tests) > "$WORK/tests-$v-$kind.log" 2>&1 \
      && echo "ok   tests $v $kind: $(tail -3 "$WORK/tests-$v-$kind.log" | tr '\n' ' ')" \
      || { echo "FAIL tests $v $kind (see $WORK/tests-$v-$kind.log)"; tail -15 "$WORK/tests-$v-$kind.log"; return 1; }
@@ -45,13 +49,14 @@ echo "--- wheel installed away from the checkout, quick start run from the check
 uv venv -q --python "$first" "$WORK/venv-wheel"
 uv pip install -q --python "$WORK/venv-wheel/bin/python" "$WORK"/dist/*.whl
 (cd /tmp && "$WORK/venv-wheel/bin/python" -c "import evacrl; print('wheel imports evacrl', evacrl.__version__, evacrl.__file__)")
-(cd "$WORK/src" && "$WORK/venv-wheel/bin/python" -m evacrl.casebuild validate cases/kochi_area2 | tail -2)
+(cd "$WORK/src" && "$WORK/venv-wheel/bin/python" -m evacrl.casebuild validate cases/kochi_area2 > "$WORK/validate.log" 2>&1 && tail -2 "$WORK/validate.log") || { echo "FAIL casebuild validate"; cat "$WORK/validate.log"; status=1; }
+(cd /tmp && "$WORK/venv-wheel/bin/evacrl-casebuild" --help > /dev/null && "$WORK/venv-wheel/bin/evacrl-experiment" --help > /dev/null && echo "ok   both console scripts answer --help") || { echo "FAIL console scripts"; status=1; }
 mkdir -p "$WORK/qs" && cd "$WORK/src"
 export MPLBACKEND=Agg
 for step in \
-  "sp kochi_area2 --runs 20 --workers 2 --out $WORK/qs/sp" \
-  "calibrate kochi_area2 --method qlearning --sims 60 --eval-every 20 --out $WORK/qs/ql --sp $WORK/qs/sp" \
-  "evaluate kochi_area2 --state $WORK/qs/ql/best_state.csv --runs 10 --out $WORK/qs/ql_eval" \
+  "sp kochi_area2 --runs 10 --time 30 --workers 2 --out $WORK/qs/sp" \
+  "calibrate kochi_area2 --method qlearning --sims 30 --eval-every 10 --eval-runs 3 --out $WORK/qs/ql --sp $WORK/qs/sp" \
+  "evaluate kochi_area2 --state $WORK/qs/ql/best_state.csv --runs 5 --workers 2 --out $WORK/qs/ql_eval" \
   "compare --sp $WORK/qs/sp --rl $WORK/qs/ql_eval --out $WORK/qs/compare.png" \
   "policy kochi_area2 --state $WORK/qs/ql/best_state.csv --out $WORK/qs/policy.png"; do
   start=$(date +%s)

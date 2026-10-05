@@ -10,7 +10,7 @@ from pathlib import Path
 
 def _find_repo_root():
     """The repository: $EVACRL_ROOT, else the checkout this file lives in (source tree or editable
-    install), else the repository the program is run from (a regular `pip install`)."""
+    install), else the repository the program is run from (a regular `pip install`), else the current folder."""
     override = os.environ.get("EVACRL_ROOT")
     if override:
         return Path(override).resolve()
@@ -24,7 +24,7 @@ def _find_repo_root():
     for folder in [Path.cwd(), *Path.cwd().parents]:
         if is_root(folder):
             return folder
-    return Path(__file__).resolve().parents[2]  # not found: src/evacrl/paths.py -> repository root
+    return Path.cwd()  # not found (an installed package, run outside a clone): work in the current folder; set EVACRL_ROOT to a clone
 
 
 REPO_ROOT = _find_repo_root()

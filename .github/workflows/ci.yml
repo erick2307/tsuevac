@@ -26,7 +26,7 @@ jobs:
       - run: ruff check src tests scripts
       - run: cffconvert --validate -i CITATION.cff
 
-  # The core install: numpy, matplotlib, opencv, scipy, pandas. The tests that need geopandas/osmnx skip.
+  # The install of the README, and nothing else: numpy, scipy, matplotlib, opencv. The tests that need geopandas/osmnx skip.
   test-core:
     runs-on: ubuntu-latest
     strategy:
@@ -38,7 +38,8 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
-      - run: pip install -e ".[plots]"
+      - run: pip install -e .
+      - run: evacrl-casebuild --help && evacrl-experiment --help
       - run: python -W error -m unittest discover tests
 
   # With the casebuild extra the geospatial tests run too (osmnx, geopandas, shapely).
@@ -66,3 +67,10 @@ jobs:
       - run: pip install build twine
       - run: python -m build
       - run: twine check dist/*
+      - name: the wheel installs and runs away from the checkout
+        run: |
+          pip install dist/*.whl
+          cd /tmp
+          python -c "import evacrl; print(evacrl.__version__)"
+          evacrl-casebuild --help > /dev/null
+          evacrl-experiment --help > /dev/null

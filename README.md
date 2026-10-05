@@ -8,13 +8,15 @@ that such a comparison needs.
 
 **What the results say so far** (details and the numbers behind them in [docs/audits](./docs/audits)):
 
-* On an area that is not crowded (`kochi2` of the 2024 Kochi study, 622 agents, 30 min) a Q-learning policy reaches **99 %** of the
-  shortest path's survivors (526 against 529): it learns the shortest path and, there, nothing better. Before the discount was
-  corrected it stopped at 81 %; that ceiling was the discount (0.9 per decision), not the training.
-* On a crowded area (`kochi_area4`, 13,502 agents) the learned policy is within 2 % of the shortest path after 30 minutes
-  (7,356 against 7,517 agents safe) and does **not yet** finish the evacuation as well: after 2 h, 89 % of the agents (link-level
-  density code) and 82 % (segment-level) had arrived, against all of them for the shortest path. A tabular policy is arbitrary
-  where training did not go. **Whether learned guidance beats the shortest path is not shown by this repository.**
+* On an area that is not crowded (`kochi2` of the 2024 Kochi study: 622 agents, 30 min; it is not shipped here, the audit reads it from
+  the study's repository) Q-learning with the default settings reaches **99 %** of the shortest path's survivors (526 against 529): it
+  learns the shortest path and, there, nothing better. Before the discount was corrected it stopped at 81 %; that ceiling was the
+  discount (0.9 per decision), not the training.
+* On the crowded `kochi_area4` (shipped; 13,502 agents) learned policies do **not yet** beat the shortest path. Trained on 30-minute
+  episodes (60 simulations), the link-level code is 2.1 % behind it after 30 minutes (7,356 against 7,517 agents safe) but has only 74 % of
+  the agents safe after 2 h, the shortest path all of them; the segment-level code is 13 % behind at 30 minutes. Trained on 2-hour episodes
+  (30 simulations) they reach 89 % and 82 % at 2 h. A tabular policy is arbitrary where training did not go.
+  **Whether learned guidance beats the shortest path is not shown by this repository.**
 * The evacuation times committed with the 2024 study's shortest-path runs must not be cited; they are regenerated in
   [`results/kochi2024_regenerated`](./results/kochi2024_regenerated/README.md).
 
@@ -37,15 +39,17 @@ cases (`cases/`), the scripts (`scripts/`) and the audits live in the repository
 
 ```
 python -m evacrl.casebuild validate cases/kochi_area2                                  # check the tables of a shipped case
-python -m evacrl.experiment sp        kochi_area2 --runs 20 --workers 2 --out runs/sp   # the baseline: 20 shortest-path runs
-python -m evacrl.experiment calibrate kochi_area2 --method qlearning --sims 60 --eval-every 20 --out runs/ql --sp runs/sp
-python -m evacrl.experiment evaluate  kochi_area2 --state runs/ql/best_state.csv --runs 10 --out runs/ql_eval
+python -m evacrl.experiment sp        kochi_area2 --runs 10 --time 30 --workers 2 --out runs/sp   # the baseline: 10 shortest-path runs
+python -m evacrl.experiment calibrate kochi_area2 --method qlearning --sims 30 --eval-every 10 --eval-runs 3 --out runs/ql --sp runs/sp
+python -m evacrl.experiment evaluate  kochi_area2 --state runs/ql/best_state.csv --runs 5 --workers 2 --out runs/ql_eval
 python -m evacrl.experiment compare   --sp runs/sp --rl runs/ql_eval --out runs/compare.png   # the two evacuation curves
 python -m evacrl.experiment policy    kochi_area2 --state runs/ql/best_state.csv --out runs/policy.png
 ```
 
-Every command writes a `manifest.json` (checksums of the inputs, options, seeds, versions) next to its results; the same `--seed`
-gives the same results for any `--workers`. The 2021 entry points still work: `python scripts/main_ql_mod.py kochi`. Building a case
+`sp`, `calibrate` and `evaluate` write a `manifest.json` (checksums of the inputs, options, seeds, versions) next to their results; the same
+`--seed` gives the same results for any `--workers`. The whole quick start takes about 6 minutes on 4 cores (most of it the training; it is a
+demonstration of the commands, 30 simulations do not make a good policy) and writes into `runs/`. The 2021 entry points still work
+(`python scripts/main_ql_mod.py kochi` starts a long training run). Building a case
 from a road network, the model options and the three methods are in the [Manual](./docs/manual.md).
 
 ## Documentation

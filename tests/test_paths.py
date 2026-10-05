@@ -48,7 +48,7 @@ class FindRepoRoot(unittest.TestCase):
             finally:
                 os.chdir(cwd)
 
-    def test_nothing_found_keeps_the_previous_behaviour(self):
+    def test_nothing_found_means_the_current_folder_not_the_interpreters_library(self):
         with tempfile.TemporaryDirectory() as tmp:
             tmp = Path(tmp).resolve()
             site = tmp / "a" / "b" / "evacrl"
@@ -59,7 +59,7 @@ class FindRepoRoot(unittest.TestCase):
                 with mock.patch.object(paths, "__file__", str(site / "paths.py")), \
                         mock.patch.dict(os.environ, clear=False):
                     os.environ.pop("EVACRL_ROOT", None)
-                    self.assertEqual(paths._find_repo_root(), site.parents[1])  # parents[2] of .../a/b/evacrl/paths.py
+                    self.assertEqual(paths._find_repo_root(), tmp)  # not .../a (parents[2] of .../a/b/evacrl/paths.py, the library folder of a wheel)
             finally:
                 os.chdir(cwd)
 

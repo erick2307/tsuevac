@@ -14,11 +14,15 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "src"))
 
 
+SKIP_FOLDERS = {"datasets", "build", "dist", "node_modules"}   # data and build output hold no documentation of ours
+
+
 def markdown_files():
-    out = [os.path.join(ROOT, name) for name in ("README.md", "CHANGELOG.md") if os.path.isfile(os.path.join(ROOT, name))]
-    for folder in ("docs", "cases", "results"):
-        for here, _, names in os.walk(os.path.join(ROOT, folder)):
-            out += [os.path.join(here, n) for n in names if n.endswith(".md")]
+    """Every Markdown file of the repository except those under `datasets/`, in hidden folders and in build output."""
+    out = []
+    for here, folders, names in os.walk(ROOT):
+        folders[:] = [f for f in folders if not f.startswith(".") and f not in SKIP_FOLDERS and not f.endswith(".egg-info")]
+        out += [os.path.join(here, n) for n in names if n.endswith(".md")]
     return sorted(out)
 
 
@@ -34,6 +38,19 @@ def prose_lines(path):
                 yield number, re.sub(r"`[^`]*`", "", line)
 
 
+def heading_lines(path):
+    """The headings of a Markdown file outside fenced code blocks, as written (the text of inline code is part of the heading)."""
+    fenced = False
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            if line.lstrip().startswith("```"):
+                fenced = not fenced
+            elif not fenced:
+                m = re.match(r"#{1,6}\s+(.*?)\s*#*\s*$", line)
+                if m:
+                    yield m.group(1)
+
+
 def slug(heading):
     """The anchor GitHub makes of a heading: lower case, no punctuation except `-` and `_`, spaces become `-`."""
     heading = re.sub(r"`", "", heading.strip().lower())
@@ -43,13 +60,11 @@ def slug(heading):
 
 def anchors(path):
     seen, out = {}, set()
-    for _, line in prose_lines(path):
-        m = re.match(r"#{1,6}\s+(.*?)\s*#*\s*$", line)
-        if m:
-            base = slug(re.sub(r"\[([^\]]*)\]\([^)]*\)", r"\1", m.group(1)))
-            count = seen.get(base, 0)
-            out.add(base if count == 0 else f"{base}-{count}")
-            seen[base] = count + 1
+    for heading in heading_lines(path):
+        base = slug(re.sub(r"\[([^\]]*)\]\([^)]*\)", r"\1", heading))
+        count = seen.get(base, 0)
+        out.add(base if count == 0 else f"{base}-{count}")
+        seen[base] = count + 1
     return out
 
 
@@ -70,7 +85,11 @@ def links(path):
 
 class Links(unittest.TestCase):
     def test_there_are_files_to_check(self):
-        self.assertGreater(len(markdown_files()), 8)
+        found = {os.path.relpath(p, ROOT) for p in markdown_files()}
+        for name in ("README.md", "CHANGELOG.md", os.path.join("docs", "manual.md"), os.path.join("pre", "README.md"),
+                     os.path.join("experimental", "README.md"), os.path.join("variants", "app_2022", "README.md")):
+            self.assertIn(name, found)
+        self.assertFalse([p for p in found if p.startswith("datasets")])
 
     def test_every_relative_link_leads_to_a_file_and_every_anchor_to_a_heading(self):
         broken = []
@@ -89,14 +108,15 @@ class Links(unittest.TestCase):
         self.assertEqual(slug("The shelters (A3 and S2)"), "the-shelters-a3-and-s2")
         self.assertEqual(slug("Building a `case`"), "building-a-case")
         self.assertEqual(slug("Model options"), "model-options")
+        self.assertEqual(slug("pre/ directory"), "pre-directory")
 
     def test_repeated_headings_get_a_suffix(self):
         import tempfile
         with tempfile.TemporaryDirectory() as d:
             path = os.path.join(d, "a.md")
             with open(path, "w", encoding="utf-8") as f:
-                f.write("# A\n\n## B\n\n## B\n\n```\n## not a heading\n```\n")
-            self.assertEqual(anchors(path), {"a", "b", "b-1"})
+                f.write("# A\n\n## B\n\n## B\n\n## `pre/` directory\n\n## The [Manual](x.md) (2021)\n\n```\n## not a heading\n```\n")
+            self.assertEqual(anchors(path), {"a", "b", "b-1", "pre-directory", "the-manual-2021"})
 
 
 def run_help(main, argv):

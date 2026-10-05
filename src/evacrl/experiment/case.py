@@ -36,7 +36,9 @@ class Case:
             names = (f"population_{popfile}.csv", "nodes.csv", "edges.csv", "actionsdb.csv", "transitionsdb.csv")
             root, next_file = folder, "nextnode.csv"
         else:
-            raise FileNotFoundError(f"{spec!r}: no case here (looked for {data}/nodesdb.csv, and for nodes.csv and edges.csv in {folder})")
+            raise FileNotFoundError(f"{spec!r}: no case here (looked for {data}/nodesdb.csv, and for nodes.csv and edges.csv in {folder}). "
+                                    f"A case name is looked up in {paths.CASES_DIR}: run from a clone of the repository, give the path of the "
+                                    "case folder, or set EVACRL_ROOT to a clone")
         files = tuple((key, os.path.join(root, name)) for key, name in zip(TABLES, names))
         for _, path in files:
             if not os.path.isfile(path):

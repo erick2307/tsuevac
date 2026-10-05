@@ -7,8 +7,8 @@
     python -m evacrl.experiment compare   --sp DIR --rl DIR2 --out figure.png                  the two evacuation curves
     python -m evacrl.experiment policy    CASE --state DIR/best_state.csv --out map.png         the policy's walks against the shortest path
 
-CASE is the name of a folder of `cases/` (`kochi_area2`) or a path to a case folder. Times are in minutes. Every command writes a
-`manifest.json` (case checksums, options, seeds, versions) next to its results; the same `--seed` gives the same results for any
+CASE is the name of a folder of `cases/` (`kochi_area2`) or a path to a case folder. Times are in minutes. `sp`, `calibrate` and `evaluate` write a
+`manifest.json` (case checksums, options, seeds, versions) next to their results; the same `--seed` gives the same results for any
 `--workers`.
 """
 import argparse

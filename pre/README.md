@@ -10,6 +10,6 @@
 | `defPathsFromNodes.py` | the next node on the shortest path from every node (the legacy way to make `nextnode.csv`) | replaced by `evacrl.casebuild.routing` |
 | `DetectionShelters.py`, `makeUniformPedestrianProfiles.py`, `tests.ipynb` | shelter detection from a network, one agent per node, a scratch notebook | nothing |
 
-Four of these files name another author in their header (`@author: Moya`, `@author: luismoya`): see
+Five of these files name another author in their header (`@author: Moya`, `@author: luismoya`): see
 [docs/data-licences.md](../docs/data-licences.md#code-written-by-others). `ShelterCoordinates.csv` is a shelter register whose source is not
 recorded (same page).

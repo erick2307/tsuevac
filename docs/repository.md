@@ -15,7 +15,7 @@ use the code is the [Manual](./manual.md).
 | `notebooks/` | analysis notebooks of the 2021 work; run by hand, not by the tests | not tested, not linted |
 | `pre/` | **legacy**: scripts of the 2021 pre-processing (census disaggregation, shelters), still used by `cases/kochi/` | `SetPopDB` is covered by a provenance test; not linted |
 | `variants/app_2022/` | **legacy**: the 2022 self-contained workflow with its own `qlearn.py`; not interchangeable with `src/evacrl` (below) | not tested, not linted |
-| `experimental/` | **not maintained**: `new_model/` is an unfinished object-oriented rewrite (most methods are stubs), `tdcontrol.py` a toy, `tests_mc.py` ad-hoc runs | not tested, not linted; do not build on it |
+| `experimental/` | **not maintained**: `new_model/` is an unfinished object-oriented rewrite (several methods are stubs), `tdcontrol.py` a toy, `tests_mc.py` ad-hoc runs | not tested, not linted; do not build on it |
 | `datasets/` | data; **source and terms of several folders are not recorded**, see [data-licences.md](./data-licences.md) | |
 
 ## Layout
@@ -28,7 +28,7 @@ cases/               one folder per study area: inputs in data/, run outputs in 
 src/evacrl/          importable code: core.py (shared engine), td.py (temporal-difference update), qlearn.py, sarsa.py, mc.py, options.py (model settings), tables.py (table reader), casebuild/ (building and checking a case), experiment/ (repeated runs, calibration, comparison, manifests), evac_plots.py, make_video.py, paths.py
 scripts/             entry points: main_ql.py, main_ql_mod.py, main_sarsa.py, main_mc.py, main_ShortPath.py
 notebooks/           analysis notebooks
-tests/               golden regression tests
+tests/               regression, provenance, unit and documentation tests
 docs/                manual, pre-processing notes, migration guide (old -> new paths), diagrams
 datasets/            large raw / shared inputs: census/, gis/ (QGIS data and its notebook), legacy/ (older samples)
 pre/                 pre-processing scripts (population disaggregation, shelters, shortest paths)
@@ -45,11 +45,11 @@ results/, weights/   outputs shared by the notebooks
 | `src/evacrl/casebuild/` | Building a case from a road network: `python -m evacrl.casebuild` with `from-osm`, `from-snapshot`, `from-raw` or `validate`. Short-link clean-up, actions and transitions, shortest-path table, agents (uniform, per node or by census), shelters attached to the network (or snapped to nodes), validation. Needs only NumPy and SciPy, except downloading and the census (`pip install -e ".[casebuild]"`). See the [Manual](./manual.md#building-a-case) and [cases/README.md](../cases/README.md). |
 | `src/evacrl/experiment/` | Experiments on a case: `python -m evacrl.experiment` with `sp` (repeated shortest-path runs, stopped by a convergence rule), `calibrate` (training with checkpoints evaluated greedily, best policy kept), `evaluate` (greedy runs of a stored policy) and `compare` (evacuation curves against the shortest path). Seeds derived from one base seed, the same results for any number of worker processes, a `manifest.json` with every result. Needs only NumPy and Matplotlib. See the [Manual](./manual.md#experiments). |
 | `src/evacrl/paths.py` | **The only place that knows the layout.** Case data, `figures/`, `weights/` and `results/` are all resolved through it, so moving a folder means editing this file. |
-| `cases/new_kochi/` | Besides its data, holds the pre-processing pipeline of the case (`preProcess.py`, `createLinksAndNodes.py`, `getPopulation.py`, `setActionsAndTransitions.py`, `preprocess.ipynb`); run it from inside this folder (it uses `./data` and `./tmp`). |
+| `cases/new_kochi/` | Besides its data, holds the pre-processing pipeline of the case (`preProcess.py`, `createLinksAndNodes.py`, `getPopulation.py`, `setActionsAndTransitions.py`, `fixExcessLinks.py`, `preprocess.ipynb`); run it from inside this folder (it uses `./data` and `./tmp`). |
 | `notebooks/` | `check_policies`, `plot_survivors` (compare policies, survivors per simulation), `operation_*` (batches of runs: survivors vs. simulation and departure time), `CalculateWeights` (link weights from SARSA). Each starts with a bootstrap cell that finds the repository, so they run from any directory. |
-| `tests/` | `test_golden.py`: regression tests that run short, seeded simulations of Q-learning (`run_ql`, `run_ql_mod`), SARSA and Monte Carlo on the Kochi networks and compare them with recorded results; the recordings are byte-identical to what the original code produced before the repository was reorganised. `test_data_provenance.py`: proves the derived inputs can be regenerated from their sources (actions/transitions from nodes+links, the Kochi population from the census, `new_kochi/data/linksdb.csv` from `tmp/linksdb0.csv`). `test_evac_plots.py` and `test_cli.py` cover `plotSurvivors` and the case selection of the scripts. Run them before and after any restructuring. |
+| `tests/` | `test_golden.py`: short, seeded simulations of Q-learning (`run_ql`, `run_ql_mod`), SARSA and Monte Carlo on the Kochi networks compared with recorded results (the `*_legacy` entries of SARSA and Monte Carlo are byte-identical to what the original code produced before the reorganisation; the others were regenerated when a default changed, see the [CHANGELOG](../CHANGELOG.md)). `test_data_provenance.py`: the derived inputs can be regenerated from their sources. `test_td.py`, `test_engine_options.py`, `test_tables.py`: the update rules (hand-worked values), the model options, the table reader. `test_casebuild*.py`: the case builder, the shipped cases rebuilt from `raw/`, the geospatial part (skipped without the `casebuild` extra). `test_experiment.py`: the experiment layer. `test_cli.py`, `test_evac_plots.py`, `test_paths.py`, `test_docs.py`: case selection, plots, where the repository is, links and commands of the documentation. Run them before and after any change. |
 | `variants/app_2022/` | Newer, self-contained version of the workflow: `main.py` (Q-learning, uses `bin/qlearn.py`), `setup/` (builds a case from an area-of-study GeoJSON in `input/`), `make_video.py`, `analysis.ipynb`. Run from inside the folder. |
-| `experimental/new_model/` | Work-in-progress object-oriented rewrite (`tsuevac` package: `Environment`, `Agent`, `Evacuee`, `Node`, `Shelter`, `Model`). Most methods are still stubs. |
+| `experimental/new_model/` | Work-in-progress object-oriented rewrite (`tsuevac` package: `Environment`, `Agent`, `Evacuee`, `Node`, `Shelter`, `Model`). Several methods are still stubs. |
 | `datasets/census/` | Census, household and building databases (`CensusAndBuildingDatabase`, `Household_database`, `Population_database`), the inputs of `pre/SetPopDB.py`. |
 | `datasets/gis/` | GIS data (QGIS projects, rasters) and figures for the tsunami inundation / road network, plus the notebook that reads them (it uses `./data`, so it stays next to the data). |
 | `datasets/legacy/` | Older samples: `kochi_old/` (state and results in the 31-column layout) and two evacuee start/end/departure tables. |
@@ -116,7 +116,7 @@ by `variants/app_2022/setup/lib/getPopulation.py`, `cases/new_kochi/setActionsAn
 
 ## Repository conventions
 
-* Simulation outputs (`cases/*/state_*/`, `figures/`, `weights/w_*.csv`, `*.avi`) and large local GIS data are not tracked; see [`.gitignore`](../.gitignore).
+* Simulation outputs (`cases/*/state_*/`, `figures/`, `weights/w_*.csv`, `*.avi`) are not tracked; see [`.gitignore`](../.gitignore). The GIS data under `datasets/gis/data/qgis` and `qgis_1` (277 MB, three files over 65 MB) **are** tracked, which makes a clone large.
 * Input CSVs and images are **not** ignored: commit any `data/*.csv` a case needs to run.
 * Locations live in `src/evacrl/paths.py`; do not build `<area>/data/...` paths from the working directory. The repository is found from the checkout, or from the repository you run in; with a plain `pip install` outside it, set `EVACRL_ROOT` to its folder.
 * Regression tests: `python -m unittest discover tests`. `GOLDEN_STRICT=1` additionally compares every output file byte for byte (same NumPy/Python only). After an intentional change of behaviour, regenerate the recorded results with `UPDATE_GOLDEN=1 python tests/test_golden.py [entry ...]`.

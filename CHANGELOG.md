@@ -1,11 +1,12 @@
 # Changelog
 
-Dates are those of the commits; the audit of each step is in [docs/audits](./docs/audits).
+The audit of each step is in [docs/audits](./docs/audits).
 
 ## 0.2.0
 
-Results of 0.1.0 are **not** reproduced by the defaults of 0.2.0 (see *Changed*). `ModelOptions.legacy()` gives the 2021 behaviour
-(bit for bit, the golden recordings), `ModelOptions.kochi2024()` the behaviour of the 2024 Kochi study.
+Results of 0.1.0 are **not** reproduced by the defaults of 0.2.0 (see *Changed*). `ModelOptions.legacy()` gives the 2021 behaviour of
+SARSA and Monte Carlo (pinned bit for bit by golden recordings), `ModelOptions.kochi2024()` the behaviour of the 2024 Kochi study
+(SARSA, bit for bit against its code). Q-learning has no 2021 form: in 0.1.0 it was SARSA under another name.
 
 ### Added
 * `evacrl.options.ModelOptions`: the behaviours in which the 2021 code and the 2024 Kochi study differ (survival reward, density
@@ -28,7 +29,10 @@ Results of 0.1.0 are **not** reproduced by the defaults of 0.2.0 (see *Changed*)
 ### Changed (results differ from 0.1.0)
 * `segmentIndex="clamped"` (a defect that froze the evacuees that had walked to the far end of a link is removed) and
   `entrySpeed="position"` are the defaults.
-* The temporal-difference methods discount with **0.999 per second** (the default), no longer 0.9 per decision. With 0.9 per
+* `QLearning` is real off-policy Q-learning (the target is the best action at the next state); in 0.1.0 it was SARSA. The recorded
+  results of `run_ql` and `run_ql_mod` changed accordingly.
+* All three methods discount with **0.999 per second** (the default). Before, SARSA and Q-learning discounted by 0.9 once per decision and
+  Monte Carlo by 0.9 per second (`legacy()` and `kochi2024()` keep that). With 0.9 per
   decision one node costs about 1,200 s of walking in the target, and the best possible policy reaches 80.7 % of the shortest
   path on `kochi2`; with 0.999 per second Q-learning reaches 99 % ([step 4](./docs/audits/step4/README.md)).
 * The shortest-path baseline (`updateTargetShortestPath`) marks arrivals (it never did; the survivors it printed were the agents
