@@ -33,6 +33,26 @@ matrix, the Q-learning maximum ignoring padding, the CSV round trip of a policy,
 Every fix has a test that fails without it; the new behaviours were also mutation-checked (the engine input checks and the shortest-path script: 8 mutants, 1 equivalent, 1 survivor closed with a test; the
 experiment-layer fixes: 3 of 3 killed; the tie-break of Step 5: 5 mutants).
 
+## End to end: Kochi 0, 1, 2, 4 and the two 2021 cases
+
+`end_to_end.sh`, on the final code, four areas in parallel (4 cores): rebuild the case from its `raw/` folder and compare the six tables with the shipped ones, `validate`, `sp`
+(10 runs of 30 min), `calibrate` (10 simulations, a checkpoint every 5, 2 evaluation runs), `evaluate` (3 frozen runs of the best state), `compare`, `policy`, and check that every manifest is
+valid JSON and every figure is there. Then the 2021 entry point (`run_ql_mod`) on `kochi` and `new_kochi`, 2 simulations of 1 min each. Small settings: this checks that the chain works and
+agrees with itself, not how good a policy is.
+
+| Area | Agents | Rebuilt tables = shipped | `sp` | `calibrate` | `evaluate` |
+|---|---:|---|---:|---:|---:|
+| `kochi_area0` | 4,196 | yes | 95 s | 324 s | 26 s |
+| `kochi_area1` | 2,743 | yes | 70 s | 278 s | 19 s |
+| `kochi_area2` | 1,704 | yes | 59 s | 171 s | 15 s |
+| `kochi_area4` | 13,502 | yes | 242 s | 842 s | 96 s |
+| `kochi` (2021 entry point) | 35,930 | | | 22 s | |
+| `new_kochi` (2021 entry point) | 148,810 (19,207 nodes) | | | 425 s | |
+
+All steps exit 0, `compare` and `policy` draw their figures, and the manifests are present (`sp`, `calibrate`, `evaluate`). All tables are byte-identical except the node coordinates of `kochi_area4`, where three values differ in the last of their six decimals (1e-6 m: a cluster
+centre on a rounding boundary, which NumPy versions round differently; the script allows 1.5e-6, and `tests/test_casebuild_cases.py` compares with a tolerance).
+Area 3 of the study has no shelter in its box and is not a case.
+
 ## The 2024 study's conclusions (D11)
 
 **What there is to examine.** The study's repository ([erick2307/2024_urushibara](https://github.com/erick2307/2024_urushibara), "Urushibara's B4 codes") holds
