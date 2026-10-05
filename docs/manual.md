@@ -55,7 +55,7 @@ Q-learning's; both are gone now that the update is real. The results of every en
 
 **Discounting.** The default is a discount of **0.999 per second** for all three methods (`ModelOptions().discounting == "second"`,
 `.discount == 0.999`): the return the learner estimates is then, in effect, the time to a shelter, and the best policy of that target is the one
-that gets there soonest. Until Step 4 it was 0.9 once per *decision* in SARSA and Q-learning and 0.9 per *second* in Monte Carlo, which are not the
+that gets there soonest. Before version 0.2.0 it was 0.9 once per *decision* in SARSA and Q-learning and 0.9 per *second* in Monte Carlo, which are not the
 same model. With 0.9 once per decision and a reward of 1e5 on arrival, a shelter 20 nodes away is worth 1e5 * 0.9^20 = 12,158 and one node more or
 less changes that by about 1,200, as much as 1,200 s of walking: the target prefers fewer nodes to a shorter walk. On `kochi2` its exact
 optimum walks 27 % farther than the shortest path and gets 81 % of its survivors at 30 min, which is where SARSA and Q-learning stopped however
@@ -65,7 +65,7 @@ makes Monte Carlo learn nothing useful ([audits/step2](./audits/step2/README.md)
 A model class takes a `discount=` argument that overrides the one of its options.
 
 The parameters of the `run_*` functions are:  
-* `area` .- The study area, i.e. the folder with the input data (`kochi`, `arahama`, `new_kochi`).  
+* `area` .- The study area, i.e. the folder of `cases/` with the input data (`kochi`, `new_kochi`, `kochi_area0`, `kochi_area1`, `kochi_area2`, `kochi_area4`; `arahama` is not part of this repository).  
 * `simtime` .- Simulated time in minutes.  
 * `meandeparture` .- Mean departure time in minutes (see `meanRayleigh` below).  
 * `numSim0`, `numBlocks`, `simPerBlock` .- Index of the first simulation, number of blocks and simulations per block.  
