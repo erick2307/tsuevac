@@ -19,8 +19,8 @@ def run_shortpath(area="kochi", simtime=30, meandeparture=15,
                   numSim0=0, numBlocks=5, simPerBlock=1000, name='r', options=None):
     nextnodepath = paths.case_path(area, "data", "nextnode.csv")
     if not os.path.exists(nextnodepath):
-        raise SystemExit(f"{nextnodepath} not found. The shortest-path baseline needs it; it is not part of this repository "
-                         "(pre/defPathsFromNodes.py is the legacy script that produced such a file).")
+        raise SystemExit(f"{nextnodepath} not found. The shortest-path baseline needs it: the kochi_area* cases carry one "
+                         "(evacrl.casebuild writes it); for another case pre/defPathsFromNodes.py is the legacy script that produced such a file.")
     agentsProfileName = paths.case_path(area, "data", "agentsdb.csv")
     nodesdbFile = paths.case_path(area, "data", "nodesdb.csv")
     linksdbFile = paths.case_path(area, "data", "linksdb.csv")
