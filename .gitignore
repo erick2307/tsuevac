@@ -43,3 +43,4 @@ dist/
 /docs/audits/step4/state_*.csv
 /docs/audits/step4/runs/
 /results/kochi2024_regenerated/*/curves.npz
+/docs/audits/step4/*.progress

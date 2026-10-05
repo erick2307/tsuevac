@@ -1,0 +1,103 @@
+{
+  "case": {
+    "files": {
+      "actionsdb.csv": "209de6cacedb93960c405cd93bba47644b85fcfd41bf07c199503b5c2ed4cc18",
+      "edges.csv": "0971f15a27ab4e147204c5a4db23333fd8c8981fc310035a001fd11c338ebf98",
+      "nextnode.csv": "6598b3fd7d38faeb42e0aa75f6691127ae9ff6fdbc91cd00aca0ce228b7a471d",
+      "nodes.csv": "9705e030fc6543d5f88f0cb7ed5d1e109f1a780772a00d12c72faa8c0cb0392c",
+      "population_1.csv": "343fa3d582414e429868b8f3b6c5aedf819bf884e36f1b18274b7de9d0d6d828",
+      "transitionsdb.csv": "324e2b4c8a43faac5a8603c22132cfc06120c393380bf8407976af4f03e29aa1"
+    },
+    "name": "kochi4"
+  },
+  "command": "python -m evacrl.experiment sp /home/user/2024_Urushibara/EVACMODEL3_FocalPoints/results_for Usama/kochi4 --until-converged --max-runs 120 --time 120 --workers 2 --seed 1 --out /home/user/tsuevac/docs/audits/step4/../../../results/kochi2024_regenerated/kochi4",
+  "created_utc": "2026-10-04T22:15:11Z",
+  "kind": "shortest_path",
+  "options": {
+    "densityLevel": "link",
+    "discount": 0.999,
+    "discounting": "second",
+    "entrySpeed": "position",
+    "segmentIndex": "clamped",
+    "segmentSizing": "ceil",
+    "surviveReward": 100000
+  },
+  "parameters": {
+    "batch": 10,
+    "case": "/home/user/2024_Urushibara/EVACMODEL3_FocalPoints/results_for Usama/kochi4",
+    "command": "sp",
+    "departure": 5.0,
+    "horizon": 30.0,
+    "max_runs": 120,
+    "min_runs": 30,
+    "out": "/home/user/tsuevac/docs/audits/step4/../../../results/kochi2024_regenerated/kochi4",
+    "popfile": 1,
+    "preset": "default",
+    "runs": null,
+    "seed": 1,
+    "set": null,
+    "time": 120.0,
+    "tol": 0.01,
+    "tolerance": 0.01,
+    "until_converged": true,
+    "workers": 2
+  },
+  "results": {
+    "agents": 13244,
+    "converged": true,
+    "cv_last_evacuee": 0.02409990396182483,
+    "horizon_s": 1800,
+    "incomplete_runs": 5,
+    "last_evacuee_mean_s": 6961.766666666666,
+    "last_evacuee_sd_s": 167.77790807130003,
+    "runs": 30,
+    "safe_mean": 6219.4,
+    "safe_sd": 92.16948406660119
+  },
+  "seconds": 1448.1,
+  "seeds": {
+    "base": 1,
+    "runs": [
+      1835504127,
+      1731038949,
+      1320224556,
+      2330041505,
+      321059914,
+      1226144109,
+      2879408573,
+      3503041500,
+      1849724536,
+      3123006989,
+      2842938094,
+      2068039075,
+      2656117593,
+      2513445512,
+      4036741510,
+      628688073,
+      349926915,
+      2425742749,
+      3946533542,
+      422250923,
+      3986377523,
+      1284039472,
+      3158641496,
+      93810887,
+      940573288,
+      1466597378,
+      2217312436,
+      2312295666,
+      2774622761,
+      2114234268
+    ]
+  },
+  "software": {
+    "evacrl": "source tree",
+    "git": {
+      "commit": "0962c57f42e306d353e9f0a1f70afee98df439a7",
+      "uncommitted_changes": true
+    },
+    "numpy": "2.4.6",
+    "platform": "Linux-6.18.44-fc-v64-x86_64-with-glibc2.39",
+    "python": "3.11.15"
+  }
+}

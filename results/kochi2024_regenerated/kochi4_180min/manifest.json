@@ -1,0 +1,93 @@
+{
+  "case": {
+    "files": {
+      "actionsdb.csv": "209de6cacedb93960c405cd93bba47644b85fcfd41bf07c199503b5c2ed4cc18",
+      "edges.csv": "0971f15a27ab4e147204c5a4db23333fd8c8981fc310035a001fd11c338ebf98",
+      "nextnode.csv": "6598b3fd7d38faeb42e0aa75f6691127ae9ff6fdbc91cd00aca0ce228b7a471d",
+      "nodes.csv": "9705e030fc6543d5f88f0cb7ed5d1e109f1a780772a00d12c72faa8c0cb0392c",
+      "population_1.csv": "343fa3d582414e429868b8f3b6c5aedf819bf884e36f1b18274b7de9d0d6d828",
+      "transitionsdb.csv": "324e2b4c8a43faac5a8603c22132cfc06120c393380bf8407976af4f03e29aa1"
+    },
+    "name": "kochi4"
+  },
+  "command": "python -m evacrl.experiment sp /home/user/2024_Urushibara/EVACMODEL3_FocalPoints/results_for Usama/kochi4 --runs 20 --time 180 --workers 1 --seed 1 --out results/kochi2024_regenerated/kochi4_180min",
+  "created_utc": "2026-10-04T23:27:56Z",
+  "kind": "shortest_path",
+  "options": {
+    "densityLevel": "link",
+    "discount": 0.999,
+    "discounting": "second",
+    "entrySpeed": "position",
+    "segmentIndex": "clamped",
+    "segmentSizing": "ceil",
+    "surviveReward": 100000
+  },
+  "parameters": {
+    "batch": 10,
+    "case": "/home/user/2024_Urushibara/EVACMODEL3_FocalPoints/results_for Usama/kochi4",
+    "command": "sp",
+    "departure": 5.0,
+    "horizon": 30.0,
+    "max_runs": 1000,
+    "min_runs": 30,
+    "out": "results/kochi2024_regenerated/kochi4_180min",
+    "popfile": 1,
+    "preset": "default",
+    "runs": 20,
+    "seed": 1,
+    "set": null,
+    "time": 180.0,
+    "tol": 0.01,
+    "tolerance": 0.01,
+    "until_converged": false,
+    "workers": 1
+  },
+  "results": {
+    "agents": 13244,
+    "converged": false,
+    "cv_last_evacuee": 0.03361107314548864,
+    "horizon_s": 1800,
+    "incomplete_runs": 0,
+    "last_evacuee_mean_s": 6965.6,
+    "last_evacuee_sd_s": 234.12129110221568,
+    "runs": 20,
+    "safe_mean": 6222.1,
+    "safe_sd": 99.87565953935449
+  },
+  "seconds": 1935.4,
+  "seeds": {
+    "base": 1,
+    "runs": [
+      1835504127,
+      1731038949,
+      1320224556,
+      2330041505,
+      321059914,
+      1226144109,
+      2879408573,
+      3503041500,
+      1849724536,
+      3123006989,
+      2842938094,
+      2068039075,
+      2656117593,
+      2513445512,
+      4036741510,
+      628688073,
+      349926915,
+      2425742749,
+      3946533542,
+      422250923
+    ]
+  },
+  "software": {
+    "evacrl": "source tree",
+    "git": {
+      "commit": "48ea315a07926c432a4db2d025a3522ac2d11c23",
+      "uncommitted_changes": false
+    },
+    "numpy": "2.4.6",
+    "platform": "Linux-6.18.44-fc-v70-x86_64-with-glibc2.39",
+    "python": "3.11.15"
+  }
+}

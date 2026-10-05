@@ -156,6 +156,72 @@ states take longer to learn; they are not a comparison of the final policies. A 
 (`densityLevel`, `surviveReward` stay at the 2021 values) still stands without evidence for changing it, and the question that matters
 (does a policy that sees crowding beat the shortest path where crowding binds?) is open.
 
+## After your confirmation of D7-D9
+
+### D7. The discount default is 0.999 per second (applied)
+
+`ModelOptions().discounting == "second"` and `.discount == 0.999` for SARSA, Q-learning and Monte Carlo. `ModelOptions.legacy()` and
+`ModelOptions.kochi2024()` carry `discount=0.9` with `discounting="method"`, so the results of the old code are reproduced whatever the
+defaults are; a model class's `discount=` argument still wins. The five golden recordings of the default options were regenerated (short
+seeded runs on a synthetic population: the survivors of three of them move by one to four agents, the action values of all five); the two
+legacy-pinned ones, SARSA and Monte Carlo against the recordings of the original code, are byte-identical. The audits of Steps 2 and 4 that were
+measured with 0.9 per decision now say so in their scripts (`discount=0.9`).
+
+### D8. The 2024 shortest-path results, regenerated (`results/kochi2024_regenerated`, `compare_regenerated.py`)
+
+The same simulations on the study's own tables with the default options (the far-end freeze fixed), 120 min, mean departure 5 min, runs added
+in batches of 10 until the evacuation time and the number safe at 30 min have a standard error under 1 % (30-110 runs; the study ran 1,000):
+
+| Area | Agents | | Runs | Evacuation time, s: mean ± sd | median | 95 % | Safe at 30 min | Ended with agents left at 120 min |
+|---|---:|---|---:|---|---:|---:|---|---:|
+| kochi0 | 2,303 | committed | 1,000 | 4,344 ± 1,845 | 3,951 | 7,106 | 2,153 ± 67 | 633 (63 %) |
+| | | **regenerated** | 110 | **2,506 ± 257** | 2,493 | 3,021 | 2,178 ± 38 | **0** |
+| kochi1 | 1,078 | committed | 1,000 | 3,464 ± 1,917 | 2,150 | 7,031 | 1,066 ± 27 | 531 (53 %) |
+| | | **regenerated** | 30 | **1,927 ± 102** | 1,922 | 2,120 | 1,076 ± 1 | **0** |
+| kochi2 | 622 | committed | 1,000 | 3,697 ± 1,631 | 2,692 | 6,976 | 521 ± 16 | 433 (43 %) |
+| | | **regenerated** | 40 | **2,611 ± 139** | 2,586 | 2,896 | 529 ± 5 | **0** |
+| kochi4 | 13,244 | committed | 1,000 | 7,086 ± 126 | 7,132 | 7,199 | 6,116 ± 147 | 979 (98 %) |
+| | | **regenerated** | 30 | 6,962 ± 168 | 6,992 | 7,186 | 6,219 ± 92 | **5 (17 %)** |
+| kochi42 | 12,288 | committed | 1,000 | 6,865 ± 454 | 7,070 | 7,195 | 6,862 ± 150 | 978 (98 %) |
+| | | **regenerated** | 30 | **5,714 ± 289** | 5,640 | 6,328 | 6,970 ± 73 | **0** |
+
+* In the three small areas the committed evacuation times are 1.4-1.8 times the regenerated ones and 43-63 % of the committed runs ended
+  with agents who never got out (the freeze); with the fix none does and the standard deviation falls from 1,600-1,900 s to 100-260 s. The number safe
+  at 30 min moves little (+1 to 1.5 % in kochi0, kochi1, kochi2) because the freeze mostly costs the last agents. The two distributions differ in every
+  area (Kolmogorov-Smirnov p < 0.003; `compare_regenerated.log`): **the committed evacuation times must not be cited.**
+* In the two large areas the committed runs are almost all cut by the end of the 2 h simulation (98 % with agents left). With the fix kochi42
+  finishes in 5,714 s; **kochi4 still does not always: 5 of 30 regenerated runs also end with agents on their way**, so its evacuation time
+  (6,962 s) is censored. Run for 180 min (20 runs, `kochi4_180min`) every run ends: **6,966 ± 234 s** (about 116 min). The `sp` command
+  warns whenever this happens.
+* `kochi4`'s population file has 13,244 agents, not the 12,288 of its census total (Step 3); `kochi42` has 12,288 and no clear origin. The
+  tables were used as they are.
+
+### D9. Does learning beat the shortest path where crowding binds? (`kochi_area4`, 13,502 agents)
+
+`crowded_area.py`: Q-learning with the default options (0.999 per second), the study's protocol (episodes of 30 min, the random-choice rate falling as
+1 / (s / N + 1), 60 simulations), the best checkpoint of three kept, then 10 fresh frozen greedy runs. Two density codes in the state. The shortest
+path puts 13,502 people on the same streets: 7,517 ± 89 (55.7 %) are safe after 30 min.
+
+| | Safe at 30 min | % of agents | Against shortest path | Walk against shortest path | First choice = shortest path's | States | Decisions in a state with a crowded link |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| shortest path | 7,517 ± 89 | 55.7 % | | | | | |
+| Q-learning, `densityLevel="link"` (default) | 7,356 ± 78 | 54.5 % | **-2.1 %** | +0.4 % | 88 % | 1,433 (1,110 nodes) | 0.8 % |
+| Q-learning, `densityLevel="segment"` | 6,519 ± 197 | 48.3 % | **-13.3 %** | +1.8 % | 87 % | 6,905 | 50 % |
+
+Learning curves, greedy evaluation of the checkpoints after 20, 40 and 60 simulations: `link` 7,345, 7,321, 7,257 (it was at the plateau after 20 and
+no better with more); `segment` 5,383, 6,100, 6,732 (still rising). **Within 60 simulations neither beats the shortest path.** The `link` code
+sees crowding in 0.8 % of the decisions and so learns the shortest path, a little worse; the `segment` code sees it in half of them, has six times
+the states, and learns slowly.
+
+**The policies do not finish the evacuation.** Run for the whole 2 h (`crowded_full_evacuation.sh`, 5 runs each) the shortest path has everybody safe
+at 5,781 ± 94 s, but the learned policies have 10,037 ± 420 (`link`) and 10,023 ± 245 (`segment`) of 13,502 safe. Diagnosis (one run of the
+`link` policy): 3,277 agents are still on their way after 2 h, having made a median of 115 decisions (those who arrived made 12); 47 % of their
+decisions are in states that did not exist at the end of training (403 new states), where the values are the initial 0.5 for every action, so the
+choice is the first action of the node. A tabular policy is arbitrary wherever training did not go, and training of 30 min never saw the later
+phases of the evacuation. Starting new states from the values of the node's empty state (tried as an option, not kept) made it worse: 8,560 safe,
+because the nodes that training rarely reached are flat too, and agents then cycle between two or three of them (3,826 of the 4,038 agents left
+cycled among at most four nodes).
+
 ## Decisions for you
 
 | | Decision | Recommendation |

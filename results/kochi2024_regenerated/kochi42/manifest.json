@@ -1,0 +1,103 @@
+{
+  "case": {
+    "files": {
+      "actionsdb.csv": "2e230bcab573300d5c035588a3710a183eb75b2e65e0b90eba2e9352dcab2b20",
+      "edges.csv": "d4166e094fecfae1487a271fc5ff85e5192bc0ada8623b32fa09e5162a21e7c2",
+      "nextnode.csv": "d0d4fa67d8062642a03bbbfa8226cf13137544f6a22111408bfc5f5e8231f879",
+      "nodes.csv": "1aef3d09f54ded0de20eea3c9529197181a5c84d7c92312209834dd3987c3f53",
+      "population_1.csv": "d8c10de9c0723e40c5899fe356d06e80920f61e95a924921ba00c0f3763a846c",
+      "transitionsdb.csv": "5e532b4ae2c7f383e046132b5e0b2f94b57e4e5a78a71d166a3bd35863222b71"
+    },
+    "name": "kochi42"
+  },
+  "command": "python -m evacrl.experiment sp /home/user/2024_Urushibara/EVACMODEL3_FocalPoints/results_for Usama/kochi42 --until-converged --max-runs 120 --time 120 --workers 2 --seed 1 --out results/kochi2024_regenerated/kochi42",
+  "created_utc": "2026-10-04T22:50:52Z",
+  "kind": "shortest_path",
+  "options": {
+    "densityLevel": "link",
+    "discount": 0.999,
+    "discounting": "second",
+    "entrySpeed": "position",
+    "segmentIndex": "clamped",
+    "segmentSizing": "ceil",
+    "surviveReward": 100000
+  },
+  "parameters": {
+    "batch": 10,
+    "case": "/home/user/2024_Urushibara/EVACMODEL3_FocalPoints/results_for Usama/kochi42",
+    "command": "sp",
+    "departure": 5.0,
+    "horizon": 30.0,
+    "max_runs": 120,
+    "min_runs": 30,
+    "out": "results/kochi2024_regenerated/kochi42",
+    "popfile": 1,
+    "preset": "default",
+    "runs": null,
+    "seed": 1,
+    "set": null,
+    "time": 120.0,
+    "tol": 0.01,
+    "tolerance": 0.01,
+    "until_converged": true,
+    "workers": 2
+  },
+  "results": {
+    "agents": 12288,
+    "converged": true,
+    "cv_last_evacuee": 0.05063235056808419,
+    "horizon_s": 1800,
+    "incomplete_runs": 0,
+    "last_evacuee_mean_s": 5714.166666666667,
+    "last_evacuee_sd_s": 289.3216898711278,
+    "runs": 30,
+    "safe_mean": 6969.966666666666,
+    "safe_sd": 73.38161158996326
+  },
+  "seconds": 998.2,
+  "seeds": {
+    "base": 1,
+    "runs": [
+      1835504127,
+      1731038949,
+      1320224556,
+      2330041505,
+      321059914,
+      1226144109,
+      2879408573,
+      3503041500,
+      1849724536,
+      3123006989,
+      2842938094,
+      2068039075,
+      2656117593,
+      2513445512,
+      4036741510,
+      628688073,
+      349926915,
+      2425742749,
+      3946533542,
+      422250923,
+      3986377523,
+      1284039472,
+      3158641496,
+      93810887,
+      940573288,
+      1466597378,
+      2217312436,
+      2312295666,
+      2774622761,
+      2114234268
+    ]
+  },
+  "software": {
+    "evacrl": "source tree",
+    "git": {
+      "commit": "48ea315a07926c432a4db2d025a3522ac2d11c23",
+      "uncommitted_changes": false
+    },
+    "numpy": "2.4.6",
+    "platform": "Linux-6.18.44-fc-v70-x86_64-with-glibc2.39",
+    "python": "3.11.15"
+  }
+}
