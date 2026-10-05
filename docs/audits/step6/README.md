@@ -53,6 +53,19 @@ All steps exit 0, `compare` and `policy` draw their figures, and the manifests a
 centre on a rounding boundary, which NumPy versions round differently; the script allows 1.5e-6, and `tests/test_casebuild_cases.py` compares with a tolerance).
 Area 3 of the study has no shelter in its box and is not a case.
 
+## Tests on four Python versions
+
+`clean_checkout.sh` ([Step 5](../step5/README.md)) on commit `8791697`, the last code commit (later commits changed documents only): a fresh clone, a new environment per version, nothing installed beyond
+the README's install.
+
+| | 3.10 | 3.11 | 3.12 | 3.13 |
+|---|---|---|---|---|
+| `pip install -e .`, `python -W error -m unittest discover tests` | 300 OK (2 skipped) | 300 OK (2) | 300 OK (2) | 300 OK (2) |
+| `pip install -e ".[casebuild]"`, same | 336 OK | 336 OK | 336 OK | 336 OK |
+
+`ruff` clean, `CITATION.cff` valid, wheel and sdist build and pass `twine check`, the wheel installed elsewhere imports and both console scripts answer `--help`, and the README quick
+start runs from it (`sp` 31 s, `calibrate` 346 s, `evaluate` 20 s, `compare` and `policy` 1 s). GitHub Actions on the final commit: lint, build and the 8 test jobs all green.
+
 ## The 2024 study's conclusions (D11)
 
 **What there is to examine.** The study's repository ([erick2307/2024_urushibara](https://github.com/erick2307/2024_urushibara), "Urushibara's B4 codes") holds
