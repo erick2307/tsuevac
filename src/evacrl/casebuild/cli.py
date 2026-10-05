@@ -166,6 +166,10 @@ def main(argv=None):
 
 
 def _population(args, exclude, total, weights):
+    if total is not None and total < 1:
+        raise SystemExit(f"--agents must be at least 1, not {total}")
+    if args.per_node < 1:
+        raise SystemExit(f"--per-node must be at least 1, not {args.per_node}")
     if args.strategy == "uniform" and total is None:
         raise SystemExit("--agents is needed (or --census, to take the population of the area from it)")
     if args.strategy == "proportional" and weights is None:

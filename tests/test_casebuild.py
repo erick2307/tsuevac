@@ -859,6 +859,12 @@ class ProportionalCases(unittest.TestCase):
         self.assertEqual(self.data("case"), before)
         self.assertEqual((self.dir / "case" / "raw" / "nodes.csv").read_bytes(), raw_before)
 
+    def test_a_number_of_agents_below_one_is_refused_before_anything_is_built(self):
+        for flag, value in (("--agents", 0), ("--agents", -5), ("--per-node", 0)):
+            with self.subTest(flag=flag, value=value), self.assertRaisesRegex(SystemExit, "must be at least 1"):
+                self.run_cli("from-raw", self.dir / "case" / "raw", self.dir / "none", flag, value)
+            self.assertFalse((self.dir / "none").exists())
+
     def test_the_file_must_fit_the_network_and_be_given(self):
         with self.assertRaises(SystemExit):                                # from-raw cannot compute it
             self.run_cli("from-raw", self.dir / "case" / "raw", self.dir / "x", "--strategy", "proportional", "--agents", 10)

@@ -1,4 +1,37 @@
-# Step 6 audit (in progress)
+# Step 6 audit: the final audit
+
+The last step: the decisions D11-D18 applied, the whole package reviewed once more by a reader who had not seen it, the shipped areas run end to end, and the list of what
+is still open. Scripts: `end_to_end.sh` (the end-to-end run), `study_metric.py` (D11), `shrink_history.sh` (D15), `clean_checkout.sh` of [Step 5](../step5/README.md).
+
+## The final code review
+
+An independent reviewer read `src/evacrl` and `scripts/` at the release candidate, ran the suite, wrote small reproducing scripts, fuzzed 120 random networks through all
+three methods and the shortest-path baseline, and compared the documentation with the code. **14 confirmed defects and 5 suspected**; none changes a recorded result (the golden recordings are
+unchanged by every fix below). What it checked and found correct: the time and curve bookkeeping against the engine clock (`curve`, `safe_at`, `last_evacuee`), results
+identical for 1 and 3 workers in `sp` and `calibrate` (all three methods, with `restart_from_best`, frozen and learning evaluation), `populationAtLinks` always equal to the agents on each link, the 10-action layout of the state
+matrix, the Q-learning maximum ignoring padding, the CSV round trip of a policy, `next_nodes` against brute force on 400 random networks, `merge_short_links` against union-find on
+1,500, `apportion` on 200,000 trials, and the README quick start.
+
+| # | Finding | Outcome |
+|---|---|---|
+| 1 | `scripts/main_ShortPath.py` stopped after its first simulation (the shortest-path table was loaded for the first model only), and could not be run on any shipped case | **fixed**, with a test; every `main_*.py` now takes any folder of `cases/` |
+| 2 | `scripts/main_mc.py`'s default resumed simulation 1950 of a run that is not in the repository | **fixed** (a fresh run), with a test |
+| 3 | `python -m evacrl.experiment`: a result folder that cannot be made or a missing `--sp` was found out after the whole computation | **fixed**: checked before; tests |
+| 4 | `evaluate` and `policy` accepted a state matrix of any larger case (and `policy` raised an `IndexError` on a short one) | **fixed**: states of nodes the case lacks and values in slots of actions a node does not have are refused; checked by hand against every stored state of the Step 4 audit (accepted on its own case, refused on another) |
+| 5 | The state of an evacuation node read the *last link of the table* (its only action is the "link" -1) | **fixed** (density code 0); no recorded result changes, and on the shipped cases it had no measured effect |
+| 6 | `--discount 1.5` or `0` reached the model (only `ModelOptions` checked) | **fixed** in the engine |
+| 7 | The engine imported OpenCV at import, so every command needed its system libraries; the manual says only NumPy and Matplotlib | **fixed**: imported in `makeVideo` only; test in a subprocess with OpenCV unavailable |
+| 8 | The manifest recorded the commit of whatever git repository the data folder is in | **fixed**: the commit of the checkout the code is in, else none |
+| 9 | The reference curve of `plotSurvivors` used the mean departure time as the Rayleigh scale (the engine uses the mean times sqrt(2/pi)): 0.39 instead of 0.54 of the agents gone at the mean | **fixed**, tested against the engine's own draw |
+| 10 | Agents that depart before the first multiple of 10 s move at about 0.01 m/s until it (`speArrPerLink` is first filled at `t % 10 == 0`) | **open** (below) |
+| 11 | Documentation: (a) agents that start at a shelter are not counted "when they depart" but from the first second; (b) `main_mc.py` does not explore with the decaying rate; (c) `survivorsPerSim[-1] == case.pedDB.shape[0]` compares a list with an integer, so the early stop never fires and a resumed run overwrites its survivors file | (a), (b) **fixed**; (c) **open** (below) |
+| 12 | Engine inputs not validated: an empty agents file, a node with 11 links and an agent on an isolated node failed with cryptic errors; `casebuild --agents 0` or `-5` wrote nothing useful | **fixed**: clear messages, in the engine, the table reader and the case builder; tests |
+| 13 | `segmentIndex="raw"` (the 2021 and 2024 presets) raises an `IndexError` instead of freezing when a link's stored length is much shorter than the distance between its nodes | **open** (below) |
+| 14 | A run seeds NumPy's global generator and left it seeded | **fixed**: restored after the run; test |
+| S1-S5 | S1 the shortest-path agent takes the first of parallel links while the route used the shortest; S2 key overflow on Windows with NumPy < 2; S3 `calibrate --sp` does not check that the reference used the same time and options; S4 `workers > 1` from Python on spawn platforms needs a `__main__` guard; S5 two unused, defective resize methods | S2 **fixed** (64-bit keys; not testable on Linux), S4 **documented**; S1, S3, S5 **open** (below) |
+
+Every fix has a test that fails without it; the new behaviours were also mutation-checked (the engine input checks and the shortest-path script: 8 mutants, 1 equivalent, 1 survivor closed with a test; the
+experiment-layer fixes: 3 of 3 killed; the tie-break of Step 5: 5 mutants).
 
 ## The 2024 study's conclusions (D11)
 
@@ -67,4 +100,32 @@ to 54 MiB. It is **not pushed**: it needs a force-push to branches that are not 
 * the removed files are gone from the repository: keep the backup archive (the GIS layers) and, if the Arahama state dumps matter, a copy of the old history.
 
 To apply it, say so, or run `sh docs/audits/step6/shrink_history.sh --push` yourself with `git-filter-repo` installed.
+
+## What is still open
+
+**Needs your word**
+* **Rewriting the history** (D15, above): prepared and verified, not pushed. A full clone drops from 153 MiB to 54 MiB; it needs a force-push of all four branches.
+* **The `@author` headers of five files in `pre/`** (D14): they name Moya and luismoya, and `pre/DisaggregationLibrary.py` hard-codes `C:\Users\Moya\ReGID Dropbox\Luis Moya\...`. They were
+  not changed to Erick Mas, because that would credit the repository owner with a file whose own paths say another person wrote it. If those files were in fact written by the
+  owner, say so and the headers change; if not, their GPL-3.0 licensing needs their author's agreement ([data-licences.md](../../data-licences.md#code-written-by-others)).
+
+**Defects found and not fixed** (each changes a recorded result or is a legacy path; none affects a conclusion of the audits)
+* **Agents that depart before second 10 are almost stationary until it** (finding 10): the link speeds are first computed at `t % 10 == 0`. About 1 to 2 agents on the shipped
+  cases (mean departure 5 min), many with a mean departure of a few seconds. Fixing it changes every recorded run, so it belongs in a version with the golden recordings regenerated and reported (as in Step 2).
+* **The shortest-path agent takes the first of several parallel links** to its next node, although the route was computed with the shortest one (S1): the crowding is booked on the first link. The shipped
+  areas have 5 to 26 node pairs with parallel links (`kochi_area4`: 26 pairs among its 1,634 links), `new_kochi` none. Fixing it changes the shortest-path baseline slightly, so the D8 and D9 figures would be measured again.
+* **`survivorsPerSim[-1] == case.pedDB.shape[0]` in the five 2021 scripts** (finding 11c) compares a list with an integer: the "stop when everybody has survived" never fires, and a resumed run (`numSim0 > 0`) overwrites its survivors file.
+* **`segmentIndex="raw"`** (the 2021 and 2024 presets) can raise an `IndexError` where it is documented to freeze an agent (finding 13); the default is not affected, and none of the shipped cases reaches it.
+* **`calibrate --sp`** does not check that the reference run used the same `--time`, `--departure` and options (S3). **`resizePedestrianDB` and `resizePedDB`** are unused and wrong (S5): they can be deleted.
+
+**Not verified or not recorded**
+* The Kochi Prefectural Office layers are recorded as public domain on the owner's statement; their terms were not looked at (D13, accepted). The source and terms of the census and building databases,
+  the tsunami rasters, the shelter register and the area polygons are not recorded; the date of the OpenStreetMap download is not recorded; basemap images in some notebooks were not checked for attribution
+  ([data-licences.md](../../data-licences.md)).
+* Only Linux was run (Python 3.10 to 3.13). Windows and macOS are untested.
+* The e-mail addresses in the git history stay until the history is rewritten, and then they still stay (changing them rewrites attribution).
+
+**The scientific question**
+* Whether tabular reinforcement learning ever beats the shortest path on a crowded area is **not shown** (D9, [Step 4](../step4/README.md)). The long training run that could settle it (D10) was declined. This is what a
+  paper built on this repository would still have to do, with a state that can express "this street is full" without the cycling of untrained states.
 
